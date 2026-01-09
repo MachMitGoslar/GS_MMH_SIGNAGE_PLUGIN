@@ -1,0 +1,118 @@
+title: Content Channel
+icon: layers
+status:
+  draft: false
+  listed: true
+
+columns:
+  - width: 2/3
+    sections:
+      info:
+        type: fields
+        fields:
+          title:
+            label: Channel Name
+            type: text
+            required: true
+            placeholder: e.g., Main Content Channel
+            width: 2/3
+
+          channel_id:
+            label: Channel ID
+            type: text
+            required: true
+            width: 1/3
+
+          description:
+            label: Description
+            type: textarea
+            maxlength: 500
+            buttons: false
+            placeholder: Describe the purpose of this channel
+            help: Internal reference only
+
+      default_background:
+        type: fields
+        fields:
+          info_background:
+            type: info
+            label: Default Background
+            theme: notice
+            text: This background will be used for slides that don't have their own background media.
+
+          default_bg_image:
+            label: Default Background Image
+            type: files
+            max: 1
+            layout: cards
+            width: 1/2
+            uploads:
+              template: blocks/image
+            help: Fallback background for slides without custom media
+
+          default_bg_video:
+            label: Default Background Video
+            type: files
+            max: 1
+            layout: cards
+            width: 1/2
+            uploads:
+              template: blocks/video
+            accepts:
+              - video/mp4
+              - video/webm
+            help: Optional looping video background (overrides image)
+
+          default_overlay_color:
+            label: Default Overlay Color
+            type: color
+            width: 1/2
+            default: "#000000"
+            help: Color overlay on background media
+
+          default_overlay_opacity:
+            label: Default Overlay Opacity
+            type: range
+            width: 1/2
+            min: 0
+            max: 100
+            step: 5
+            default: 40
+            after: "%"
+            help: 0% = no overlay, 100% = solid color
+
+      slides:
+        type: pages
+        label: Content Slides
+        template: slide
+        create: slide
+        info: "{{ page.slide_type.or('blocks') }} — {{ page.calculatedDuration }} sec"
+        sortable: true
+        status: all
+        help: |
+          Drag to reorder slides. Duration is calculated automatically based on content.
+          Add different slide types: blocks (text/images), videos, or calendar views.
+        empty: No slides yet. Click "Add" to create your first content slide.
+
+  - width: 1/3
+    sections:
+      stats:
+        type: fields
+        fields:
+          info_stats:
+            type: info
+            label: Channel Statistics
+            theme: info
+            text: |
+              **Total Slides:** {{ page.children.count }}
+              **Total Duration:** {{ page.children.sum('calculatedDuration') }} seconds
+
+      preview:
+        type: fields
+        fields:
+          info_preview:
+            type: info
+            label: Preview
+            theme: notice
+            text: |
+              Preview slides in the panel or assign this channel to a screen to see it in action.

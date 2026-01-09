@@ -1,0 +1,26 @@
+name: Signage Text
+icon: text
+preview: text
+wysiwyg: true
+fields:
+  text:
+    label: Text
+    type: writer
+    marks:
+      - bold
+      - italic
+      - underline
+      - strike
+      - link
+      - textcolor
+      - button
+    nodes:
+      - titleXXL
+      - titleXL
+      - title
+      - headline
+      - subheadline
+      - paragraph
+      - bulletList
+      - orderedList
+    placeholder: Write your text here...

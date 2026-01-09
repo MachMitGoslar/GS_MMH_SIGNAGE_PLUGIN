@@ -1,0 +1,397 @@
+title: Content Slide
+icon: image
+status:
+  draft:
+    label: Draft
+    text: Slide is hidden
+  unlisted:
+    label: Active
+    text: Slide is visible in rotation
+
+tabs:
+  content:
+    label: Content
+    icon: text
+    columns:
+      - width: 2/3
+        sections:
+          main:
+            type: fields
+            fields:
+              title:
+                label: Slide Title
+                type: text
+                required: true
+                placeholder: e.g., Welcome Message
+                help: Internal name for this slide
+
+              slide_type:
+                label: Slide Type
+                type: select
+                options:
+                  blocks: Content Blocks
+                  video: Full-Screen Video
+                  calendar: Calendar / Events
+                default: blocks
+                required: true
+                help: Choose the type of content for this slide
+
+          blocks_content:
+            type: fields
+            fields:
+              content_layout:
+                label: Content Layout
+                type: layout
+                layouts:
+                  - "1/1"
+                  - "1/2, 1/2"
+                  - "1/3, 1/3, 1/3"
+                  - "1/4, 1/4, 1/4, 1/4"
+                  - "2/3, 1/3"
+                  - "1/3, 2/3"
+                  - "1/4, 1/2, 1/4"
+                  - "1/4, 3/4"
+                  - "3/4, 1/4"
+                fieldsets:
+                  - signage-text
+                  - image
+                  - list
+                  - quote
+                  - line
+                settings:
+                  fields:
+                    vertical_align:
+                      label: Vertical Alignment
+                      type: select
+                      options:
+                        start: Top
+                        center: Center
+                        end: Bottom
+                      default: center
+                      width: 1/2
+                    padding:
+                      label: Padding
+                      type: select
+                      options:
+                        none: None
+                        small: Small
+                        medium: Medium
+                        large: Large
+                      default: medium
+                      width: 1/2
+                help: Design your slide content with a flexible column layout
+            when:
+              slide_type: blocks
+
+          video_content:
+            type: fields
+            fields:
+              video_source:
+                label: Video Source
+                type: select
+                options:
+                  upload: Uploaded File
+                  embed: Embed URL (YouTube, Vimeo)
+                default: upload
+                width: 1/2
+
+              video_file:
+                label: Video File
+                type: files
+                max: 1
+                accepts:
+                  - video/mp4
+                  - video/webm
+                when:
+                  video_source: upload
+
+              video_embed:
+                label: Embed URL
+                type: url
+                placeholder: https://youtube.com/watch?v=...
+                when:
+                  video_source: embed
+
+              video_autoplay:
+                label: Autoplay
+                type: toggle
+                default: true
+                width: 1/3
+
+              video_muted:
+                label: Muted
+                type: toggle
+                default: true
+                width: 1/3
+
+              video_loop:
+                label: Loop
+                type: toggle
+                default: false
+                width: 1/3
+            when:
+              slide_type: video
+
+          calendar_content:
+            type: fields
+            fields:
+              calendar_source_type:
+                label: Calendar Source
+                type: select
+                options:
+                  external: External iCal URL
+                  pages: Kirby Pages
+                default: external
+                width: 1/2
+
+              calendar_source:
+                label: iCal URL
+                type: url
+                placeholder: https://calendar.google.com/calendar/ical/...
+                when:
+                  calendar_source_type: external
+
+              calendar_pages:
+                label: Event Pages
+                type: pages
+                multiple: true
+                when:
+                  calendar_source_type: pages
+
+              calendar_layout:
+                label: Display Layout
+                type: select
+                options:
+                  list: Event List
+                  agenda: Agenda View
+                  grid: Grid View
+                default: list
+                width: 1/3
+
+              calendar_range:
+                label: Date Range
+                type: select
+                options:
+                  today: Today Only
+                  week: This Week
+                  month: This Month
+                default: week
+                width: 1/3
+
+              calendar_max_events:
+                label: Max Events
+                type: number
+                default: 5
+                min: 1
+                max: 20
+                width: 1/3
+            when:
+              slide_type: calendar
+
+      - width: 1/3
+        sections:
+          timing:
+            type: fields
+            fields:
+              info_timing:
+                type: info
+                label: Timing & Transitions
+                theme: info
+                text: Control how long this slide appears and how it transitions
+
+              duration_mode:
+                label: Duration
+                type: select
+                options:
+                  auto: Auto-Calculate
+                  manual: Manual Override
+                default: auto
+                width: 1/2
+
+              duration_override:
+                label: Duration (seconds)
+                type: number
+                default: 15
+                min: 3
+                max: 300
+                width: 1/2
+                when:
+                  duration_mode: manual
+
+              transition:
+                label: Transition Effect
+                type: select
+                options:
+                  fade: Fade
+                  slide: Slide
+                  zoom: Zoom
+                  none: None (Instant)
+                default: fade
+                width: 1/2
+
+              transition_duration:
+                label: Transition Duration
+                type: number
+                default: 1
+                min: 0
+                max: 5
+                step: 0.5
+                after: sec
+                width: 1/2
+
+          calculated:
+            type: fields
+            fields:
+              info_calculated:
+                type: info
+                label: Calculated Duration
+                theme: notice
+                text: "{{ page.durationCalculationDetails }}"
+
+  background:
+    label: Background
+    icon: image
+    columns:
+      - width: 2/3
+        sections:
+          bg_media:
+            type: fields
+            fields:
+              info_bg:
+                type: info
+                label: Background Media
+                theme: notice
+                text: Set a custom background for this slide. If not set, the channel's default background will be used.
+
+              bg_type:
+                label: Background Type
+                type: select
+                options:
+                  none: Use Channel Default
+                  image: Custom Image
+                  video: Custom Video (Looping)
+                  color: Solid Color Only
+                default: none
+
+              bg_image:
+                label: Background Image
+                type: files
+                max: 1
+                layout: cards
+                size: large
+                accepts:
+                  - image/jpeg
+                  - image/png
+                  - image/webp
+                when:
+                  bg_type: image
+
+              bg_video:
+                label: Background Video
+                type: files
+                max: 1
+                accepts:
+                  - video/mp4
+                  - video/webm
+                when:
+                  bg_type: video
+                help: Video will loop silently in the background
+
+              bg_position:
+                label: Position
+                type: select
+                options:
+                  center: Center
+                  top: Top
+                  bottom: Bottom
+                  left: Left
+                  right: Right
+                default: center
+                width: 1/2
+                when:
+                  bg_type:
+                    - image
+                    - video
+
+              bg_size:
+                label: Size
+                type: select
+                options:
+                  cover: Cover (Fill)
+                  contain: Contain (Fit)
+                default: cover
+                width: 1/2
+                when:
+                  bg_type:
+                    - image
+                    - video
+
+      - width: 1/3
+        sections:
+          overlay:
+            type: fields
+            fields:
+              info_overlay:
+                type: info
+                label: Color Overlay
+                theme: info
+                text: Add a color overlay on top of the background to improve text readability
+
+              overlay_enabled:
+                label: Enable Overlay
+                type: toggle
+                default: true
+
+              overlay_color:
+                label: Overlay Color
+                type: color
+                default: "#000000"
+                when:
+                  overlay_enabled: true
+
+              overlay_opacity:
+                label: Opacity
+                type: range
+                min: 0
+                max: 100
+                step: 5
+                default: 40
+                after: "%"
+                when:
+                  overlay_enabled: true
+                help: 0% = transparent, 100% = solid
+
+              overlay_gradient:
+                label: Gradient Direction
+                type: select
+                options:
+                  none: No Gradient (Solid)
+                  to-top: Fade to Top
+                  to-bottom: Fade to Bottom
+                  to-left: Fade to Left
+                  to-right: Fade to Right
+                  radial: Radial (Center Out)
+                default: none
+                when:
+                  overlay_enabled: true
+                help: Creates a gradient overlay effect
+
+  preview:
+    label: Preview
+    icon: preview
+    columns:
+      - width: 1/1
+        sections:
+          preview_info:
+            type: fields
+            fields:
+              info_preview:
+                type: info
+                label: Slide Preview
+                theme: notice
+                text: |
+                  **Slide Type:** {{ page.slide_type.or('blocks') }}
+                  **Duration:** {{ page.calculatedDuration }} seconds
+                  **Transition:** {{ page.transition.or('fade') }}
+
+                  To preview this slide, assign the channel to a screen and open the screen URL.

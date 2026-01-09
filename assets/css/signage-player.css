@@ -1,0 +1,633 @@
+/**
+ * Signage Player Styles
+ *
+ * CSS for digital signage screen player interface.
+ * Handles layout, transitions, and display states.
+ */
+
+/* Base Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(
+    --font-family-default,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Arial,
+    sans-serif
+  );
+  overflow: hidden;
+  background: var(--color-black, #000);
+  color: var(--color-white, #fff);
+}
+
+/* Player Container */
+#signage-player {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Slide Base */
+.signage-slide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  transition: opacity 1s ease-in-out, transform 1s ease-in-out;
+}
+
+.signage-slide.active {
+  opacity: 1;
+  z-index: 10;
+}
+
+/* Orientation-specific layouts */
+body[data-orientation="vertical"] .signage-slide {
+  flex-direction: column;
+}
+
+body[data-orientation="horizontal"] .signage-slide {
+  flex-direction: row;
+}
+
+/* Transitions */
+.signage-slide[data-transition="fade"] {
+  transform: none;
+}
+
+.signage-slide[data-transition="slide-left"]:not(.active) {
+  transform: translateX(100%);
+}
+
+.signage-slide[data-transition="slide-right"]:not(.active) {
+  transform: translateX(-100%);
+}
+
+.signage-slide[data-transition="slide-up"]:not(.active) {
+  transform: translateY(100%);
+}
+
+.signage-slide[data-transition="slide-down"]:not(.active) {
+  transform: translateY(-100%);
+}
+
+/* Slide Overlay */
+.slide-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 15;
+  pointer-events: none;
+}
+/* Slide Content */
+.slide-content {
+  max-width: 90%;
+  max-height: 90%;
+  width: 100%;
+  position: relative;
+  z-index: 20;
+  color: var(--color-dead-pixel-1200)
+}
+
+/* Content Positioning */
+/* Center (default) */
+.signage-slide.content-position-center {
+  justify-content: center;
+  align-items: center;
+}
+
+
+/* Top Position */
+.signage-slide.content-position-top {
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.signage-slide.content-position-top .slide-content {
+  padding-top: 4rem;
+}
+
+/* Bottom Position */
+.signage-slide.content-position-bottom {
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.signage-slide.content-position-bottom .slide-content {
+  padding-bottom: 4rem;
+}
+
+
+body[data-orientation="vertical"] .signage-slide.content-position-top .slide-content,
+body[data-orientation="vertical"] .signage-slide.content-position-bottom .slide-content {
+  max-width: 90%;
+}
+
+/* Layout System */
+.layout-row {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  gap: 2rem;
+}
+
+/* Vertical Alignment */
+.layout-row[data-vertical-align="start"] {
+  align-items: flex-start;
+}
+
+.layout-row[data-vertical-align="center"] {
+  align-items: center;
+}
+
+.layout-row[data-vertical-align="end"] {
+  align-items: flex-end;
+}
+
+/* Padding */
+.layout-row[data-padding="none"] {
+  padding: 0;
+}
+
+.layout-row[data-padding="small"] {
+  padding: 1rem;
+}
+
+.layout-row[data-padding="medium"] {
+  padding: 2rem;
+}
+
+.layout-row[data-padding="large"] {
+  padding: 4rem;
+}
+
+/* Layout Columns */
+.layout-column {
+  flex: 1;
+  min-width: 0; /* Prevent flex items from overflowing */
+}
+
+/* Column Widths */
+.layout-column[data-width="1/1"] {
+  flex: 0 0 100%;
+}
+
+.layout-column[data-width="1/2"] {
+  flex: 0 0 calc(50% - 1rem);
+}
+
+.layout-column[data-width="1/3"] {
+  flex: 0 0 calc(33.333% - 1.333rem);
+}
+
+.layout-column[data-width="2/3"] {
+  flex: 0 0 calc(66.666% - 0.666rem);
+}
+
+.layout-column[data-width="1/4"] {
+  flex: 0 0 calc(25% - 1.5rem);
+}
+
+.layout-column[data-width="3/4"] {
+  flex: 0 0 calc(75% - 0.5rem);
+}
+
+/* Responsive: Stack columns on portrait orientation */
+body[data-orientation="vertical"] .layout-row {
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+body[data-orientation="vertical"] .layout-column {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+/* Block Styles */
+.slide-content h1,
+.slide-content h2,
+.slide-content h3,
+.slide-content h4,
+.slide-content h5,
+.slide-content h6 {
+  margin-bottom: 1rem;
+  line-height: 1.2;
+}
+
+/* Text color marks */
+.slide-content [data-text-color] {
+  /* Color applied via inline style from backend */
+}
+
+.slide-content [data-text-color="ripe-mango"] {
+  color: var(--color-ripe-mango-700, #fcce4c);
+}
+
+.slide-content [data-text-color="dead-pixel"] {
+  color: var(--color-dead-pixel-400, #c6c6c6);
+}
+
+.slide-content [data-text-color="white"] {
+  color: #ffffff;
+}
+
+.slide-content [data-text-color="black"] {
+  color: #000000;
+}
+
+.slide-content .text-block {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.slide-content .image-block {
+  margin: 1.5rem 0;
+}
+
+.slide-content .image-block img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.slide-content .image-block figcaption {
+  margin-top: 0.5rem;
+  font-size: 0.9em;
+  opacity: 0.8;
+  font-style: italic;
+}
+
+.slide-content .list-block {
+  margin-bottom: 1rem;
+}
+
+.slide-content .list-block ul,
+.slide-content .list-block ol {
+  margin-left: 1.5rem;
+}
+
+.slide-content .list-block li {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.slide-content .quote-block {
+  margin: 2rem 0;
+  padding: 1.5rem 2rem;
+  border-left: 4px solid var(--color-ripe-mango-700, #fcce4c);
+  font-size: 1.2em;
+  font-style: italic;
+}
+
+.slide-content .quote-block cite {
+  display: block;
+  margin-top: 1rem;
+  font-size: 0.85em;
+  font-style: normal;
+  opacity: 0.8;
+}
+
+.slide-content .line-block {
+  margin: 2rem 0;
+  border: none;
+  border-top: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.slide-content img {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+}
+
+.slide-content video {
+  max-width: 100%;
+  max-height: 90vh;
+  width: 100%;
+}
+
+/* Access Pending Screen */
+#access-pending {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  text-align: center;
+  padding: 2rem;
+}
+
+#access-pending h1 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: var(--color-ripe-mango-700, #fcce4c);
+}
+
+#access-pending p {
+  font-size: 1.2rem;
+  color: var(--color-dead-pixel-400, #c6c6c6);
+}
+
+#access-pending .device-id {
+  margin-top: 2rem;
+  padding: 1rem;
+  background: var(--color-dead-pixel-1200, #3f3f3e);
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 0.9rem;
+}
+
+/* Standby Screen */
+#standby-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  text-align: center;
+  padding: 2rem;
+}
+
+#standby-screen img {
+  max-width: 50%;
+  max-height: 50vh;
+  margin-bottom: 2rem;
+}
+
+#standby-screen p {
+  font-size: 1.5rem;
+  color: var(--color-dead-pixel-400, #c6c6c6);
+}
+
+/* Loading Indicator */
+.loading {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255 255 255 / 20%);
+  border-top-color: var(--color-ripe-mango-700, #fcce4c);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.loading.visible {
+  opacity: 1;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===========================================
+   Calendar Slide Styles
+   =========================================== */
+
+/* Calendar Common Styles */
+.calendar-title {
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  color: var(--color-ripe-mango-700, #fcce4c);
+  text-align: center;
+}
+
+.calendar-error,
+.calendar-empty {
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.5rem;
+  color: var(--color-dead-pixel-400, #c6c6c6);
+}
+
+.calendar-error {
+  color: #ff6b6b;
+}
+
+/* Calendar List Layout */
+.calendar-list {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.calendar-list .event-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.calendar-list .event-item {
+  display: flex;
+  gap: 2rem;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.calendar-list .event-item:last-child {
+  border-bottom: none;
+}
+
+.calendar-list .event-date-time {
+  flex: 0 0 150px;
+  text-align: right;
+}
+
+.calendar-list .event-date {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--color-ripe-mango-700, #fcce4c);
+}
+
+.calendar-list .event-time {
+  display: block;
+  font-size: 1rem;
+  color: var(--color-dead-pixel-400, #c6c6c6);
+  margin-top: 0.25rem;
+}
+
+.calendar-list .event-details {
+  flex: 1;
+}
+
+.calendar-list .event-title {
+  font-size: 1.4rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.calendar-list .event-location {
+  display: block;
+  font-size: 1rem;
+  color: var(--color-dead-pixel-400, #c6c6c6);
+  margin-bottom: 0.5rem;
+}
+
+.calendar-list .event-location::before {
+  content: "📍 ";
+}
+
+.calendar-list .event-description {
+  font-size: 0.95rem;
+  color: var(--color-dead-pixel-400, #c6c6c6);
+  line-height: 1.5;
+}
+
+/* Calendar Agenda Layout */
+.calendar-agenda {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.calendar-agenda .agenda-day {
+  margin-bottom: 2rem;
+}
+
+.calendar-agenda .agenda-date {
+  font-size: 1.5rem;
+  color: var(--color-ripe-mango-700, #fcce4c);
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--color-ripe-mango-700, #fcce4c);
+  margin-bottom: 1rem;
+}
+
+.calendar-agenda .agenda-events {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.calendar-agenda .agenda-event {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.calendar-agenda .agenda-event:last-child {
+  border-bottom: none;
+}
+
+.calendar-agenda .event-time {
+  flex: 0 0 80px;
+  font-size: 1.1rem;
+  color: var(--color-dead-pixel-400, #c6c6c6);
+  font-weight: 500;
+}
+
+.calendar-agenda .event-title {
+  flex: 1;
+  font-size: 1.2rem;
+}
+
+.calendar-agenda .event-location {
+  font-size: 0.9rem;
+  color: var(--color-dead-pixel-400, #c6c6c6);
+}
+
+/* Calendar Grid Layout */
+.calendar-grid {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.calendar-grid .event-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.calendar-grid .event-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.calendar-grid .event-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+}
+
+.calendar-grid .event-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.calendar-grid .event-date {
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--color-ripe-mango-700, #fcce4c);
+}
+
+.calendar-grid .event-time {
+  font-size: 0.9rem;
+  color: var(--color-dead-pixel-400, #c6c6c6);
+}
+
+.calendar-grid .event-title {
+  font-size: 1.3rem;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.3;
+}
+
+.calendar-grid .event-location {
+  font-size: 0.9rem;
+  color: var(--color-dead-pixel-400, #c6c6c6);
+  margin: 0 0 0.5rem 0;
+}
+
+.calendar-grid .event-location::before {
+  content: "📍 ";
+}
+
+.calendar-grid .event-description {
+  font-size: 0.9rem;
+  color: var(--color-dead-pixel-600, #9a9a9a);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Vertical Orientation Adjustments */
+body[data-orientation="vertical"] .calendar-list .event-item {
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+body[data-orientation="vertical"] .calendar-list .event-date-time {
+  flex: 0 0 auto;
+  text-align: left;
+  display: flex;
+  gap: 1rem;
+}
+
+body[data-orientation="vertical"] .calendar-grid .event-cards {
+  grid-template-columns: 1fr;
+}

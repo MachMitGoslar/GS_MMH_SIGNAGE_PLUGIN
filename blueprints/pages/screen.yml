@@ -1,0 +1,311 @@
+title: Signage Screen
+icon: monitor
+status:
+  draft:
+    label: Draft
+    text: Screen is not active
+  unlisted:
+    label: Active
+    text: Screen is active
+
+columns:
+  - width: 2/3
+    sections:
+      settings:
+        type: fields
+        fields:
+          title:
+            label: Screen Name
+            type: text
+            required: true
+            placeholder: e.g., Lobby Display
+            help: Internal name for this screen
+            width: 2/3
+
+          screen_id:
+            label: Screen ID
+            type: text
+            required: true
+            help: Used in URL (e.g., /signage/lobby-screen)
+            width: 1/3
+            icon: url
+
+          orientation:
+            label: Screen Orientation
+            type: select
+            options:
+              horizontal: Horizontal (Landscape)
+              vertical: Vertical (Portrait)
+            default: horizontal
+            width: 1/2
+            help: Affects content layout and transitions
+
+          status:
+            label: Screen Status
+            type: toggle
+            text:
+              - Inactive
+              - Active
+            default: true
+            width: 1/2
+
+      schedule:
+        type: fields
+        fields:
+          info_schedule:
+            type: info
+            label: Channel & Timing
+            theme: positive
+            text: Configure which content channel is displayed and when the screen is active
+
+          assigned_channel:
+            label: Primary Channel
+            type: select
+            options: query
+            query: site.find('signage/channels').children.listed.add(site.find('signage/channels').drafts)
+            text: "{{ page.title }}"
+            help: Default channel when no time-based schedule applies
+            required: true
+            empty: No channels available - create one first
+
+          channel_schedule:
+            label: Time-Based Channel Schedule
+            type: structure
+            fields:
+              channel:
+                label: Channel
+                type: select
+                options: query
+                query: site.find('signage/channels').children.listed.add(site.find('signage/channels').drafts)
+                text: "{{ page.title }}"
+                width: 1/2
+                required: true
+              time_start:
+                label: Start Time
+                type: time
+                width: 1/4
+                required: true
+                step: 15
+              time_end:
+                label: End Time
+                type: time
+                width: 1/4
+                required: true
+                step: 15
+            help: Automatically switch channels at specific times (e.g., morning vs afternoon content). Times cannot overlap.
+            max: 10
+
+          active_times:
+            label: Active Hours
+            type: structure
+            fields:
+              start:
+                label: Start Time
+                type: time
+                width: 1/3
+                required: true
+                step: 15
+                default: "08:00"
+              end:
+                label: End Time
+                type: time
+                width: 1/3
+                required: true
+                step: 15
+                default: "18:00"
+              days:
+                label: Days
+                type: checkboxes
+                width: 1/3
+                columns: 2
+                options:
+                  mon: Mon
+                  tue: Tue
+                  wed: Wed
+                  thu: Thu
+                  fri: Fri
+                  sat: Sat
+                  sun: Sun
+                default:
+                  - mon
+                  - tue
+                  - wed
+                  - thu
+                  - fri
+            help: Screen displays content only during these hours. Outside these times, standby mode is shown.
+            max: 5
+
+      standby:
+        type: fields
+        fields:
+          info_standby:
+            type: info
+            label: Standby Mode
+            theme: info
+            text: Configure what is displayed when the screen is outside active hours
+
+          standby_mode:
+            label: Standby Display
+            type: select
+            options:
+              blank: Blank Screen (Black)
+              logo: Show Logo Only
+              custom: Custom Message + Image
+            default: custom
+            width: 1/2
+
+          standby_transition:
+            label: Transition Duration
+            type: number
+            default: 5
+            min: 0
+            max: 60
+            step: 5
+            after: seconds
+            width: 1/2
+            help: Fade-in time when entering standby
+
+          standby_image:
+            label: Standby Image
+            type: files
+            max: 1
+            layout: cards
+            size: medium
+            accepts:
+              - image/jpeg
+              - image/png
+              - image/webp
+              - image/svg+xml
+            when:
+              standby_mode: custom
+            help: Background image for standby screen
+
+          standby_message:
+            label: Standby Message
+            type: textarea
+            maxlength: 500
+            buttons: false
+            when:
+              standby_mode: custom
+            placeholder: e.g., "Display will resume at 8:00 AM"
+            help: Optional message shown during standby
+
+  - width: 1/3
+    sections:
+      preview:
+        type: fields
+        fields:
+          info_preview:
+            type: info
+            label: Screen Access
+            theme: notice
+            text: |
+              **Screen URL:**
+              /signage/{{ page.slug }}
+
+              **Status:** {{ page.status.toBool ? '🟢 Active' : '🔴 Inactive' }}
+              **Orientation:** {{ page.orientation.or('horizontal') }}
+
+          preview_button:
+            type: info
+            text: |
+              <a href="/signage/{{ page.slug }}" target="_blank" class="k-button">
+                <span class="k-button-text">Open Screen</span>
+              </a>
+
+      access_control:
+        type: fields
+        fields:
+          info_access:
+            type: info
+            label: Access Control
+            theme: positive
+            text: Control which devices can display this screen
+
+          whitelist_enabled:
+            label: Access Mode
+            type: toggle
+            text:
+              - Public (No Restrictions)
+              - Whitelist Only (Approval Required)
+            default: true
+            help: When enabled, new devices must be approved before displaying content
+
+          whitelist:
+            label: Approved Devices
+            type: structure
+            fields:
+              label:
+                label: Device Label
+                type: text
+                placeholder: e.g., "Lobby Tablet"
+                width: 1/2
+              uuid:
+                label: Device UUID
+                type: text
+                width: 1/4
+                font: mono
+              ip:
+                label: IP Address
+                type: text
+                width: 1/4
+                font: mono
+              approved_at:
+                label: Approved
+                type: date
+                time: true
+                disabled: true
+                width: 1/2
+              approved_by:
+                label: Approved By
+                type: text
+                disabled: true
+                width: 1/2
+            sortable: true
+            max: 50
+            help: Devices that can display this screen
+
+      pending_requests_display:
+        type: fields
+        fields:
+          pending_requests:
+            label: Pending Access Requests
+            type: structure
+            fields:
+              uuid:
+                label: Device UUID
+                type: text
+                width: 1/3
+                font: mono
+              ip:
+                label: IP Address
+                type: text
+                width: 1/6
+              requested_at:
+                label: Requested At
+                type: text
+                width: 1/4
+              user_agent:
+                label: User Agent
+                type: text
+                width: 1/4
+            empty: ✅ No pending access requests
+
+      info:
+        type: fields
+        fields:
+          info_help:
+            type: info
+            label: Need Help?
+            theme: info
+            text: |
+              **Quick Start:**
+              1. Set orientation & active hours
+              2. Assign a content channel
+              3. Configure access control
+              4. Open the screen URL
+
+              **Troubleshooting:**
+              - No content? Check if channel has slides
+              - Access denied? Review whitelist settings
+              - Wrong timing? Verify active hours

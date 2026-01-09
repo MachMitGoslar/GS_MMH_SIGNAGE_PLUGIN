@@ -1,0 +1,20 @@
+title: Channels
+icon: layers
+options:
+  changeSlug: false
+  changeStatus: false
+  changeTitle: false
+  delete: false
+
+columns:
+  - width: 1/1
+    sections:
+      channels:
+        type: pages
+        label: Content Channels
+        template: channel
+        query: site.find('signage/channels').children.listed.add(site.find('signage/channels').
+        status: all
+        info: "{{ page.children.count }} slides"
+        empty: No content channels yet
+        help: Organize content into reusable channels

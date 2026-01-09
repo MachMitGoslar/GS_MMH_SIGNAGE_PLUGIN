@@ -1,0 +1,45 @@
+title: Signage System
+icon: monitor
+options:
+  changeSlug: false
+  changeStatus: false
+  changeTitle: false
+  delete: false
+
+tabs:
+  screens:
+    label: Screens
+    icon: monitor
+    columns:
+      - width: 1/1
+        sections:
+          screens:
+            type: pages
+            label: Display Screens
+            parent: site.find('signage/screens')
+            query: site.find('signage/screens').children
+            template: screen
+            status: all
+            info: "{{ page.orientation }} — {{ page.status.toBool ? 'Active' : 'Inactive' }}"
+            image:
+              query: page.standby_image.toFile
+              cover: true
+            empty: No screens configured yet
+            help: Create and manage digital signage display screens
+
+  channels:
+    label: Channels
+    icon: layers
+    columns:
+      - width: 1/1
+        sections:
+          channels:
+            type: pages
+            label: Content Channels
+            parent: site.find('signage/channels')
+            query: site.find('signage/channels').children
+            template: channel
+            status: all
+            info: "{{ page.children.count }} slides"
+            empty: No content channels yet
+            help: Organize content into reusable channels

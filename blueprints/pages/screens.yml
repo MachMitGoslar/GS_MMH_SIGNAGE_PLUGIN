@@ -1,0 +1,22 @@
+title: Screens
+icon: monitor
+options:
+  changeSlug: false
+  changeStatus: false
+  changeTitle: false
+  delete: false
+
+columns:
+  - width: 1/1
+    sections:
+      screens:
+        type: pages
+        label: Display Screens
+        template: screen
+        status: all
+        info: "{{ page.orientation }} — {{ page.status.toBool ? 'Active' : 'Inactive' }}"
+        image:
+          query: page.standby_image.toFile
+          cover: true
+        empty: No screens configured yet
+        help: Create and manage digital signage display screens
