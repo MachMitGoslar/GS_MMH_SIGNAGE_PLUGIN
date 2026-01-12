@@ -214,7 +214,7 @@ Kirby::plugin('gs/mmh-signage', [
                         $uuid = $data['uuid'] ?? null;
                         $ip = $kirby->visitor()->ip();
 
-                        if (!$screenSlug || !$uuid) {
+                        if (! $screenSlug || ! $uuid) {
                             return [
                                 'status' => 'error',
                                 'access' => 'denied',
@@ -232,7 +232,7 @@ Kirby::plugin('gs/mmh-signage', [
                     'action' => function (string $screenSlug) use ($kirby) {
                         $screen = $kirby->page('signage/screens/' . $screenSlug);
 
-                        if (!$screen) {
+                        if (! $screen) {
                             return [
                                 'code' => 404,
                                 'status' => 'error',
@@ -268,12 +268,14 @@ Kirby::plugin('gs/mmh-signage', [
             if ($this->intendedTemplate()->name() === 'slide') {
                 return DurationCalculator::calculate($this);
             }
+
             return 0;
         },
         'durationCalculationDetails' => function () {
             if ($this->intendedTemplate()->name() === 'slide') {
                 return DurationCalculator::getCalculationDetails($this);
             }
+
             return '';
         },
         'isActiveNow' => function () {
@@ -290,7 +292,7 @@ Kirby::plugin('gs/mmh-signage', [
                 $daysValue = $timeRange->days()->value();
                 if ($daysValue) {
                     $allowedDays = array_map('trim', explode(',', strtolower($daysValue)));
-                    if (!in_array($currentDay, $allowedDays)) {
+                    if (! in_array($currentDay, $allowedDays)) {
                         continue; // Skip this time range if today is not an allowed day
                     }
                 }
@@ -300,16 +302,16 @@ Kirby::plugin('gs/mmh-signage', [
                 $endValue = $timeRange->end()->value();
 
                 $start = DateTime::createFromFormat('H:i:s', $startValue);
-                if (!$start) {
+                if (! $start) {
                     $start = DateTime::createFromFormat('H:i', $startValue);
                 }
 
                 $end = DateTime::createFromFormat('H:i:s', $endValue);
-                if (!$end) {
+                if (! $end) {
                     $end = DateTime::createFromFormat('H:i', $endValue);
                 }
 
-                if (!$start || !$end) {
+                if (! $start || ! $end) {
                     continue;
                 }
 
@@ -336,15 +338,17 @@ Kirby::plugin('gs/mmh-signage', [
 
                     if ($now >= $start && $now <= $end) {
                         $channelSlug = $entry->channel()->value();
-                        
+
                         return kirby()->page('signage/channels/' . $channelSlug);
                     }
                 }
 
                 // Fallback to assigned channel
                 $channelId = $this->assigned_channel()->value();
+
                 return kirby()->page($channelId);
             }
+
             return null;
         },
         'pendingRequestsHtml' => function () {
@@ -376,6 +380,7 @@ Kirby::plugin('gs/mmh-signage', [
 
                 return $html;
             }
+
             return '';
         },
     ],
@@ -428,6 +433,7 @@ Kirby::plugin('gs/mmh-signage', [
                 if (file_exists($path)) {
                     return new Response(file_get_contents($path), 'text/css');
                 }
+
                 return false;
             },
         ],
@@ -441,6 +447,7 @@ Kirby::plugin('gs/mmh-signage', [
                         'type' => 'text/javascript',
                     ];
                 }
+
                 return false;
             },
         ],
@@ -448,13 +455,194 @@ Kirby::plugin('gs/mmh-signage', [
             'pattern' => 'signage/(:any)',
             'action' => function ($screenSlug) {
                 $screen = page('signage/screens/' . $screenSlug);
-                if (!$screen) {
+                if (! $screen) {
                     return page('error');
                 }
 
                 // Return the page itself, which will use the screen template
                 return $screen;
             },
+        ],
+    ],
+
+    /**
+     * Translations
+     */
+    'translations' => [
+        'en' => [
+            // Signage Area
+            'signage.area.label' => 'Signage',
+            'signage.screens.title' => 'Signage Screens',
+            'signage.channels.title' => 'Content Channels',
+
+            // Screen Blueprint
+            'signage.screen.title' => 'Screen Configuration',
+            'signage.screen.tab.settings' => 'Settings',
+            'signage.screen.tab.content' => 'Content',
+            'signage.screen.tab.access' => 'Access Control',
+            'signage.screen.tab.schedule' => 'Schedule',
+            'signage.screen.field.screen_id' => 'Screen ID',
+            'signage.screen.field.screen_id.help' => 'Unique identifier for this screen (used in URLs)',
+            'signage.screen.field.orientation' => 'Orientation',
+            'signage.screen.field.orientation.horizontal' => 'Horizontal (Landscape)',
+            'signage.screen.field.orientation.vertical' => 'Vertical (Portrait)',
+            'signage.screen.field.assigned_channel' => 'Primary Channel',
+            'signage.screen.field.assigned_channel.help' => 'Default channel when no schedule matches',
+            'signage.screen.field.active_times' => 'Active Hours',
+            'signage.screen.field.active_times.help' => 'Screen displays content during these hours',
+            'signage.screen.field.whitelist_enabled' => 'Enable Access Control',
+            'signage.screen.field.whitelist_enabled.help' => 'Require device approval before displaying content',
+            'signage.screen.field.whitelist' => 'Approved Devices',
+            'signage.screen.field.pending_requests' => 'Pending Access Requests',
+            'signage.screen.field.standby_mode' => 'Standby Mode',
+            'signage.screen.field.standby_image' => 'Standby Image',
+            'signage.screen.field.standby_message' => 'Standby Message',
+            'signage.screen.field.channel_schedule' => 'Time-Based Channel Schedule',
+
+            // Channel Blueprint
+            'signage.channel.title' => 'Content Channel',
+            'signage.channel.field.channel_id' => 'Channel ID',
+            'signage.channel.field.description' => 'Description',
+            'signage.channel.field.background_color' => 'Background Color',
+            'signage.channel.field.default_bg_image' => 'Default Background Image',
+            'signage.channel.field.default_bg_video' => 'Default Background Video',
+            'signage.channel.field.default_overlay_color' => 'Default Overlay Color',
+            'signage.channel.field.default_overlay_opacity' => 'Default Overlay Opacity',
+
+            // Slide Blueprint
+            'signage.slide.title' => 'Content Slide',
+            'signage.slide.tab.content' => 'Content',
+            'signage.slide.tab.background' => 'Background',
+            'signage.slide.tab.preview' => 'Preview',
+            'signage.slide.field.slide_type' => 'Slide Type',
+            'signage.slide.field.slide_type.blocks' => 'Content Blocks',
+            'signage.slide.field.slide_type.video' => 'Full-Screen Video',
+            'signage.slide.field.slide_type.calendar' => 'Calendar / Events',
+            'signage.slide.field.content_layout' => 'Content Layout',
+            'signage.slide.field.duration_mode' => 'Duration',
+            'signage.slide.field.duration_mode.auto' => 'Auto-Calculate',
+            'signage.slide.field.duration_mode.manual' => 'Manual Override',
+            'signage.slide.field.duration_override' => 'Duration (seconds)',
+            'signage.slide.field.transition' => 'Transition Effect',
+            'signage.slide.field.transition.fade' => 'Fade',
+            'signage.slide.field.transition.slide' => 'Slide',
+            'signage.slide.field.transition.zoom' => 'Zoom',
+            'signage.slide.field.transition.none' => 'None (Instant)',
+            'signage.slide.field.bg_type' => 'Background Type',
+            'signage.slide.field.bg_type.none' => 'Use Channel Default',
+            'signage.slide.field.bg_type.image' => 'Custom Image',
+            'signage.slide.field.bg_type.video' => 'Custom Video (Looping)',
+            'signage.slide.field.bg_type.color' => 'Solid Color Only',
+            'signage.slide.field.overlay_enabled' => 'Enable Overlay',
+            'signage.slide.field.overlay_color' => 'Overlay Color',
+            'signage.slide.field.overlay_opacity' => 'Opacity',
+
+            // Calendar
+            'signage.slide.field.calendar_source_type' => 'Calendar Source',
+            'signage.slide.field.calendar_source_type.external' => 'External iCal URL',
+            'signage.slide.field.calendar_source_type.pages' => 'Kirby Pages',
+            'signage.slide.field.calendar_source' => 'iCal URL',
+            'signage.slide.field.calendar_layout' => 'Display Layout',
+            'signage.slide.field.calendar_layout.list' => 'Event List',
+            'signage.slide.field.calendar_layout.agenda' => 'Agenda View',
+            'signage.slide.field.calendar_layout.grid' => 'Grid View',
+            'signage.slide.field.calendar_range' => 'Date Range',
+            'signage.slide.field.calendar_range.today' => 'Today Only',
+            'signage.slide.field.calendar_range.week' => 'This Week',
+            'signage.slide.field.calendar_range.month' => 'This Month',
+            'signage.slide.field.calendar_max_events' => 'Max Events',
+
+            // Blocks
+            'signage.block.signage-text' => 'Signage Text',
+            'signage.block.signage-heading' => 'Signage Heading',
+        ],
+
+        'de' => [
+            // Signage Bereich
+            'signage.area.label' => 'Beschilderung',
+            'signage.screens.title' => 'Bildschirme',
+            'signage.channels.title' => 'Inhaltskanäle',
+
+            // Bildschirm Blueprint
+            'signage.screen.title' => 'Bildschirm-Konfiguration',
+            'signage.screen.tab.settings' => 'Einstellungen',
+            'signage.screen.tab.content' => 'Inhalt',
+            'signage.screen.tab.access' => 'Zugriffskontrolle',
+            'signage.screen.tab.schedule' => 'Zeitplan',
+            'signage.screen.field.screen_id' => 'Bildschirm-ID',
+            'signage.screen.field.screen_id.help' => 'Eindeutige Kennung für diesen Bildschirm (wird in URLs verwendet)',
+            'signage.screen.field.orientation' => 'Ausrichtung',
+            'signage.screen.field.orientation.horizontal' => 'Horizontal (Querformat)',
+            'signage.screen.field.orientation.vertical' => 'Vertikal (Hochformat)',
+            'signage.screen.field.assigned_channel' => 'Primärer Kanal',
+            'signage.screen.field.assigned_channel.help' => 'Standardkanal wenn kein Zeitplan passt',
+            'signage.screen.field.active_times' => 'Aktive Zeiten',
+            'signage.screen.field.active_times.help' => 'Bildschirm zeigt Inhalte während dieser Zeiten',
+            'signage.screen.field.whitelist_enabled' => 'Zugriffskontrolle aktivieren',
+            'signage.screen.field.whitelist_enabled.help' => 'Gerätegenehmigung vor Anzeige von Inhalten erforderlich',
+            'signage.screen.field.whitelist' => 'Genehmigte Geräte',
+            'signage.screen.field.pending_requests' => 'Ausstehende Zugriffsanfragen',
+            'signage.screen.field.standby_mode' => 'Standby-Modus',
+            'signage.screen.field.standby_image' => 'Standby-Bild',
+            'signage.screen.field.standby_message' => 'Standby-Nachricht',
+            'signage.screen.field.channel_schedule' => 'Zeitbasierter Kanalplan',
+
+            // Kanal Blueprint
+            'signage.channel.title' => 'Inhaltskanal',
+            'signage.channel.field.channel_id' => 'Kanal-ID',
+            'signage.channel.field.description' => 'Beschreibung',
+            'signage.channel.field.background_color' => 'Hintergrundfarbe',
+            'signage.channel.field.default_bg_image' => 'Standard-Hintergrundbild',
+            'signage.channel.field.default_bg_video' => 'Standard-Hintergrundvideo',
+            'signage.channel.field.default_overlay_color' => 'Standard-Overlay-Farbe',
+            'signage.channel.field.default_overlay_opacity' => 'Standard-Overlay-Deckkraft',
+
+            // Folie Blueprint
+            'signage.slide.title' => 'Inhaltsfolie',
+            'signage.slide.tab.content' => 'Inhalt',
+            'signage.slide.tab.background' => 'Hintergrund',
+            'signage.slide.tab.preview' => 'Vorschau',
+            'signage.slide.field.slide_type' => 'Folientyp',
+            'signage.slide.field.slide_type.blocks' => 'Inhaltsblöcke',
+            'signage.slide.field.slide_type.video' => 'Vollbild-Video',
+            'signage.slide.field.slide_type.calendar' => 'Kalender / Termine',
+            'signage.slide.field.content_layout' => 'Inhalts-Layout',
+            'signage.slide.field.duration_mode' => 'Anzeigedauer',
+            'signage.slide.field.duration_mode.auto' => 'Automatisch berechnen',
+            'signage.slide.field.duration_mode.manual' => 'Manuell festlegen',
+            'signage.slide.field.duration_override' => 'Dauer (Sekunden)',
+            'signage.slide.field.transition' => 'Übergangseffekt',
+            'signage.slide.field.transition.fade' => 'Überblenden',
+            'signage.slide.field.transition.slide' => 'Schieben',
+            'signage.slide.field.transition.zoom' => 'Zoom',
+            'signage.slide.field.transition.none' => 'Ohne (Sofort)',
+            'signage.slide.field.bg_type' => 'Hintergrundtyp',
+            'signage.slide.field.bg_type.none' => 'Kanal-Standard verwenden',
+            'signage.slide.field.bg_type.image' => 'Eigenes Bild',
+            'signage.slide.field.bg_type.video' => 'Eigenes Video (Endlosschleife)',
+            'signage.slide.field.bg_type.color' => 'Nur Volltonfarbe',
+            'signage.slide.field.overlay_enabled' => 'Overlay aktivieren',
+            'signage.slide.field.overlay_color' => 'Overlay-Farbe',
+            'signage.slide.field.overlay_opacity' => 'Deckkraft',
+
+            // Kalender
+            'signage.slide.field.calendar_source_type' => 'Kalenderquelle',
+            'signage.slide.field.calendar_source_type.external' => 'Externe iCal-URL',
+            'signage.slide.field.calendar_source_type.pages' => 'Kirby-Seiten',
+            'signage.slide.field.calendar_source' => 'iCal-URL',
+            'signage.slide.field.calendar_layout' => 'Anzeigeformat',
+            'signage.slide.field.calendar_layout.list' => 'Terminliste',
+            'signage.slide.field.calendar_layout.agenda' => 'Agenda-Ansicht',
+            'signage.slide.field.calendar_layout.grid' => 'Rasteransicht',
+            'signage.slide.field.calendar_range' => 'Zeitraum',
+            'signage.slide.field.calendar_range.today' => 'Nur heute',
+            'signage.slide.field.calendar_range.week' => 'Diese Woche',
+            'signage.slide.field.calendar_range.month' => 'Dieser Monat',
+            'signage.slide.field.calendar_max_events' => 'Max. Termine',
+
+            // Blöcke
+            'signage.block.signage-text' => 'Signage-Text',
+            'signage.block.signage-heading' => 'Signage-Überschrift',
         ],
     ],
 ]);

@@ -1,4 +1,4 @@
-title: Screens
+title: Bildschirme
 icon: monitor
 options:
   changeSlug: false
@@ -11,12 +11,12 @@ columns:
     sections:
       screens:
         type: pages
-        label: Display Screens
+        label: Anzeige-Bildschirme
         template: screen
         status: all
-        info: "{{ page.orientation }} — {{ page.status.toBool ? 'Active' : 'Inactive' }}"
+        info: "{{ page.orientation }} — {{ page.status.toBool ? 'Aktiv' : 'Inaktiv' }}"
         image:
           query: page.standby_image.toFile
           cover: true
-        empty: No screens configured yet
-        help: Create and manage digital signage display screens
+        empty: Noch keine Bildschirme konfiguriert
+        help: Erstellen und verwalten Sie digitale Signage-Bildschirme

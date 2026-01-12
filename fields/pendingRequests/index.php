@@ -7,7 +7,6 @@
  * with approve/deny buttons.
  */
 
-use Kirby\Cms\App as Kirby;
 
 return [
     'props' => [
@@ -24,6 +23,7 @@ return [
             if (is_string($value)) {
                 $value = \Kirby\Data\Yaml::decode($value);
             }
+
             return $value ?? [];
         },
     ],
@@ -36,7 +36,7 @@ return [
                     $uuid = $this->requestBody('uuid');
                     $screenSlug = $this->requestBody('screen');
 
-                    if (!$uuid || !$screenSlug) {
+                    if (! $uuid || ! $screenSlug) {
                         return [
                             'status' => 'error',
                             'message' => 'Missing UUID or screen parameter',
@@ -44,7 +44,7 @@ return [
                     }
 
                     $screen = kirby()->page('signage/screens/' . $screenSlug);
-                    if (!$screen) {
+                    if (! $screen) {
                         return [
                             'status' => 'error',
                             'message' => 'Screen not found',
@@ -72,6 +72,7 @@ return [
                     foreach ($pending as $item) {
                         if ($item->uuid()->value() === $uuid) {
                             $requestIp = $item->ip()->value();
+
                             break;
                         }
                     }
@@ -111,7 +112,7 @@ return [
                     $uuid = $this->requestBody('uuid');
                     $screenSlug = $this->requestBody('screen');
 
-                    if (!$uuid || !$screenSlug) {
+                    if (! $uuid || ! $screenSlug) {
                         return [
                             'status' => 'error',
                             'message' => 'Missing UUID or screen parameter',
@@ -119,7 +120,7 @@ return [
                     }
 
                     $screen = kirby()->page('signage/screens/' . $screenSlug);
-                    if (!$screen) {
+                    if (! $screen) {
                         return [
                             'status' => 'error',
                             'message' => 'Screen not found',

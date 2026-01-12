@@ -1,16 +1,16 @@
-title: Content Slide
+title: Inhaltsfolie
 icon: image
 status:
   draft:
-    label: Draft
-    text: Slide is hidden
+    label: Entwurf
+    text: Folie ist ausgeblendet
   unlisted:
-    label: Active
-    text: Slide is visible in rotation
+    label: Aktiv
+    text: Folie ist in der Rotation sichtbar
 
 tabs:
   content:
-    label: Content
+    label: Inhalt
     icon: text
     columns:
       - width: 2/3
@@ -19,28 +19,28 @@ tabs:
             type: fields
             fields:
               title:
-                label: Slide Title
+                label: Folientitel
                 type: text
                 required: true
-                placeholder: e.g., Welcome Message
-                help: Internal name for this slide
+                placeholder: z.B. Willkommensnachricht
+                help: Interner Name für diese Folie
 
               slide_type:
-                label: Slide Type
+                label: Folientyp
                 type: select
                 options:
-                  blocks: Content Blocks
-                  video: Full-Screen Video
-                  calendar: Calendar / Events
+                  blocks: Inhaltsblöcke
+                  video: Vollbild-Video
+                  calendar: Kalender / Termine
                 default: blocks
                 required: true
-                help: Choose the type of content for this slide
+                help: Wählen Sie den Inhaltstyp für diese Folie
 
           blocks_content:
             type: fields
             fields:
               content_layout:
-                label: Content Layout
+                label: Inhalts-Layout
                 type: layout
                 layouts:
                   - "1/1"
@@ -61,25 +61,25 @@ tabs:
                 settings:
                   fields:
                     vertical_align:
-                      label: Vertical Alignment
+                      label: Vertikale Ausrichtung
                       type: select
                       options:
-                        start: Top
-                        center: Center
-                        end: Bottom
+                        start: Oben
+                        center: Mitte
+                        end: Unten
                       default: center
                       width: 1/2
                     padding:
-                      label: Padding
+                      label: Abstand
                       type: select
                       options:
-                        none: None
-                        small: Small
-                        medium: Medium
-                        large: Large
+                        none: Kein
+                        small: Klein
+                        medium: Mittel
+                        large: Groß
                       default: medium
                       width: 1/2
-                help: Design your slide content with a flexible column layout
+                help: Gestalten Sie Ihren Folieninhalt mit einem flexiblen Spaltenlayout
             when:
               slide_type: blocks
 
@@ -87,16 +87,16 @@ tabs:
             type: fields
             fields:
               video_source:
-                label: Video Source
+                label: Videoquelle
                 type: select
                 options:
-                  upload: Uploaded File
-                  embed: Embed URL (YouTube, Vimeo)
+                  upload: Hochgeladene Datei
+                  embed: Einbettungs-URL (YouTube, Vimeo)
                 default: upload
                 width: 1/2
 
               video_file:
-                label: Video File
+                label: Videodatei
                 type: files
                 max: 1
                 accepts:
@@ -106,26 +106,26 @@ tabs:
                   video_source: upload
 
               video_embed:
-                label: Embed URL
+                label: Einbettungs-URL
                 type: url
                 placeholder: https://youtube.com/watch?v=...
                 when:
                   video_source: embed
 
               video_autoplay:
-                label: Autoplay
+                label: Automatisch abspielen
                 type: toggle
                 default: true
                 width: 1/3
 
               video_muted:
-                label: Muted
+                label: Stumm
                 type: toggle
                 default: true
                 width: 1/3
 
               video_loop:
-                label: Loop
+                label: Endlosschleife
                 type: toggle
                 default: false
                 width: 1/3
@@ -136,50 +136,50 @@ tabs:
             type: fields
             fields:
               calendar_source_type:
-                label: Calendar Source
+                label: Kalenderquelle
                 type: select
                 options:
-                  external: External iCal URL
-                  pages: Kirby Pages
+                  external: Externe iCal-URL
+                  pages: Kirby-Seiten
                 default: external
                 width: 1/2
 
               calendar_source:
-                label: iCal URL
+                label: iCal-URL
                 type: url
                 placeholder: https://calendar.google.com/calendar/ical/...
                 when:
                   calendar_source_type: external
 
               calendar_pages:
-                label: Event Pages
+                label: Terminseiten
                 type: pages
                 multiple: true
                 when:
                   calendar_source_type: pages
 
               calendar_layout:
-                label: Display Layout
+                label: Anzeigeformat
                 type: select
                 options:
-                  list: Event List
-                  agenda: Agenda View
-                  grid: Grid View
+                  list: Terminliste
+                  agenda: Agenda-Ansicht
+                  grid: Rasteransicht
                 default: list
                 width: 1/3
 
               calendar_range:
-                label: Date Range
+                label: Zeitraum
                 type: select
                 options:
-                  today: Today Only
-                  week: This Week
-                  month: This Month
+                  today: Nur heute
+                  week: Diese Woche
+                  month: Dieser Monat
                 default: week
                 width: 1/3
 
               calendar_max_events:
-                label: Max Events
+                label: Max. Termine
                 type: number
                 default: 5
                 min: 1
@@ -195,21 +195,21 @@ tabs:
             fields:
               info_timing:
                 type: info
-                label: Timing & Transitions
+                label: Timing & Übergänge
                 theme: info
-                text: Control how long this slide appears and how it transitions
+                text: Steuern Sie, wie lange diese Folie angezeigt wird und wie sie übergeht
 
               duration_mode:
-                label: Duration
+                label: Anzeigedauer
                 type: select
                 options:
-                  auto: Auto-Calculate
-                  manual: Manual Override
+                  auto: Automatisch berechnen
+                  manual: Manuell festlegen
                 default: auto
                 width: 1/2
 
               duration_override:
-                label: Duration (seconds)
+                label: Dauer (Sekunden)
                 type: number
                 default: 15
                 min: 3
@@ -219,24 +219,24 @@ tabs:
                   duration_mode: manual
 
               transition:
-                label: Transition Effect
+                label: Übergangseffekt
                 type: select
                 options:
-                  fade: Fade
-                  slide: Slide
+                  fade: Überblenden
+                  slide: Schieben
                   zoom: Zoom
-                  none: None (Instant)
+                  none: Ohne (Sofort)
                 default: fade
                 width: 1/2
 
               transition_duration:
-                label: Transition Duration
+                label: Übergangsdauer
                 type: number
                 default: 1
                 min: 0
                 max: 5
                 step: 0.5
-                after: sec
+                after: Sek.
                 width: 1/2
 
           calculated:
@@ -244,12 +244,12 @@ tabs:
             fields:
               info_calculated:
                 type: info
-                label: Calculated Duration
+                label: Berechnete Dauer
                 theme: notice
                 text: "{{ page.durationCalculationDetails }}"
 
   background:
-    label: Background
+    label: Hintergrund
     icon: image
     columns:
       - width: 2/3
@@ -259,22 +259,22 @@ tabs:
             fields:
               info_bg:
                 type: info
-                label: Background Media
+                label: Hintergrundmedien
                 theme: notice
-                text: Set a custom background for this slide. If not set, the channel's default background will be used.
+                text: Legen Sie einen benutzerdefinierten Hintergrund für diese Folie fest. Wenn nicht gesetzt, wird der Kanal-Standard verwendet.
 
               bg_type:
-                label: Background Type
+                label: Hintergrundtyp
                 type: select
                 options:
-                  none: Use Channel Default
-                  image: Custom Image
-                  video: Custom Video (Looping)
-                  color: Solid Color Only
+                  none: Kanal-Standard verwenden
+                  image: Eigenes Bild
+                  video: Eigenes Video (Endlosschleife)
+                  color: Nur Volltonfarbe
                 default: none
 
               bg_image:
-                label: Background Image
+                label: Hintergrundbild
                 type: files
                 max: 1
                 layout: cards
@@ -287,7 +287,7 @@ tabs:
                   bg_type: image
 
               bg_video:
-                label: Background Video
+                label: Hintergrundvideo
                 type: files
                 max: 1
                 accepts:
@@ -295,17 +295,17 @@ tabs:
                   - video/webm
                 when:
                   bg_type: video
-                help: Video will loop silently in the background
+                help: Video wird lautlos im Hintergrund wiederholt
 
               bg_position:
                 label: Position
                 type: select
                 options:
-                  center: Center
-                  top: Top
-                  bottom: Bottom
-                  left: Left
-                  right: Right
+                  center: Mitte
+                  top: Oben
+                  bottom: Unten
+                  left: Links
+                  right: Rechts
                 default: center
                 width: 1/2
                 when:
@@ -314,11 +314,11 @@ tabs:
                     - video
 
               bg_size:
-                label: Size
+                label: Größe
                 type: select
                 options:
-                  cover: Cover (Fill)
-                  contain: Contain (Fit)
+                  cover: Ausfüllen (Cover)
+                  contain: Einpassen (Contain)
                 default: cover
                 width: 1/2
                 when:
@@ -333,24 +333,24 @@ tabs:
             fields:
               info_overlay:
                 type: info
-                label: Color Overlay
+                label: Farbüberlagerung
                 theme: info
-                text: Add a color overlay on top of the background to improve text readability
+                text: Fügen Sie eine Farbüberlagerung über dem Hintergrund hinzu, um die Textlesbarkeit zu verbessern
 
               overlay_enabled:
-                label: Enable Overlay
+                label: Overlay aktivieren
                 type: toggle
                 default: true
 
               overlay_color:
-                label: Overlay Color
+                label: Overlay-Farbe
                 type: color
                 default: "#000000"
                 when:
                   overlay_enabled: true
 
               overlay_opacity:
-                label: Opacity
+                label: Deckkraft
                 type: range
                 min: 0
                 max: 100
@@ -359,25 +359,25 @@ tabs:
                 after: "%"
                 when:
                   overlay_enabled: true
-                help: 0% = transparent, 100% = solid
+                help: 0% = transparent, 100% = vollständig deckend
 
               overlay_gradient:
-                label: Gradient Direction
+                label: Verlaufsrichtung
                 type: select
                 options:
-                  none: No Gradient (Solid)
-                  to-top: Fade to Top
-                  to-bottom: Fade to Bottom
-                  to-left: Fade to Left
-                  to-right: Fade to Right
-                  radial: Radial (Center Out)
+                  none: Kein Verlauf (Einfarbig)
+                  to-top: Nach oben verblassen
+                  to-bottom: Nach unten verblassen
+                  to-left: Nach links verblassen
+                  to-right: Nach rechts verblassen
+                  radial: Radial (von Mitte)
                 default: none
                 when:
                   overlay_enabled: true
-                help: Creates a gradient overlay effect
+                help: Erzeugt einen Verlaufs-Overlay-Effekt
 
   preview:
-    label: Preview
+    label: Vorschau
     icon: preview
     columns:
       - width: 1/1
@@ -387,11 +387,11 @@ tabs:
             fields:
               info_preview:
                 type: info
-                label: Slide Preview
+                label: Folienvorschau
                 theme: notice
                 text: |
-                  **Slide Type:** {{ page.slide_type.or('blocks') }}
-                  **Duration:** {{ page.calculatedDuration }} seconds
-                  **Transition:** {{ page.transition.or('fade') }}
+                  **Folientyp:** {{ page.slide_type.or('blocks') }}
+                  **Dauer:** {{ page.calculatedDuration }} Sekunden
+                  **Übergang:** {{ page.transition.or('fade') }}
 
-                  To preview this slide, assign the channel to a screen and open the screen URL.
+                  Um diese Folie in der Vorschau zu sehen, weisen Sie den Kanal einem Bildschirm zu und öffnen Sie die Bildschirm-URL.

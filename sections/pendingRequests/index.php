@@ -6,7 +6,6 @@
  * Custom panel section for managing pending device access requests
  */
 
-use Kirby\Cms\App as Kirby;
 
 return [
     'props' => [
@@ -44,7 +43,7 @@ return [
                     $uuid = $this->requestBody('uuid');
                     $screen = $this->model();
 
-                    if (!$screen || !$uuid) {
+                    if (! $screen || ! $uuid) {
                         return ['status' => 'error', 'message' => 'Missing parameters'];
                     }
 
@@ -97,7 +96,7 @@ return [
                     $uuid = $this->requestBody('uuid');
                     $screen = $this->model();
 
-                    if (!$screen || !$uuid) {
+                    if (! $screen || ! $uuid) {
                         return ['status' => 'error', 'message' => 'Missing parameters'];
                     }
 

@@ -1,12 +1,12 @@
-title: Signage Screen
+title: Signage-Bildschirm
 icon: monitor
 status:
   draft:
-    label: Draft
-    text: Screen is not active
+    label: Entwurf
+    text: Bildschirm ist nicht aktiv
   unlisted:
-    label: Active
-    text: Screen is active
+    label: Aktiv
+    text: Bildschirm ist aktiv
 
 columns:
   - width: 2/3
@@ -15,37 +15,37 @@ columns:
         type: fields
         fields:
           title:
-            label: Screen Name
+            label: Bildschirmname
             type: text
             required: true
-            placeholder: e.g., Lobby Display
-            help: Internal name for this screen
+            placeholder: z.B. Lobby-Display
+            help: Interner Name für diesen Bildschirm
             width: 2/3
 
           screen_id:
-            label: Screen ID
+            label: Bildschirm-ID
             type: text
             required: true
-            help: Used in URL (e.g., /signage/lobby-screen)
+            help: Wird in URL verwendet (z.B. /signage/lobby-screen)
             width: 1/3
             icon: url
 
           orientation:
-            label: Screen Orientation
+            label: Bildschirmausrichtung
             type: select
             options:
-              horizontal: Horizontal (Landscape)
-              vertical: Vertical (Portrait)
+              horizontal: Horizontal (Querformat)
+              vertical: Vertikal (Hochformat)
             default: horizontal
             width: 1/2
-            help: Affects content layout and transitions
+            help: Beeinflusst Inhaltslayout und Übergänge
 
           status:
-            label: Screen Status
+            label: Bildschirmstatus
             type: toggle
             text:
-              - Inactive
-              - Active
+              - Inaktiv
+              - Aktiv
             default: true
             width: 1/2
 
@@ -54,26 +54,26 @@ columns:
         fields:
           info_schedule:
             type: info
-            label: Channel & Timing
+            label: Kanal & Zeitplan
             theme: positive
-            text: Configure which content channel is displayed and when the screen is active
+            text: Konfigurieren Sie, welcher Inhaltskanal angezeigt wird und wann der Bildschirm aktiv ist
 
           assigned_channel:
-            label: Primary Channel
+            label: Primärer Kanal
             type: select
             options: query
             query: site.find('signage/channels').children.listed.add(site.find('signage/channels').drafts)
             text: "{{ page.title }}"
-            help: Default channel when no time-based schedule applies
+            help: Standardkanal, wenn kein Zeitplan aktiv ist
             required: true
-            empty: No channels available - create one first
+            empty: Keine Kanäle vorhanden - erstellen Sie zuerst einen
 
           channel_schedule:
-            label: Time-Based Channel Schedule
+            label: Zeitbasierter Kanalplan
             type: structure
             fields:
               channel:
-                label: Channel
+                label: Kanal
                 type: select
                 options: query
                 query: site.find('signage/channels').children.listed.add(site.find('signage/channels').drafts)
@@ -81,58 +81,58 @@ columns:
                 width: 1/2
                 required: true
               time_start:
-                label: Start Time
+                label: Startzeit
                 type: time
                 width: 1/4
                 required: true
                 step: 15
               time_end:
-                label: End Time
+                label: Endzeit
                 type: time
                 width: 1/4
                 required: true
                 step: 15
-            help: Automatically switch channels at specific times (e.g., morning vs afternoon content). Times cannot overlap.
+            help: Automatischer Kanalwechsel zu bestimmten Zeiten (z.B. Morgen- vs. Nachmittagsinhalte). Zeiten dürfen sich nicht überschneiden.
             max: 10
 
           active_times:
-            label: Active Hours
+            label: Aktive Zeiten
             type: structure
             fields:
               start:
-                label: Start Time
+                label: Startzeit
                 type: time
                 width: 1/3
                 required: true
                 step: 15
                 default: "08:00"
               end:
-                label: End Time
+                label: Endzeit
                 type: time
                 width: 1/3
                 required: true
                 step: 15
                 default: "18:00"
               days:
-                label: Days
+                label: Tage
                 type: checkboxes
                 width: 1/3
                 columns: 2
                 options:
-                  mon: Mon
-                  tue: Tue
-                  wed: Wed
-                  thu: Thu
-                  fri: Fri
-                  sat: Sat
-                  sun: Sun
+                  mon: Mo
+                  tue: Di
+                  wed: Mi
+                  thu: Do
+                  fri: Fr
+                  sat: Sa
+                  sun: So
                 default:
                   - mon
                   - tue
                   - wed
                   - thu
                   - fri
-            help: Screen displays content only during these hours. Outside these times, standby mode is shown.
+            help: Bildschirm zeigt Inhalte nur während dieser Zeiten. Außerhalb wird der Standby-Modus angezeigt.
             max: 5
 
       standby:
@@ -140,33 +140,33 @@ columns:
         fields:
           info_standby:
             type: info
-            label: Standby Mode
+            label: Standby-Modus
             theme: info
-            text: Configure what is displayed when the screen is outside active hours
+            text: Konfigurieren Sie, was außerhalb der aktiven Zeiten angezeigt wird
 
           standby_mode:
-            label: Standby Display
+            label: Standby-Anzeige
             type: select
             options:
-              blank: Blank Screen (Black)
-              logo: Show Logo Only
-              custom: Custom Message + Image
+              blank: Schwarzer Bildschirm
+              logo: Nur Logo anzeigen
+              custom: Eigene Nachricht + Bild
             default: custom
             width: 1/2
 
           standby_transition:
-            label: Transition Duration
+            label: Übergangsdauer
             type: number
             default: 5
             min: 0
             max: 60
             step: 5
-            after: seconds
+            after: Sekunden
             width: 1/2
-            help: Fade-in time when entering standby
+            help: Einblendzeit beim Wechsel in Standby
 
           standby_image:
-            label: Standby Image
+            label: Standby-Bild
             type: files
             max: 1
             layout: cards
@@ -178,17 +178,17 @@ columns:
               - image/svg+xml
             when:
               standby_mode: custom
-            help: Background image for standby screen
+            help: Hintergrundbild für Standby-Bildschirm
 
           standby_message:
-            label: Standby Message
+            label: Standby-Nachricht
             type: textarea
             maxlength: 500
             buttons: false
             when:
               standby_mode: custom
-            placeholder: e.g., "Display will resume at 8:00 AM"
-            help: Optional message shown during standby
+            placeholder: z.B. "Anzeige wird um 8:00 Uhr fortgesetzt"
+            help: Optionale Nachricht während Standby
 
   - width: 1/3
     sections:
@@ -197,20 +197,20 @@ columns:
         fields:
           info_preview:
             type: info
-            label: Screen Access
+            label: Bildschirmzugriff
             theme: notice
             text: |
-              **Screen URL:**
+              **Bildschirm-URL:**
               /signage/{{ page.slug }}
 
-              **Status:** {{ page.status.toBool ? '🟢 Active' : '🔴 Inactive' }}
-              **Orientation:** {{ page.orientation.or('horizontal') }}
+              **Status:** {{ page.status.toBool ? '🟢 Aktiv' : '🔴 Inaktiv' }}
+              **Ausrichtung:** {{ page.orientation.or('horizontal') }}
 
           preview_button:
             type: info
             text: |
               <a href="/signage/{{ page.slug }}" target="_blank" class="k-button">
-                <span class="k-button-text">Open Screen</span>
+                <span class="k-button-text">Bildschirm öffnen</span>
               </a>
 
       access_control:
@@ -218,94 +218,94 @@ columns:
         fields:
           info_access:
             type: info
-            label: Access Control
+            label: Zugriffskontrolle
             theme: positive
-            text: Control which devices can display this screen
+            text: Kontrollieren Sie, welche Geräte diesen Bildschirm anzeigen können
 
           whitelist_enabled:
-            label: Access Mode
+            label: Zugriffsmodus
             type: toggle
             text:
-              - Public (No Restrictions)
-              - Whitelist Only (Approval Required)
+              - Öffentlich (keine Einschränkung)
+              - Nur Whitelist (Genehmigung erforderlich)
             default: true
-            help: When enabled, new devices must be approved before displaying content
+            help: Bei Aktivierung müssen neue Geräte vor der Anzeige genehmigt werden
 
           whitelist:
-            label: Approved Devices
+            label: Genehmigte Geräte
             type: structure
             fields:
               label:
-                label: Device Label
+                label: Gerätebezeichnung
                 type: text
-                placeholder: e.g., "Lobby Tablet"
+                placeholder: z.B. "Lobby-Tablet"
                 width: 1/2
               uuid:
-                label: Device UUID
+                label: Geräte-UUID
                 type: text
                 width: 1/4
                 font: mono
               ip:
-                label: IP Address
+                label: IP-Adresse
                 type: text
                 width: 1/4
                 font: mono
               approved_at:
-                label: Approved
+                label: Genehmigt am
                 type: date
                 time: true
                 disabled: true
                 width: 1/2
               approved_by:
-                label: Approved By
+                label: Genehmigt von
                 type: text
                 disabled: true
                 width: 1/2
             sortable: true
             max: 50
-            help: Devices that can display this screen
+            help: Geräte, die diesen Bildschirm anzeigen dürfen
 
       pending_requests_display:
         type: fields
         fields:
           pending_requests:
-            label: Pending Access Requests
+            label: Ausstehende Zugriffsanfragen
             type: structure
             fields:
               uuid:
-                label: Device UUID
+                label: Geräte-UUID
                 type: text
                 width: 1/3
                 font: mono
               ip:
-                label: IP Address
+                label: IP-Adresse
                 type: text
                 width: 1/6
               requested_at:
-                label: Requested At
+                label: Angefragt am
                 type: text
                 width: 1/4
               user_agent:
-                label: User Agent
+                label: Browser-Info
                 type: text
                 width: 1/4
-            empty: ✅ No pending access requests
+            empty: ✅ Keine ausstehenden Zugriffsanfragen
 
       info:
         type: fields
         fields:
           info_help:
             type: info
-            label: Need Help?
+            label: Hilfe
             theme: info
             text: |
-              **Quick Start:**
-              1. Set orientation & active hours
-              2. Assign a content channel
-              3. Configure access control
-              4. Open the screen URL
+              **Schnellstart:**
+              1. Ausrichtung & aktive Zeiten festlegen
+              2. Inhaltskanal zuweisen
+              3. Zugriffskontrolle konfigurieren
+              4. Bildschirm-URL öffnen
 
-              **Troubleshooting:**
-              - No content? Check if channel has slides
-              - Access denied? Review whitelist settings
-              - Wrong timing? Verify active hours
+              **Problemlösung:**
+              - Kein Inhalt? Prüfen Sie, ob der Kanal Folien hat
+              - Zugriff verweigert? Whitelist-Einstellungen prüfen
+              - Falsches Timing? Aktive Zeiten überprüfen

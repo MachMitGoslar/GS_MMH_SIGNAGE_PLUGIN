@@ -24,7 +24,7 @@ class ICalParser
             // Fetch iCal data
             $icalData = self::fetchIcalData($url);
 
-            if (!$icalData) {
+            if (! $icalData) {
                 return [
                     'error' => true,
                     'message' => 'Failed to fetch calendar data',
@@ -54,6 +54,7 @@ class ICalParser
 
         } catch (Exception $e) {
             error_log('ICalParser Error: ' . $e->getMessage());
+
             return [
                 'error' => true,
                 'message' => $e->getMessage(),
@@ -124,14 +125,16 @@ class ICalParser
             if ($line === 'BEGIN:VEVENT') {
                 $inEvent = true;
                 $currentEvent = [];
+
                 continue;
             }
 
             if ($line === 'END:VEVENT') {
                 $inEvent = false;
-                if (!empty($currentEvent)) {
+                if (! empty($currentEvent)) {
                     $events[] = self::processEvent($currentEvent);
                 }
+
                 continue;
             }
 
@@ -313,6 +316,7 @@ class ICalParser
                 $end = clone $now;
                 $end->setTime(23, 59, 59);
                 $endTimestamp = $end->getTimestamp();
+
                 break;
 
             case 'week':
@@ -320,6 +324,7 @@ class ICalParser
                 $end->modify('+7 days');
                 $end->setTime(23, 59, 59);
                 $endTimestamp = $end->getTimestamp();
+
                 break;
 
             case 'month':
@@ -327,6 +332,7 @@ class ICalParser
                 $end->modify('+30 days');
                 $end->setTime(23, 59, 59);
                 $endTimestamp = $end->getTimestamp();
+
                 break;
 
             default:
@@ -338,6 +344,7 @@ class ICalParser
 
         return array_filter($events, function ($event) use ($startTimestamp, $endTimestamp) {
             $eventStart = $event['start_timestamp'];
+
             // Include events that start within the range or are ongoing
             return $eventStart >= $startTimestamp && $eventStart <= $endTimestamp;
         });
@@ -374,7 +381,9 @@ class ICalParser
      */
     private static function formatDate(string $dateString): string
     {
-        if (empty($dateString)) return '';
+        if (empty($dateString)) {
+            return '';
+        }
 
         $date = new DateTime($dateString);
         $today = new DateTime('today');
@@ -394,9 +403,12 @@ class ICalParser
      */
     private static function formatTime(string $dateString): string
     {
-        if (empty($dateString) || strlen($dateString) <= 10) return '';
+        if (empty($dateString) || strlen($dateString) <= 10) {
+            return '';
+        }
 
         $date = new DateTime($dateString);
+
         return $date->format('H:i'); // 24-hour format, e.g., "14:30"
     }
 }

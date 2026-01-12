@@ -1,4 +1,4 @@
-title: Channels
+title: Kanäle
 icon: layers
 options:
   changeSlug: false
@@ -11,10 +11,9 @@ columns:
     sections:
       channels:
         type: pages
-        label: Content Channels
+        label: Inhaltskanäle
         template: channel
-        query: site.find('signage/channels').children.listed.add(site.find('signage/channels').
         status: all
-        info: "{{ page.children.count }} slides"
-        empty: No content channels yet
-        help: Organize content into reusable channels
+        info: "{{ page.children.count }} Folien"
+        empty: Noch keine Inhaltskanäle vorhanden
+        help: Organisieren Sie Inhalte in wiederverwendbare Kanäle

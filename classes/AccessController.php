@@ -21,7 +21,7 @@ class AccessController
     public static function checkAccess(string $screenSlug, string $uuid, string $ip): array
     {
         $screen = kirby()->page('signage/screens/' . $screenSlug);
-        if (!$screen) {
+        if (! $screen) {
             return [
                 'status' => 'error',
                 'message' => 'Screen not found',
@@ -39,7 +39,7 @@ class AccessController
         }
 
         // If whitelist is disabled, grant access immediately
-        if (!$screen->whitelist_enabled()->toBool()) {
+        if (! $screen->whitelist_enabled()->toBool()) {
             return [
                 'status' => 'success',
                 'access' => 'granted',
@@ -97,12 +97,13 @@ class AccessController
         foreach ($pendingArray as $request) {
             if ($request['uuid'] === $uuid) {
                 $alreadyPending = true;
+
                 break;
             }
         }
 
         // Add new request if not already pending
-        if (!$alreadyPending) {
+        if (! $alreadyPending) {
             $pendingArray[] = [
                 'uuid' => $uuid,
                 'ip' => $ip,
@@ -139,7 +140,7 @@ class AccessController
     {
         $screen = kirby()->page('signage/screens/' . $screenSlug);
 
-        if (!$screen) {
+        if (! $screen) {
             return [
                 'status' => 'error',
                 'message' => 'Screen not found',
@@ -178,7 +179,7 @@ class AccessController
             }
         }
 
-        if (!$approvedRequest) {
+        if (! $approvedRequest) {
             return [
                 'status' => 'error',
                 'message' => 'Request not found in pending list',
@@ -230,7 +231,7 @@ class AccessController
         }
 
         // Check if within active hours
-        if (!$screen->isActiveNow()) {
+        if (! $screen->isActiveNow()) {
             return [
                 'status' => 'standby',
                 'standby_mode' => $screen->standby_mode()->value(),
@@ -241,7 +242,7 @@ class AccessController
 
         // Get active channel
         $channel = $screen->activeChannel();
-        if (!$channel) {
+        if (! $channel) {
             return [
                 'status' => 'error',
                 'message' => 'No channel assigned',
@@ -297,14 +298,17 @@ class AccessController
         switch ($slideType) {
             case 'blocks':
                 $baseData['layout'] = self::getLayoutData($slide);
+
                 break;
 
             case 'video':
                 $baseData['video'] = self::getVideoData($slide);
+
                 break;
 
             case 'calendar':
                 $baseData['calendar'] = self::getCalendarData($slide);
+
                 break;
         }
 
@@ -391,10 +395,12 @@ class AccessController
                         case 'signage-heading':
                             $blockData['text'] = $block->text()->toWriterHTML();
                             $blockData['level'] = $block->level()->value() ?? 'h2';
+
                             break;
 
                         case 'signage-text':
                             $blockData['text'] = $block->text()->toWriterHTML();
+
                             break;
 
                         case 'image':
@@ -404,15 +410,18 @@ class AccessController
                                 $blockData['alt'] = $block->alt()->value();
                                 $blockData['caption'] = $block->caption()->value();
                             }
+
                             break;
 
                         case 'list':
                             $blockData['text'] = $block->text()->kirbytext();
+
                             break;
 
                         case 'quote':
                             $blockData['text'] = $block->text()->kirbytext();
                             $blockData['citation'] = $block->citation()->value();
+
                             break;
 
                         case 'line':
@@ -483,7 +492,7 @@ class AccessController
             if ($icalUrl) {
                 $icalResult = ICalParser::fetchEvents($icalUrl, $range, $maxEvents);
 
-                if (!$icalResult['error']) {
+                if (! $icalResult['error']) {
                     // Format events for display
                     $calendarData['events'] = array_map(function ($event) {
                         return ICalParser::formatEventForDisplay($event);
