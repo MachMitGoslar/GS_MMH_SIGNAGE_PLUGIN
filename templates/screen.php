@@ -47,6 +47,8 @@
                 contentData: null,
                 currentSlideIndex: 0,
                 slideTimeout: null,
+                accessIntervalId: null,
+                refreshIntervalId: null,
             },
 
             /**
@@ -64,12 +66,18 @@
 
                 // Start access check interval if pending
                 if (this.state.accessStatus === 'pending') {
-                    setInterval(() => this.checkAccess(), this.config.checkInterval);
+                    this.state.accessIntervalId = setInterval(
+                        () => this.checkAccess(),
+                        this.config.checkInterval
+                    );
                 }
 
                 // Start content refresh interval if granted
                 if (this.state.accessStatus === 'granted') {
-                    setInterval(() => this.refreshContent(), this.config.refreshInterval);
+                    this.state.refreshIntervalId = setInterval(
+                        () => this.refreshContent(),
+                        this.config.refreshInterval
+                    );
                 }
             },
 
@@ -126,6 +134,7 @@
                     } else if (data.access === 'pending') {
                         this.showAccessPending();
                     } else {
+                        this.stopAccessChecks();
                         this.showAccessDenied(data.message);
                     }
 
@@ -169,6 +178,12 @@
             async refreshContent() {
                 console.log('🔄 Refreshing content...');
                 await this.loadContent();
+            },
+            stopAccessChecks() {
+                if (this.state.accessIntervalId) {
+                    clearInterval(this.state.accessIntervalId);
+                    this.state.accessIntervalId = null;
+                }
             },
 
             /**
