@@ -106,11 +106,13 @@ panel.plugin('gs/mmh-signage', {
         name: String,
         value: [Array, String, Object],
         requests: Array,
+        deniedRequests: Array,
         screen: String,
       },
       data() {
         return {
           items: normalizeRequests(this.requests, this.value),
+          deniedItems: normalizeRequests(this.deniedRequests, []),
           processing: null,
         };
       },
@@ -118,10 +120,16 @@ panel.plugin('gs/mmh-signage', {
         hasRequests() {
           return this.items.length > 0;
         },
+        hasDenied() {
+          return this.deniedItems.length > 0;
+        },
       },
       watch: {
         requests(next) {
           this.items = normalizeRequests(next, this.value);
+        },
+        deniedRequests(next) {
+          this.deniedItems = normalizeRequests(next, []);
         },
         value(next) {
           if (!this.requests || this.requests.length === 0) {
@@ -253,6 +261,71 @@ panel.plugin('gs/mmh-signage', {
             this.processing = null;
           }
         },
+        async allowDenied(uuid) {
+          if (this.processing === uuid) return;
+
+          this.$panel.dialog.open({
+            component: 'k-form-dialog',
+            props: {
+              fields: {
+                label: {
+                  label: 'Geraetename',
+                  type: 'text',
+                  placeholder: 'z.B. Lobby-Tablet',
+                },
+              },
+              value: {
+                label: '',
+              },
+              submitButton: 'Genehmigen',
+            },
+            on: {
+              submit: (values) => {
+                this.$panel.dialog.close();
+                this.submitApprove(uuid, values.label || '');
+              },
+              cancel: () => {
+                this.$panel.dialog.close();
+              },
+            },
+          });
+        },
+        async removeDenied(uuid) {
+          if (this.processing === uuid) return;
+          const screenSlug = this.getScreenSlug();
+          if (!screenSlug) {
+            this.$panel.notification.error('Konnte den Screen nicht ermitteln.');
+            return;
+          }
+
+          this.processing = uuid;
+
+          try {
+            const response = await this.$api.post(
+              `signage/remove-denied`,
+              {
+                uuid: uuid,
+                screen: screenSlug,
+              }
+            );
+
+            if (response.status === 'success') {
+              this.$panel.notification.success(response.message || 'Eintrag entfernt');
+              this.deniedItems = this.deniedItems.filter((request) => request.uuid !== uuid);
+              if (this.$panel?.view?.reload) {
+                this.$panel.view.reload();
+              } else if (this.$reload) {
+                this.$reload();
+              }
+            } else {
+              this.$panel.notification.error(response.message || 'Failed to remove denied request');
+            }
+          } catch (error) {
+            this.$panel.notification.error(error.message || 'Failed to remove denied request');
+          } finally {
+            this.processing = null;
+          }
+        },
         formatDate(dateStr) {
           if (!dateStr) return 'Unknown';
           const date = new Date(dateStr);
@@ -329,6 +402,65 @@ panel.plugin('gs/mmh-signage', {
                   </div>
                 </div>
               </details>
+            </div>
+          </div>
+
+          <div v-if="hasDenied" class="k-denied-requests">
+            <k-headline>Abgelehnte Anfragen</k-headline>
+            <div class="k-pending-requests-table">
+              <div
+                v-for="request in deniedItems"
+                :key="request.uuid"
+                class="k-pending-request-row"
+              >
+                <details class="k-pending-request-details">
+                  <summary class="k-pending-request-summary">
+                    <span class="k-pending-request-summary-caret" aria-hidden="true"></span>
+                    <div class="k-pending-request-summary-main">
+                      <code class="k-pending-request-uuid" :title="request.uuid">
+                        {{ request.uuid }}
+                      </code>
+                      <span class="k-pending-request-summary-time">
+                        {{ formatDate(request.denied_at) }}
+                      </span>
+                    </div>
+                  </summary>
+
+                  <div class="k-pending-request-body">
+                    <div class="k-pending-request-info">
+                      <div class="k-pending-request-field">
+                        <span class="k-pending-request-field-label">IP-Adresse</span>
+                        <span class="k-pending-request-field-value">{{ request.ip || 'Unknown' }}</span>
+                      </div>
+                      <div v-if="request.user_agent" class="k-pending-request-field">
+                        <span class="k-pending-request-field-label">Geraet</span>
+                        <span class="k-pending-request-field-value">{{ request.user_agent }}</span>
+                      </div>
+                    </div>
+
+                    <div class="k-pending-request-actions">
+                      <k-button
+                        icon="check"
+                        theme="positive"
+                        size="sm"
+                        @click="allowDenied(request.uuid)"
+                        :disabled="processing === request.uuid"
+                      >
+                        Genehmigen
+                      </k-button>
+                      <k-button
+                        icon="trash"
+                        theme="negative"
+                        size="sm"
+                        @click="removeDenied(request.uuid)"
+                        :disabled="processing === request.uuid"
+                      >
+                        Entfernen
+                      </k-button>
+                    </div>
+                  </div>
+                </details>
+              </div>
             </div>
           </div>
         </k-field>

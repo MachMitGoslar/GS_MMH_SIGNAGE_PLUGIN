@@ -61,6 +61,14 @@ class AccessController
             }
         }
 
+        if (self::isDenied($screen, $uuid)) {
+            return [
+                'status' => 'denied',
+                'access' => 'denied',
+                'message' => 'Access denied. Contact your administrator.',
+            ];
+        }
+
         // Not in whitelist - record pending request
         self::recordPendingRequest($screen, $uuid, $ip);
 
@@ -173,6 +181,13 @@ class AccessController
         return self::pendingRequestsToArray($pending);
     }
 
+    public static function getDeniedRequestsForScreen($screen): array
+    {
+        $denied = $screen->denied_requests()->toStructure();
+
+        return self::deniedRequestsToArray($denied);
+    }
+
     private static function approveRequestForScreenModel($screen, string $uuid, ?string $label = null): array
     {
         $whitelist = $screen->whitelist()->toStructure();
@@ -197,10 +212,36 @@ class AccessController
             }
         }
 
+        $denied = $screen->denied_requests()->toStructure();
+        $deniedArray = [];
+        if (! $approvedRequest) {
+            foreach ($denied as $entry) {
+                $entryData = [
+                    'uuid' => $entry->uuid()->value(),
+                    'ip' => $entry->ip()->value(),
+                    'user_agent' => $entry->user_agent()->value(),
+                    'denied_at' => $entry->denied_at()->value(),
+                ];
+
+                if ($entryData['uuid'] === $uuid) {
+                    $approvedRequest = [
+                        'uuid' => $entryData['uuid'],
+                        'ip' => $entryData['ip'],
+                        'user_agent' => $entryData['user_agent'],
+                        'requested_at' => $entryData['denied_at'],
+                    ];
+                } else {
+                    $deniedArray[] = $entryData;
+                }
+            }
+        } else {
+            $deniedArray = self::deniedRequestsToArray($denied);
+        }
+
         if (! $approvedRequest) {
             return [
                 'status' => 'error',
-                'message' => 'Request not found in pending list',
+                'message' => 'Request not found in pending or denied list',
             ];
         }
 
@@ -221,6 +262,7 @@ class AccessController
             $screen->update([
                 'whitelist' => \Kirby\Data\Yaml::encode($whitelistArray),
                 'pending_requests' => \Kirby\Data\Yaml::encode($pendingArray),
+                'denied_requests' => \Kirby\Data\Yaml::encode($deniedArray),
             ]);
 
             return [
@@ -239,21 +281,39 @@ class AccessController
     {
         $pending = $screen->pending_requests()->toStructure();
         $pendingArray = [];
+        $deniedRequest = null;
 
         foreach ($pending as $request) {
-            if ($request->uuid()->value() !== $uuid) {
-                $pendingArray[] = [
-                    'uuid' => $request->uuid()->value(),
-                    'ip' => $request->ip()->value(),
-                    'user_agent' => $request->user_agent()->value(),
-                    'requested_at' => $request->requested_at()->value(),
-                ];
+            $requestData = [
+                'uuid' => $request->uuid()->value(),
+                'ip' => $request->ip()->value(),
+                'user_agent' => $request->user_agent()->value(),
+                'requested_at' => $request->requested_at()->value(),
+            ];
+
+            if ($requestData['uuid'] !== $uuid) {
+                $pendingArray[] = $requestData;
+                continue;
             }
+
+            $deniedRequest = $requestData;
         }
+
+        $deniedArray = self::deniedRequestsToArray($screen->denied_requests()->toStructure());
+        $deniedArray = array_values(array_filter($deniedArray, function ($entry) use ($uuid) {
+            return ($entry['uuid'] ?? '') !== $uuid;
+        }));
+        $deniedArray[] = [
+            'uuid' => $uuid,
+            'ip' => $deniedRequest['ip'] ?? 'Unknown',
+            'user_agent' => $deniedRequest['user_agent'] ?? 'Unknown',
+            'denied_at' => date('Y-m-d H:i:s'),
+        ];
 
         try {
             $screen->update([
                 'pending_requests' => \Kirby\Data\Yaml::encode($pendingArray),
+                'denied_requests' => \Kirby\Data\Yaml::encode($deniedArray),
             ]);
 
             return [
@@ -282,6 +342,35 @@ class AccessController
         }
 
         return $pendingArray;
+    }
+
+    private static function deniedRequestsToArray($denied): array
+    {
+        $deniedArray = [];
+
+        foreach ($denied as $entry) {
+            $deniedArray[] = [
+                'uuid' => $entry->uuid()->value(),
+                'ip' => $entry->ip()->value(),
+                'user_agent' => $entry->user_agent()->value(),
+                'denied_at' => $entry->denied_at()->value(),
+            ];
+        }
+
+        return $deniedArray;
+    }
+
+    private static function isDenied($screen, string $uuid): bool
+    {
+        $deniedArray = self::deniedRequestsToArray($screen->denied_requests()->toStructure());
+
+        foreach ($deniedArray as $entry) {
+            if (($entry['uuid'] ?? '') === $uuid) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static function whitelistToArray($whitelist): array

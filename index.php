@@ -187,6 +187,51 @@ Kirby::plugin('gs/mmh-signage', [
                         return AccessController::denyRequest($screenSlug, $uuid);
                     },
                 ],
+                [
+                    'pattern' => 'signage/remove-denied',
+                    'method' => 'POST',
+                    'auth' => true, // Requires panel login
+                    'action' => function () use ($kirby) {
+                        $screenSlug = $kirby->request()->get('screen');
+                        $uuid = $kirby->request()->get('uuid');
+
+                        if (! $screenSlug || ! $uuid) {
+                            return [
+                                'status' => 'error',
+                                'message' => 'Missing screen or uuid parameter',
+                            ];
+                        }
+
+                        $screen = $kirby->page('signage/screens/' . $screenSlug);
+                        if (! $screen) {
+                            return [
+                                'status' => 'error',
+                                'message' => 'Screen not found',
+                            ];
+                        }
+
+                        $deniedArray = [];
+                        foreach ($screen->denied_requests()->toStructure() as $entry) {
+                            if ($entry->uuid()->value() !== $uuid) {
+                                $deniedArray[] = [
+                                    'uuid' => $entry->uuid()->value(),
+                                    'ip' => $entry->ip()->value(),
+                                    'user_agent' => $entry->user_agent()->value(),
+                                    'denied_at' => $entry->denied_at()->value(),
+                                ];
+                            }
+                        }
+
+                        $screen->update([
+                            'denied_requests' => \Kirby\Data\Yaml::encode($deniedArray),
+                        ]);
+
+                        return [
+                            'status' => 'success',
+                            'message' => 'Denied entry removed',
+                        ];
+                    },
+                ],
             ];
         },
     ],

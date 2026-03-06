@@ -33,6 +33,16 @@ return [
 
             return $value ?? [];
         },
+        'deniedRequests' => function () {
+            if (method_exists($this, 'model')) {
+                $model = $this->model();
+                if ($model) {
+                    return AccessController::getDeniedRequestsForScreen($model);
+                }
+            }
+
+            return [];
+        },
         'screen' => function () {
             if (method_exists($this, 'model')) {
                 $model = $this->model();
