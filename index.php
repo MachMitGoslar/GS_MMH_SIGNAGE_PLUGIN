@@ -42,41 +42,26 @@ Kirby::plugin('gs/mmh-signage', [
         'signage' => function ($kirby) {
             return [
                 'label' => 'Signage',
-                'icon' => 'monitor',
+                'icon' => 'display',
                 'menu' => true,
                 'link' => 'signage',
                 'views' => [
                     [
                         'pattern' => 'signage',
                         'action' => function () {
-                            // Redirect to screens overview
-                            return [
-                                'redirect' => 'signage/screens',
-                            ];
+                            return page('signage')->panel()->view();
                         },
                     ],
                     [
                         'pattern' => 'signage/screens',
                         'action' => function () use ($kirby) {
-                            return [
-                                'component' => 'k-page-view',
-                                'title' => 'Signage Screens',
-                                'props' => [
-                                    'page' => 'signage/screens',
-                                ],
-                            ];
+                            return page('signage/screens')->panel()->view();
                         },
                     ],
                     [
                         'pattern' => 'signage/channels',
                         'action' => function () use ($kirby) {
-                            return [
-                                'component' => 'k-page-view',
-                                'title' => 'Content Channels',
-                                'props' => [
-                                    'page' => 'signage/channels',
-                                ],
-                            ];
+                            return page('signage/channels')->panel()->view();
                         },
                     ],
                 ],
