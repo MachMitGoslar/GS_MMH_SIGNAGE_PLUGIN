@@ -19,18 +19,19 @@ require_once __DIR__ . '/classes/ICalParser.php';
 require_once __DIR__ . '/classes/AccessController.php';
 
 Kirby::plugin('gs/mmh-signage', [
+    'panel' => [
+        'js' => [
+            'index.js',
+        ],
+        'css' => [
+            'index.css',
+        ],
+    ],
     /**
      * Custom Panel Fields
      */
     'fields' => [
-        'pendingRequests' => __DIR__ . '/fields/pendingRequests/index.php',
-    ],
-
-    /**
-     * Custom Panel Sections
-     */
-    'sections' => [
-        'pendingRequests' => __DIR__ . '/sections/pendingRequests/index.php',
+        'pending_requests' => require __DIR__ . '/fields/pending_requests/index.php',
     ],
 
     /**
@@ -41,121 +42,26 @@ Kirby::plugin('gs/mmh-signage', [
         'signage' => function ($kirby) {
             return [
                 'label' => 'Signage',
-                'icon' => 'monitor',
+                'icon' => 'display',
                 'menu' => true,
                 'link' => 'signage',
                 'views' => [
                     [
                         'pattern' => 'signage',
                         'action' => function () {
-                            // Redirect to screens overview
-                            return [
-                                'redirect' => 'signage/screens',
-                            ];
+                            return page('signage')->panel()->view();
                         },
                     ],
                     [
                         'pattern' => 'signage/screens',
                         'action' => function () use ($kirby) {
-                            return [
-                                'component' => 'k-page-view',
-                                'title' => 'Signage Screens',
-                                'props' => [
-                                    'page' => 'signage/screens',
-                                ],
-                            ];
+                            return page('signage/screens')->panel()->view();
                         },
                     ],
                     [
                         'pattern' => 'signage/channels',
                         'action' => function () use ($kirby) {
-                            return [
-                                'component' => 'k-page-view',
-                                'title' => 'Content Channels',
-                                'props' => [
-                                    'page' => 'signage/channels',
-                                ],
-                            ];
-                        },
-                    ],
-                    [
-                        'pattern' => 'pages/signage\+screens\+(:any)/approve-device',
-                        'action' => function (string $screenDirname) use ($kirby) {
-                            $uuid = $kirby->request()->get('uuid');
-                            // Convert panel path format back to page id
-                            $screenId = 'signage/screens/' . $screenDirname;
-                            $screen = $kirby->page($screenId);
-
-                            if ($screen && $uuid) {
-                                // Get pending requests
-                                $pending = $screen->pending_requests()->toStructure();
-                                $pendingArray = [];
-                                $requestIp = null;
-
-                                foreach ($pending as $item) {
-                                    if ($item->uuid()->value() === $uuid) {
-                                        $requestIp = $item->ip()->value();
-                                    } else {
-                                        $pendingArray[] = $item->toArray();
-                                    }
-                                }
-
-                                // Get whitelist
-                                $whitelist = $screen->whitelist()->toStructure();
-                                $whitelistArray = [];
-                                foreach ($whitelist as $item) {
-                                    $whitelistArray[] = $item->toArray();
-                                }
-
-                                // Add to whitelist
-                                $whitelistArray[] = [
-                                    'label' => 'Device ' . substr($uuid, 0, 8),
-                                    'uuid' => $uuid,
-                                    'ip' => $requestIp ?? 'Unknown',
-                                    'approved_at' => date('Y-m-d H:i:s'),
-                                    'approved_by' => $kirby->user() ? $kirby->user()->email() : 'System',
-                                ];
-
-                                // Update screen
-                                $screen->update([
-                                    'pending_requests' => \Kirby\Data\Yaml::encode($pendingArray),
-                                    'whitelist' => \Kirby\Data\Yaml::encode($whitelistArray),
-                                ]);
-                            }
-
-                            return [
-                                'redirect' => "pages/signage+screens+{$screenDirname}",
-                            ];
-                        },
-                    ],
-                    [
-                        'pattern' => 'pages/signage\+screens\+(:any)/deny-device',
-                        'action' => function (string $screenDirname) use ($kirby) {
-                            $uuid = $kirby->request()->get('uuid');
-                            // Convert panel path format back to page id
-                            $screenId = 'signage/screens/' . $screenDirname;
-                            $screen = $kirby->page($screenId);
-
-                            if ($screen && $uuid) {
-                                // Remove from pending
-                                $pending = $screen->pending_requests()->toStructure();
-                                $pendingArray = [];
-
-                                foreach ($pending as $item) {
-                                    if ($item->uuid()->value() !== $uuid) {
-                                        $pendingArray[] = $item->toArray();
-                                    }
-                                }
-
-                                // Update screen
-                                $screen->update([
-                                    'pending_requests' => \Kirby\Data\Yaml::encode($pendingArray),
-                                ]);
-                            }
-
-                            return [
-                                'redirect' => "pages/signage+screens+{$screenDirname}",
-                            ];
+                            return page('signage/channels')->panel()->view();
                         },
                     ],
                 ],
@@ -255,6 +161,62 @@ Kirby::plugin('gs/mmh-signage', [
                         return AccessController::approveRequest($screenSlug, $uuid, $label);
                     },
                 ],
+                [
+                    'pattern' => 'signage/deny-request',
+                    'method' => 'POST',
+                    'auth' => true, // Requires panel login
+                    'action' => function () use ($kirby) {
+                        $screenSlug = $kirby->request()->get('screen');
+                        $uuid = $kirby->request()->get('uuid');
+
+                        return AccessController::denyRequest($screenSlug, $uuid);
+                    },
+                ],
+                [
+                    'pattern' => 'signage/remove-denied',
+                    'method' => 'POST',
+                    'auth' => true, // Requires panel login
+                    'action' => function () use ($kirby) {
+                        $screenSlug = $kirby->request()->get('screen');
+                        $uuid = $kirby->request()->get('uuid');
+
+                        if (! $screenSlug || ! $uuid) {
+                            return [
+                                'status' => 'error',
+                                'message' => 'Missing screen or uuid parameter',
+                            ];
+                        }
+
+                        $screen = $kirby->page('signage/screens/' . $screenSlug);
+                        if (! $screen) {
+                            return [
+                                'status' => 'error',
+                                'message' => 'Screen not found',
+                            ];
+                        }
+
+                        $deniedArray = [];
+                        foreach ($screen->denied_requests()->toStructure() as $entry) {
+                            if ($entry->uuid()->value() !== $uuid) {
+                                $deniedArray[] = [
+                                    'uuid' => $entry->uuid()->value(),
+                                    'ip' => $entry->ip()->value(),
+                                    'user_agent' => $entry->user_agent()->value(),
+                                    'denied_at' => $entry->denied_at()->value(),
+                                ];
+                            }
+                        }
+
+                        $screen->update([
+                            'denied_requests' => \Kirby\Data\Yaml::encode($deniedArray),
+                        ]);
+
+                        return [
+                            'status' => 'success',
+                            'message' => 'Denied entry removed',
+                        ];
+                    },
+                ],
             ];
         },
     ],
@@ -350,38 +312,6 @@ Kirby::plugin('gs/mmh-signage', [
             }
 
             return null;
-        },
-        'pendingRequestsHtml' => function () {
-            if ($this->intendedTemplate()->name() === 'screen') {
-                $pending = $this->pending_requests()->toStructure();
-
-                if ($pending->count() === 0) {
-                    return '✅ No pending access requests';
-                }
-
-                $html = '<strong>' . $pending->count() . ' device(s) awaiting approval</strong><br><br>';
-
-                // Get the panel-friendly page path (with + separators)
-                $panelPath = str_replace('/', '+', $this->id());
-
-                foreach ($pending as $request) {
-                    $uuid = $request->uuid()->value();
-                    $ip = $request->ip()->value();
-                    $requestedAt = $request->requested_at()->value();
-
-                    $html .= '<hr style="margin: 1rem 0;">';
-                    $html .= '<strong>UUID:</strong> <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px;">' . htmlspecialchars($uuid) . '</code><br>';
-                    $html .= '<strong>IP Address:</strong> ' . htmlspecialchars($ip) . '<br>';
-                    $html .= '<strong>Requested:</strong> ' . htmlspecialchars($requestedAt) . '<br><br>';
-                    $html .= '<a href="/panel/pages/' . $panelPath . '/approve-device?uuid=' . urlencode($uuid) . '" style="display: inline-block; padding: 0.5rem 1rem; background: #16a34a; color: white; text-decoration: none; border-radius: 4px; margin-right: 0.5rem;">✓ Approve</a>';
-                    $html .= '<a href="/panel/pages/' . $panelPath . '/deny-device?uuid=' . urlencode($uuid) . '" style="display: inline-block; padding: 0.5rem 1rem; background: #dc2626; color: white; text-decoration: none; border-radius: 4px;">✗ Deny</a>';
-                    $html .= '<br>';
-                }
-
-                return $html;
-            }
-
-            return '';
         },
     ],
 

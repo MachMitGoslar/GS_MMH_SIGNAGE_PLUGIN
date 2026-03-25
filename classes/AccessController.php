@@ -10,6 +10,8 @@
  */
 class AccessController
 {
+    private const DEFAULT_LABEL_PREFIX = 'Device ';
+
     /**
      * Check if a device has access to a screen
      *
@@ -59,6 +61,14 @@ class AccessController
             }
         }
 
+        if (self::isDenied($screen, $uuid)) {
+            return [
+                'status' => 'denied',
+                'access' => 'denied',
+                'message' => 'Access denied. Contact your administrator.',
+            ];
+        }
+
         // Not in whitelist - record pending request
         self::recordPendingRequest($screen, $uuid, $ip);
 
@@ -80,17 +90,7 @@ class AccessController
     private static function recordPendingRequest($screen, string $uuid, string $ip): void
     {
         $pending = $screen->pending_requests()->toStructure();
-        $pendingArray = [];
-
-        // Convert structure to array
-        foreach ($pending as $request) {
-            $pendingArray[] = [
-                'uuid' => $request->uuid()->value(),
-                'ip' => $request->ip()->value(),
-                'user_agent' => $request->user_agent()->value(),
-                'requested_at' => $request->requested_at()->value(),
-            ];
-        }
+        $pendingArray = self::pendingRequestsToArray($pending);
 
         // Check if UUID already has pending request
         $alreadyPending = false;
@@ -147,18 +147,51 @@ class AccessController
             ];
         }
 
-        // Get current whitelist and pending requests
-        $whitelist = $screen->whitelist()->toStructure();
-        $whitelistArray = [];
-        foreach ($whitelist as $entry) {
-            $whitelistArray[] = [
-                'uuid' => $entry->uuid()->value(),
-                'ip' => $entry->ip()->value(),
-                'label' => $entry->label()->value(),
-                'approved_at' => $entry->approved_at()->value(),
-                'approved_by' => $entry->approved_by()->value(),
+        return self::approveRequestForScreenModel($screen, $uuid, $label);
+    }
+
+    public static function denyRequest(string $screenSlug, string $uuid): array
+    {
+        $screen = kirby()->page('signage/screens/' . $screenSlug);
+
+        if (! $screen) {
+            return [
+                'status' => 'error',
+                'message' => 'Screen not found',
             ];
         }
+
+        return self::denyRequestForScreenModel($screen, $uuid);
+    }
+
+    public static function approveRequestForScreen($screen, string $uuid, string $label = 'Unknown Device'): array
+    {
+        return self::approveRequestForScreenModel($screen, $uuid, $label);
+    }
+
+    public static function denyRequestForScreen($screen, string $uuid): array
+    {
+        return self::denyRequestForScreenModel($screen, $uuid);
+    }
+
+    public static function getPendingRequestsForScreen($screen): array
+    {
+        $pending = $screen->pending_requests()->toStructure();
+
+        return self::pendingRequestsToArray($pending);
+    }
+
+    public static function getDeniedRequestsForScreen($screen): array
+    {
+        $denied = $screen->denied_requests()->toStructure();
+
+        return self::deniedRequestsToArray($denied);
+    }
+
+    private static function approveRequestForScreenModel($screen, string $uuid, ?string $label = null): array
+    {
+        $whitelist = $screen->whitelist()->toStructure();
+        $whitelistArray = self::whitelistToArray($whitelist);
 
         $pending = $screen->pending_requests()->toStructure();
         $pendingArray = [];
@@ -175,15 +208,45 @@ class AccessController
             if ($requestData['uuid'] === $uuid) {
                 $approvedRequest = $requestData;
             } else {
-                $pendingArray[] = $requestData; // Keep other requests
+                $pendingArray[] = $requestData;
             }
+        }
+
+        $denied = $screen->denied_requests()->toStructure();
+        $deniedArray = [];
+        if (! $approvedRequest) {
+            foreach ($denied as $entry) {
+                $entryData = [
+                    'uuid' => $entry->uuid()->value(),
+                    'ip' => $entry->ip()->value(),
+                    'user_agent' => $entry->user_agent()->value(),
+                    'denied_at' => $entry->denied_at()->value(),
+                ];
+
+                if ($entryData['uuid'] === $uuid) {
+                    $approvedRequest = [
+                        'uuid' => $entryData['uuid'],
+                        'ip' => $entryData['ip'],
+                        'user_agent' => $entryData['user_agent'],
+                        'requested_at' => $entryData['denied_at'],
+                    ];
+                } else {
+                    $deniedArray[] = $entryData;
+                }
+            }
+        } else {
+            $deniedArray = self::deniedRequestsToArray($denied);
         }
 
         if (! $approvedRequest) {
             return [
                 'status' => 'error',
-                'message' => 'Request not found in pending list',
+                'message' => 'Request not found in pending or denied list',
             ];
+        }
+
+        if (! $label || trim($label) === '') {
+            $label = self::DEFAULT_LABEL_PREFIX . substr($uuid, 0, 8);
         }
 
         // Add to whitelist
@@ -199,6 +262,7 @@ class AccessController
             $screen->update([
                 'whitelist' => \Kirby\Data\Yaml::encode($whitelistArray),
                 'pending_requests' => \Kirby\Data\Yaml::encode($pendingArray),
+                'denied_requests' => \Kirby\Data\Yaml::encode($deniedArray),
             ]);
 
             return [
@@ -211,6 +275,119 @@ class AccessController
                 'message' => 'Failed to update screen: ' . $e->getMessage(),
             ];
         }
+    }
+
+    private static function denyRequestForScreenModel($screen, string $uuid): array
+    {
+        $pending = $screen->pending_requests()->toStructure();
+        $pendingArray = [];
+        $deniedRequest = null;
+
+        foreach ($pending as $request) {
+            $requestData = [
+                'uuid' => $request->uuid()->value(),
+                'ip' => $request->ip()->value(),
+                'user_agent' => $request->user_agent()->value(),
+                'requested_at' => $request->requested_at()->value(),
+            ];
+
+            if ($requestData['uuid'] !== $uuid) {
+                $pendingArray[] = $requestData;
+                continue;
+            }
+
+            $deniedRequest = $requestData;
+        }
+
+        $deniedArray = self::deniedRequestsToArray($screen->denied_requests()->toStructure());
+        $deniedArray = array_values(array_filter($deniedArray, function ($entry) use ($uuid) {
+            return ($entry['uuid'] ?? '') !== $uuid;
+        }));
+        $deniedArray[] = [
+            'uuid' => $uuid,
+            'ip' => $deniedRequest['ip'] ?? 'Unknown',
+            'user_agent' => $deniedRequest['user_agent'] ?? 'Unknown',
+            'denied_at' => date('Y-m-d H:i:s'),
+        ];
+
+        try {
+            $screen->update([
+                'pending_requests' => \Kirby\Data\Yaml::encode($pendingArray),
+                'denied_requests' => \Kirby\Data\Yaml::encode($deniedArray),
+            ]);
+
+            return [
+                'status' => 'success',
+                'message' => 'Request denied',
+            ];
+        } catch (Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => 'Failed to update screen: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    private static function pendingRequestsToArray($pending): array
+    {
+        $pendingArray = [];
+
+        foreach ($pending as $request) {
+            $pendingArray[] = [
+                'uuid' => $request->uuid()->value(),
+                'ip' => $request->ip()->value(),
+                'user_agent' => $request->user_agent()->value(),
+                'requested_at' => $request->requested_at()->value(),
+            ];
+        }
+
+        return $pendingArray;
+    }
+
+    private static function deniedRequestsToArray($denied): array
+    {
+        $deniedArray = [];
+
+        foreach ($denied as $entry) {
+            $deniedArray[] = [
+                'uuid' => $entry->uuid()->value(),
+                'ip' => $entry->ip()->value(),
+                'user_agent' => $entry->user_agent()->value(),
+                'denied_at' => $entry->denied_at()->value(),
+            ];
+        }
+
+        return $deniedArray;
+    }
+
+    private static function isDenied($screen, string $uuid): bool
+    {
+        $deniedArray = self::deniedRequestsToArray($screen->denied_requests()->toStructure());
+
+        foreach ($deniedArray as $entry) {
+            if (($entry['uuid'] ?? '') === $uuid) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function whitelistToArray($whitelist): array
+    {
+        $whitelistArray = [];
+
+        foreach ($whitelist as $entry) {
+            $whitelistArray[] = [
+                'uuid' => $entry->uuid()->value(),
+                'ip' => $entry->ip()->value(),
+                'label' => $entry->label()->value(),
+                'approved_at' => $entry->approved_at()->value(),
+                'approved_by' => $entry->approved_by()->value(),
+            ];
+        }
+
+        return $whitelistArray;
     }
 
     /**
