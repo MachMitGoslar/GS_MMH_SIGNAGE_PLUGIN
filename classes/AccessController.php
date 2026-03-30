@@ -11,6 +11,405 @@
 class AccessController
 {
     private const DEFAULT_LABEL_PREFIX = 'Device ';
+    private const ROOT_PAGE_ID = 'signage';
+
+    public static function registerOnboardingRequest(string $uuid, string $ip, ?string $backend = null, ?string $url = null): array
+    {
+        $rootPage = self::getRootPage();
+        if (! $rootPage) {
+            return [
+                'status' => 'error',
+                'access' => 'denied',
+                'message' => 'Signage root page not found',
+            ];
+        }
+
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
+        $requests = self::getOnboardingRequests();
+        $deniedRequests = self::getDeniedOnboardingStorage();
+        $approvedRequest = self::findApprovedOnboardingRequest($uuid, $requests);
+        if ($approvedRequest) {
+            self::saveOnboardingRequests($rootPage, self::storeApprovedOnboardingRequest($requests, $approvedRequest));
+            self::saveDeniedOnboardingStorage($rootPage, self::removeOnboardingRequestByUuid($deniedRequests, $uuid));
+
+            return self::formatOnboardingResponse($approvedRequest);
+        }
+
+        $deniedExisting = self::findOnboardingRequest($deniedRequests, $uuid);
+        if ($deniedExisting) {
+            foreach ($deniedRequests as &$request) {
+                if (($request['uuid'] ?? null) !== $uuid) {
+                    continue;
+                }
+
+                $request['ip'] = $ip;
+                $request['backend'] = $backend ?? ($request['backend'] ?? '');
+                $request['url'] = $url ?? ($request['url'] ?? '');
+                $request['user_agent'] = $userAgent;
+                $request['last_seen_at'] = date('Y-m-d H:i:s');
+            }
+            unset($request);
+
+            self::saveDeniedOnboardingStorage($rootPage, $deniedRequests);
+
+            return self::formatOnboardingResponse([
+                'status' => 'denied',
+            ]);
+        }
+
+        $existing = self::findOnboardingRequest($requests, $uuid);
+
+        if ($existing) {
+            if (($existing['status'] ?? 'pending') === 'approved' && ! empty($existing['assigned_screen'])) {
+                return self::formatOnboardingResponse($existing);
+            }
+
+            if (($existing['status'] ?? 'pending') === 'denied') {
+                return self::formatOnboardingResponse($existing);
+            }
+        }
+
+        $updated = false;
+        foreach ($requests as &$request) {
+            if (($request['uuid'] ?? null) !== $uuid) {
+                continue;
+            }
+
+            $request['ip'] = $ip;
+            $request['backend'] = $backend ?? ($request['backend'] ?? '');
+            $request['url'] = $url ?? ($request['url'] ?? '');
+            $request['user_agent'] = $userAgent;
+            $request['last_seen_at'] = date('Y-m-d H:i:s');
+            $request['status'] = $request['status'] ?? 'pending';
+            $updated = true;
+        }
+        unset($request);
+
+        if (! $updated) {
+            $requests[] = [
+                'uuid' => $uuid,
+                'ip' => $ip,
+                'backend' => $backend ?? '',
+                'url' => $url ?? '',
+                'user_agent' => $userAgent,
+                'status' => 'pending',
+                'assigned_screen' => '',
+                'requested_at' => date('Y-m-d H:i:s'),
+                'last_seen_at' => date('Y-m-d H:i:s'),
+                'approved_at' => '',
+                'approved_by' => '',
+                'denied_at' => '',
+            ];
+        }
+
+        self::saveOnboardingRequests($rootPage, $requests);
+
+        return self::formatOnboardingResponse(self::findOnboardingRequest($requests, $uuid) ?? ['status' => 'pending']);
+    }
+
+    public static function getOnboardingStatus(string $uuid): array
+    {
+        $requests = self::getOnboardingRequests();
+        $approvedRequest = self::findApprovedOnboardingRequest($uuid, $requests);
+        if ($approvedRequest) {
+            $rootPage = self::getRootPage();
+            if ($rootPage) {
+                self::saveOnboardingRequests($rootPage, self::storeApprovedOnboardingRequest($requests, $approvedRequest));
+                self::saveDeniedOnboardingStorage($rootPage, self::removeOnboardingRequestByUuid(self::getDeniedOnboardingStorage(), $uuid));
+            }
+
+            return self::formatOnboardingResponse($approvedRequest);
+        }
+
+        $deniedRequest = self::findOnboardingRequest(self::getDeniedOnboardingStorage(), $uuid);
+        if ($deniedRequest) {
+            return self::formatOnboardingResponse([
+                'status' => 'denied',
+            ]);
+        }
+
+        $request = self::findOnboardingRequest($requests, $uuid);
+
+        if (! $request) {
+            return [
+                'status' => 'pending',
+                'access' => 'pending',
+                'message' => 'Waiting for assignment',
+            ];
+        }
+
+        return self::formatOnboardingResponse($request);
+    }
+
+    public static function approveOnboardingRequest(string $uuid, string $screenSlug, ?string $label = null): array
+    {
+        if (! $uuid || ! $screenSlug) {
+            return [
+                'status' => 'error',
+                'message' => 'Missing uuid or screen parameter',
+            ];
+        }
+
+        $rootPage = self::getRootPage();
+        $screen = kirby()->page('signage/screens/' . $screenSlug);
+        if (! $rootPage || ! $screen) {
+            return [
+                'status' => 'error',
+                'message' => 'Screen not found',
+            ];
+        }
+
+        $existingRequests = self::getOnboardingRequests();
+        $existingDeniedRequests = self::getDeniedOnboardingStorage();
+        $request = self::findOnboardingRequest($existingRequests, $uuid);
+        if (! $request) {
+            $request = self::findOnboardingRequest($existingDeniedRequests, $uuid);
+            if (! $request) {
+                return [
+                    'status' => 'error',
+                    'message' => 'Onboarding request not found',
+                ];
+            }
+
+            $request['status'] = 'pending';
+            $request['denied_at'] = '';
+        }
+
+        $requests = self::removeOnboardingRequestByUuid($existingRequests, $uuid);
+        $deniedRequests = self::removeOnboardingRequestByUuid($existingDeniedRequests, $uuid);
+
+        $label = $label && trim($label) !== '' ? trim($label) : self::DEFAULT_LABEL_PREFIX . substr($uuid, 0, 8);
+        $grant = self::grantDeviceForScreen($screen, [
+            'uuid' => $uuid,
+            'ip' => $request['ip'] ?? '',
+            'user_agent' => $request['user_agent'] ?? 'Unknown',
+            'requested_at' => $request['requested_at'] ?? date('Y-m-d H:i:s'),
+        ], $label);
+
+        if (($grant['status'] ?? 'error') !== 'success') {
+            return $grant;
+        }
+
+        $requests[] = [
+            'uuid' => $uuid,
+            'ip' => $request['ip'] ?? '',
+            'backend' => $request['backend'] ?? '',
+            'url' => $request['url'] ?? '',
+            'user_agent' => $request['user_agent'] ?? 'Unknown',
+            'status' => 'approved',
+            'assigned_screen' => $screenSlug,
+            'requested_at' => $request['requested_at'] ?? date('Y-m-d H:i:s'),
+            'last_seen_at' => date('Y-m-d H:i:s'),
+            'approved_at' => date('Y-m-d H:i:s'),
+            'approved_by' => kirby()->user() ? kirby()->user()->email() : 'system',
+            'denied_at' => '',
+        ];
+
+        self::saveOnboardingRequests($rootPage, $requests);
+        self::saveDeniedOnboardingStorage($rootPage, $deniedRequests);
+
+        return [
+            'status' => 'success',
+            'message' => 'Device assigned and approved',
+        ];
+    }
+
+    public static function denyOnboardingRequest(string $uuid): array
+    {
+        if (! $uuid) {
+            return [
+                'status' => 'error',
+                'message' => 'Missing uuid parameter',
+            ];
+        }
+
+        $rootPage = self::getRootPage();
+        if (! $rootPage) {
+            return [
+                'status' => 'error',
+                'message' => 'Signage root page not found',
+            ];
+        }
+
+        $requests = self::getOnboardingRequests();
+        $deniedRequests = self::getDeniedOnboardingStorage();
+        $found = false;
+        $deniedEntry = null;
+        $remainingRequests = [];
+
+        foreach ($requests as $entry) {
+            if (($entry['uuid'] ?? null) !== $uuid) {
+                $remainingRequests[] = $entry;
+                continue;
+            }
+
+            $entry['status'] = 'denied';
+            $entry['assigned_screen'] = '';
+            $entry['denied_at'] = date('Y-m-d H:i:s');
+            $found = true;
+            $deniedEntry = $entry;
+        }
+
+        if (! $found) {
+            return [
+                'status' => 'error',
+                'message' => 'Onboarding request not found',
+            ];
+        }
+
+        $deniedRequests = array_values(array_filter($deniedRequests, function ($entry) use ($uuid) {
+            return ($entry['uuid'] ?? '') !== $uuid;
+        }));
+        $deniedRequests[] = $deniedEntry;
+
+        self::saveOnboardingRequests($rootPage, $remainingRequests);
+        self::saveDeniedOnboardingStorage($rootPage, $deniedRequests);
+
+        return [
+            'status' => 'success',
+            'message' => 'Request denied',
+        ];
+    }
+
+    public static function removeDeniedOnboardingRequest(string $uuid): array
+    {
+        if (! $uuid) {
+            return [
+                'status' => 'error',
+                'message' => 'Missing uuid parameter',
+            ];
+        }
+
+        $rootPage = self::getRootPage();
+        if (! $rootPage) {
+            return [
+                'status' => 'error',
+                'message' => 'Signage root page not found',
+            ];
+        }
+
+        $deniedRequests = self::getDeniedOnboardingStorage();
+        $countBefore = count($deniedRequests);
+        $deniedRequests = array_values(array_filter($deniedRequests, function ($entry) use ($uuid) {
+            return ($entry['uuid'] ?? '') !== $uuid;
+        }));
+
+        if ($countBefore === count($deniedRequests)) {
+            return [
+                'status' => 'error',
+                'message' => 'Denied request not found',
+            ];
+        }
+
+        self::saveDeniedOnboardingStorage($rootPage, $deniedRequests);
+
+        return [
+            'status' => 'success',
+            'message' => 'Denied request removed',
+        ];
+    }
+
+    public static function getPendingOnboardingRequests(): array
+    {
+        $deniedUuids = array_map(function (array $request) {
+            return $request['uuid'] ?? '';
+        }, self::getDeniedOnboardingStorage());
+        $approvedUuids = self::getApprovedDeviceUuids();
+
+        return array_values(array_filter(self::getOnboardingRequests(), function (array $request) use ($deniedUuids, $approvedUuids) {
+            return ($request['status'] ?? 'pending') === 'pending'
+                && ! in_array(($request['uuid'] ?? ''), $deniedUuids, true)
+                && ! in_array(($request['uuid'] ?? ''), $approvedUuids, true);
+        }));
+    }
+
+    public static function getDeniedOnboardingRequests(): array
+    {
+        $denied = self::getDeniedOnboardingStorage();
+        $fallbackDenied = array_values(array_filter(self::getOnboardingRequests(), function (array $request) {
+            return ($request['status'] ?? '') === 'denied';
+        }));
+
+        foreach ($fallbackDenied as $request) {
+            if (! self::findOnboardingRequest($denied, $request['uuid'] ?? '')) {
+                $denied[] = $request;
+            }
+        }
+
+        $approvedUuids = [];
+        $screensRoot = kirby()->page('signage/screens');
+        if ($screensRoot) {
+            foreach ($screensRoot->children() as $screen) {
+                foreach (self::whitelistToArray($screen->whitelist()->toStructure()) as $device) {
+                    if (! empty($device['uuid'])) {
+                        $approvedUuids[] = $device['uuid'];
+                    }
+                }
+            }
+        }
+
+        return array_values(array_filter($denied, function (array $request) use ($approvedUuids) {
+            return ! in_array(($request['uuid'] ?? ''), $approvedUuids, true);
+        }));
+    }
+
+    public static function getApprovedOnboardingDevices(): array
+    {
+        $screensRoot = kirby()->page('signage/screens');
+        if (! $screensRoot) {
+            return [];
+        }
+
+        $onboardingRequests = self::getOnboardingRequests();
+        $requestsByUuid = [];
+        foreach ($onboardingRequests as $request) {
+            if (! empty($request['uuid'])) {
+                $requestsByUuid[$request['uuid']] = $request;
+            }
+        }
+
+        $result = [];
+        foreach ($screensRoot->children() as $screen) {
+            foreach (self::whitelistToArray($screen->whitelist()->toStructure()) as $device) {
+                $requestData = $requestsByUuid[$device['uuid']] ?? [];
+                $result[] = [
+                    'uuid' => $device['uuid'] ?? '',
+                    'label' => $device['label'] ?? '',
+                    'ip' => $device['ip'] ?? '',
+                    'approved_at' => $device['approved_at'] ?? '',
+                    'approved_by' => $device['approved_by'] ?? '',
+                    'screen' => $screen->slug(),
+                    'screen_title' => $screen->title()->value(),
+                    'backend' => $requestData['backend'] ?? '',
+                    'user_agent' => $requestData['user_agent'] ?? '',
+                ];
+            }
+        }
+
+        usort($result, function (array $a, array $b) {
+            return strcmp((string) ($b['approved_at'] ?? ''), (string) ($a['approved_at'] ?? ''));
+        });
+
+        return $result;
+    }
+
+    public static function getAvailableScreens(): array
+    {
+        $screens = kirby()->page('signage/screens');
+        if (! $screens) {
+            return [];
+        }
+
+        $result = [];
+        foreach ($screens->children() as $screen) {
+            $result[] = [
+                'value' => $screen->slug(),
+                'text' => $screen->title()->value(),
+            ];
+        }
+
+        return $result;
+    }
 
     /**
      * Check if a device has access to a screen
@@ -128,6 +527,49 @@ class AccessController
         }
     }
 
+    private static function grantDeviceForScreen($screen, array $deviceData, string $label): array
+    {
+        $whitelistArray = self::whitelistToArray($screen->whitelist()->toStructure());
+        $pendingArray = self::pendingRequestsToArray($screen->pending_requests()->toStructure());
+        $deniedArray = self::deniedRequestsToArray($screen->denied_requests()->toStructure());
+
+        $whitelistArray = array_values(array_filter($whitelistArray, function ($entry) use ($deviceData) {
+            return ($entry['uuid'] ?? '') !== ($deviceData['uuid'] ?? '');
+        }));
+        $pendingArray = array_values(array_filter($pendingArray, function ($entry) use ($deviceData) {
+            return ($entry['uuid'] ?? '') !== ($deviceData['uuid'] ?? '');
+        }));
+        $deniedArray = array_values(array_filter($deniedArray, function ($entry) use ($deviceData) {
+            return ($entry['uuid'] ?? '') !== ($deviceData['uuid'] ?? '');
+        }));
+
+        $whitelistArray[] = [
+            'uuid' => $deviceData['uuid'],
+            'ip' => $deviceData['ip'] ?? '',
+            'label' => $label,
+            'approved_at' => date('Y-m-d H:i:s'),
+            'approved_by' => kirby()->user() ? kirby()->user()->email() : 'system',
+        ];
+
+        try {
+            $screen->update([
+                'whitelist' => \Kirby\Data\Yaml::encode($whitelistArray),
+                'pending_requests' => \Kirby\Data\Yaml::encode($pendingArray),
+                'denied_requests' => \Kirby\Data\Yaml::encode($deniedArray),
+            ]);
+
+            return [
+                'status' => 'success',
+                'message' => 'Device approved and added to whitelist',
+            ];
+        } catch (Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => 'Failed to update screen: ' . $e->getMessage(),
+            ];
+        }
+    }
+
     /**
      * Approve a pending request and add to whitelist
      *
@@ -188,11 +630,163 @@ class AccessController
         return self::deniedRequestsToArray($denied);
     }
 
+    public static function getApprovedDevicesForScreen($screen): array
+    {
+        return self::whitelistToArray($screen->whitelist()->toStructure());
+    }
+
+    public static function revokeApprovedDevice(string $screenSlug, string $uuid): array
+    {
+        $screen = kirby()->page('signage/screens/' . $screenSlug);
+        if (! $screen) {
+            return [
+                'status' => 'error',
+                'message' => 'Screen not found',
+            ];
+        }
+
+        $whitelistArray = array_values(array_filter(
+            self::whitelistToArray($screen->whitelist()->toStructure()),
+            fn ($entry) => ($entry['uuid'] ?? '') !== $uuid
+        ));
+
+        try {
+            $screen->update([
+                'whitelist' => \Kirby\Data\Yaml::encode($whitelistArray),
+            ]);
+            self::clearOnboardingAssignment($uuid, $screenSlug);
+
+            return [
+                'status' => 'success',
+                'message' => 'Device approval revoked',
+            ];
+        } catch (Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => 'Failed to update screen: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    public static function reassignApprovedDevice(string $fromScreenSlug, string $toScreenSlug, string $uuid): array
+    {
+        if (! $fromScreenSlug || ! $toScreenSlug || ! $uuid) {
+            return [
+                'status' => 'error',
+                'message' => 'Missing screen or uuid parameter',
+            ];
+        }
+
+        $fromScreen = kirby()->page('signage/screens/' . $fromScreenSlug);
+        $toScreen = kirby()->page('signage/screens/' . $toScreenSlug);
+
+        if (! $fromScreen || ! $toScreen) {
+            return [
+                'status' => 'error',
+                'message' => 'Screen not found',
+            ];
+        }
+
+        $device = null;
+        foreach (self::whitelistToArray($fromScreen->whitelist()->toStructure()) as $entry) {
+            if (($entry['uuid'] ?? '') === $uuid) {
+                $device = $entry;
+                break;
+            }
+        }
+
+        if (! $device) {
+            return [
+                'status' => 'error',
+                'message' => 'Approved device not found',
+            ];
+        }
+
+        $revoke = self::revokeApprovedDevice($fromScreenSlug, $uuid);
+        if (($revoke['status'] ?? 'error') !== 'success') {
+            return $revoke;
+        }
+
+        $grant = self::grantDeviceForScreen($toScreen, [
+            'uuid' => $uuid,
+            'ip' => $device['ip'] ?? '',
+            'user_agent' => 'Reassigned device',
+            'requested_at' => $device['approved_at'] ?? date('Y-m-d H:i:s'),
+        ], $device['label'] ?? (self::DEFAULT_LABEL_PREFIX . substr($uuid, 0, 8)));
+
+        if (($grant['status'] ?? 'error') !== 'success') {
+            return $grant;
+        }
+
+        self::syncOnboardingAssignment($uuid, $toScreenSlug);
+
+        return [
+            'status' => 'success',
+            'message' => 'Device reassigned',
+        ];
+    }
+
+    public static function renameApprovedDevice(string $screenSlug, string $uuid, string $label): array
+    {
+        if (! $screenSlug || ! $uuid) {
+            return [
+                'status' => 'error',
+                'message' => 'Missing screen or uuid parameter',
+            ];
+        }
+
+        $screen = kirby()->page('signage/screens/' . $screenSlug);
+        if (! $screen) {
+            return [
+                'status' => 'error',
+                'message' => 'Screen not found',
+            ];
+        }
+
+        $label = trim($label);
+        if ($label === '') {
+            $label = self::DEFAULT_LABEL_PREFIX . substr($uuid, 0, 8);
+        }
+
+        $whitelistArray = self::whitelistToArray($screen->whitelist()->toStructure());
+        $found = false;
+
+        foreach ($whitelistArray as &$entry) {
+            if (($entry['uuid'] ?? '') !== $uuid) {
+                continue;
+            }
+
+            $entry['label'] = $label;
+            $found = true;
+        }
+        unset($entry);
+
+        if (! $found) {
+            return [
+                'status' => 'error',
+                'message' => 'Approved device not found',
+            ];
+        }
+
+        try {
+            $screen->update([
+                'whitelist' => \Kirby\Data\Yaml::encode($whitelistArray),
+            ]);
+
+            return [
+                'status' => 'success',
+                'message' => 'Device renamed',
+            ];
+        } catch (Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => 'Failed to update screen: ' . $e->getMessage(),
+            ];
+        }
+    }
+
     private static function approveRequestForScreenModel($screen, string $uuid, ?string $label = null): array
     {
-        $whitelist = $screen->whitelist()->toStructure();
-        $whitelistArray = self::whitelistToArray($whitelist);
-
         $pending = $screen->pending_requests()->toStructure();
         $pendingArray = [];
         $approvedRequest = null;
@@ -213,7 +807,6 @@ class AccessController
         }
 
         $denied = $screen->denied_requests()->toStructure();
-        $deniedArray = [];
         if (! $approvedRequest) {
             foreach ($denied as $entry) {
                 $entryData = [
@@ -230,12 +823,8 @@ class AccessController
                         'user_agent' => $entryData['user_agent'],
                         'requested_at' => $entryData['denied_at'],
                     ];
-                } else {
-                    $deniedArray[] = $entryData;
                 }
             }
-        } else {
-            $deniedArray = self::deniedRequestsToArray($denied);
         }
 
         if (! $approvedRequest) {
@@ -249,32 +838,7 @@ class AccessController
             $label = self::DEFAULT_LABEL_PREFIX . substr($uuid, 0, 8);
         }
 
-        // Add to whitelist
-        $whitelistArray[] = [
-            'uuid' => $uuid,
-            'ip' => $approvedRequest['ip'],
-            'label' => $label,
-            'approved_at' => date('Y-m-d H:i:s'),
-            'approved_by' => kirby()->user() ? kirby()->user()->email() : 'system',
-        ];
-
-        try {
-            $screen->update([
-                'whitelist' => \Kirby\Data\Yaml::encode($whitelistArray),
-                'pending_requests' => \Kirby\Data\Yaml::encode($pendingArray),
-                'denied_requests' => \Kirby\Data\Yaml::encode($deniedArray),
-            ]);
-
-            return [
-                'status' => 'success',
-                'message' => 'Device approved and added to whitelist',
-            ];
-        } catch (Exception $e) {
-            return [
-                'status' => 'error',
-                'message' => 'Failed to update screen: ' . $e->getMessage(),
-            ];
-        }
+        return self::grantDeviceForScreen($screen, $approvedRequest, $label);
     }
 
     private static function denyRequestForScreenModel($screen, string $uuid): array
@@ -388,6 +952,252 @@ class AccessController
         }
 
         return $whitelistArray;
+    }
+
+    private static function getRootPage()
+    {
+        return kirby()->page(self::ROOT_PAGE_ID);
+    }
+
+    private static function getOnboardingRequests(): array
+    {
+        $rootPage = self::getRootPage();
+        if (! $rootPage) {
+            return [];
+        }
+
+        return self::onboardingRequestsToArray($rootPage->onboarding_requests()->toStructure());
+    }
+
+    private static function getDeniedOnboardingStorage(): array
+    {
+        $rootPage = self::getRootPage();
+        if (! $rootPage) {
+            return [];
+        }
+
+        return self::onboardingRequestsToArray($rootPage->denied_onboarding_requests()->toStructure());
+    }
+
+    private static function saveOnboardingRequests($rootPage, array $requests): void
+    {
+        $rootPage->update([
+            'onboarding_requests' => \Kirby\Data\Yaml::encode($requests),
+        ]);
+    }
+
+    private static function saveDeniedOnboardingStorage($rootPage, array $requests): void
+    {
+        $rootPage->update([
+            'denied_onboarding_requests' => \Kirby\Data\Yaml::encode($requests),
+        ]);
+    }
+
+    private static function onboardingRequestsToArray($requests): array
+    {
+        $result = [];
+
+        foreach ($requests as $request) {
+            $result[] = [
+                'uuid' => $request->uuid()->value(),
+                'ip' => $request->ip()->value(),
+                'backend' => $request->backend()->value(),
+                'url' => $request->url()->value(),
+                'user_agent' => $request->user_agent()->value(),
+                'status' => $request->status()->value() ?: 'pending',
+                'assigned_screen' => $request->assigned_screen()->value(),
+                'requested_at' => $request->requested_at()->value(),
+                'last_seen_at' => $request->last_seen_at()->value(),
+                'approved_at' => $request->approved_at()->value(),
+                'approved_by' => $request->approved_by()->value(),
+                'denied_at' => $request->denied_at()->value(),
+            ];
+        }
+
+        return $result;
+    }
+
+    private static function findOnboardingRequest(array $requests, string $uuid): ?array
+    {
+        foreach ($requests as $request) {
+            if (($request['uuid'] ?? null) === $uuid) {
+                return $request;
+            }
+        }
+
+        return null;
+    }
+
+    private static function removeOnboardingRequestByUuid(array $requests, string $uuid): array
+    {
+        return array_values(array_filter($requests, function ($request) use ($uuid) {
+            return ($request['uuid'] ?? '') !== $uuid;
+        }));
+    }
+
+    private static function storeApprovedOnboardingRequest(array $requests, array $approvedRequest): array
+    {
+        $requests = self::removeOnboardingRequestByUuid($requests, $approvedRequest['uuid'] ?? '');
+        $requests[] = $approvedRequest;
+
+        return $requests;
+    }
+
+    private static function findApprovedOnboardingRequest(string $uuid, ?array $requests = null): ?array
+    {
+        $requests ??= self::getOnboardingRequests();
+        $request = self::findOnboardingRequest($requests, $uuid);
+
+        if ($request && ($request['status'] ?? '') === 'approved' && ! empty($request['assigned_screen'])) {
+            return $request;
+        }
+
+        $screenSlug = self::findApprovedScreenSlugByUuid($uuid);
+        if (! $screenSlug) {
+            return null;
+        }
+
+        return [
+            'uuid' => $uuid,
+            'ip' => $request['ip'] ?? '',
+            'backend' => $request['backend'] ?? '',
+            'url' => $request['url'] ?? '',
+            'user_agent' => $request['user_agent'] ?? 'Unknown',
+            'status' => 'approved',
+            'assigned_screen' => $screenSlug,
+            'requested_at' => $request['requested_at'] ?? date('Y-m-d H:i:s'),
+            'last_seen_at' => date('Y-m-d H:i:s'),
+            'approved_at' => $request['approved_at'] ?? date('Y-m-d H:i:s'),
+            'approved_by' => $request['approved_by'] ?? 'system',
+            'denied_at' => '',
+        ];
+    }
+
+    private static function findApprovedScreenSlugByUuid(string $uuid): ?string
+    {
+        $screensRoot = kirby()->page('signage/screens');
+        if (! $screensRoot) {
+            return null;
+        }
+
+        foreach ($screensRoot->children() as $screen) {
+            foreach (self::whitelistToArray($screen->whitelist()->toStructure()) as $device) {
+                if (($device['uuid'] ?? '') === $uuid) {
+                    return $screen->slug();
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static function getApprovedDeviceUuids(): array
+    {
+        $screensRoot = kirby()->page('signage/screens');
+        if (! $screensRoot) {
+            return [];
+        }
+
+        $approvedUuids = [];
+        foreach ($screensRoot->children() as $screen) {
+            foreach (self::whitelistToArray($screen->whitelist()->toStructure()) as $device) {
+                if (! empty($device['uuid'])) {
+                    $approvedUuids[] = $device['uuid'];
+                }
+            }
+        }
+
+        return array_values(array_unique($approvedUuids));
+    }
+
+    private static function syncOnboardingAssignment(string $uuid, string $screenSlug): void
+    {
+        $rootPage = self::getRootPage();
+        if (! $rootPage) {
+            return;
+        }
+
+        $requests = self::getOnboardingRequests();
+        $updated = false;
+
+        foreach ($requests as &$request) {
+            if (($request['uuid'] ?? null) !== $uuid) {
+                continue;
+            }
+
+            $request['status'] = 'approved';
+            $request['assigned_screen'] = $screenSlug;
+            $request['approved_at'] = date('Y-m-d H:i:s');
+            $request['approved_by'] = kirby()->user() ? kirby()->user()->email() : 'system';
+            $request['denied_at'] = '';
+            $updated = true;
+        }
+        unset($request);
+
+        if ($updated) {
+            self::saveOnboardingRequests($rootPage, $requests);
+        }
+    }
+
+    private static function clearOnboardingAssignment(string $uuid, string $screenSlug): void
+    {
+        $rootPage = self::getRootPage();
+        if (! $rootPage) {
+            return;
+        }
+
+        $requests = self::getOnboardingRequests();
+        $updated = false;
+
+        foreach ($requests as &$request) {
+            if (($request['uuid'] ?? null) !== $uuid) {
+                continue;
+            }
+
+            if (($request['assigned_screen'] ?? '') !== $screenSlug) {
+                continue;
+            }
+
+            $request['status'] = 'pending';
+            $request['assigned_screen'] = '';
+            $request['approved_at'] = '';
+            $request['approved_by'] = '';
+            $updated = true;
+        }
+        unset($request);
+
+        if ($updated) {
+            self::saveOnboardingRequests($rootPage, $requests);
+        }
+    }
+
+    private static function formatOnboardingResponse(array $request): array
+    {
+        $status = $request['status'] ?? 'pending';
+        $screenSlug = $request['assigned_screen'] ?? null;
+
+        if ($status === 'approved' && $screenSlug) {
+            return [
+                'status' => 'success',
+                'access' => 'granted',
+                'screen' => $screenSlug,
+                'message' => 'Device approved',
+            ];
+        }
+
+        if ($status === 'denied') {
+            return [
+                'status' => 'denied',
+                'access' => 'denied',
+                'message' => 'Access denied. Contact your administrator.',
+            ];
+        }
+
+        return [
+            'status' => 'pending',
+            'access' => 'pending',
+            'message' => 'Waiting for assignment',
+        ];
     }
 
     /**

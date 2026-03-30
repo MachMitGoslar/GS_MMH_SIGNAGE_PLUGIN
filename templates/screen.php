@@ -85,12 +85,17 @@
              * Get or create device UUID
              */
             getOrCreateUUID() {
-                let uuid = localStorage.getItem('signage_device_uuid');
+                let uuid = localStorage.getItem('signage_onboarding_uuid');
+                if (!uuid) {
+                    uuid = localStorage.getItem('signage_device_uuid');
+                }
 
                 if (!uuid) {
                     uuid = this.generateUUID();
-                    localStorage.setItem('signage_device_uuid', uuid);
                 }
+
+                localStorage.setItem('signage_onboarding_uuid', uuid);
+                localStorage.setItem('signage_device_uuid', uuid);
 
                 return uuid;
             },

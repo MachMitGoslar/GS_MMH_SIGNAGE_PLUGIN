@@ -12,6 +12,7 @@
 
 use Kirby\Cms\App as Kirby;
 use Kirby\Http\Response as Response;
+use Kirby\Toolkit\Tpl;
 
 // Load plugin classes
 require_once __DIR__ . '/classes/DurationCalculator.php';
@@ -32,6 +33,7 @@ Kirby::plugin('gs/mmh-signage', [
      */
     'fields' => [
         'pending_requests' => require __DIR__ . '/fields/pending_requests/index.php',
+        'onboarding_requests' => require __DIR__ . '/fields/onboarding_requests/index.php',
     ],
 
     /**
@@ -88,6 +90,7 @@ Kirby::plugin('gs/mmh-signage', [
      */
     'templates' => [
         'screen' => __DIR__ . '/templates/screen.php',
+        'signage-onboarding' => __DIR__ . '/templates/onboarding.php',
     ],
 
     /**
@@ -109,6 +112,36 @@ Kirby::plugin('gs/mmh-signage', [
     'api' => [
         'routes' => function ($kirby) {
             return [
+                [
+                    'pattern' => 'signage/onboarding/request',
+                    'method' => 'POST',
+                    'auth' => false,
+                    'action' => function () use ($kirby) {
+                        $data = $kirby->request()->body()->toArray();
+                        $uuid = $data['uuid'] ?? null;
+                        $backend = $data['backend'] ?? null;
+                        $url = $data['url'] ?? null;
+                        $ip = $kirby->visitor()->ip();
+
+                        if (! $uuid) {
+                            return [
+                                'status' => 'error',
+                                'access' => 'denied',
+                                'message' => 'Missing uuid parameter',
+                            ];
+                        }
+
+                        return AccessController::registerOnboardingRequest($uuid, $ip, $backend, $url);
+                    },
+                ],
+                [
+                    'pattern' => 'signage/onboarding-status/(:any)',
+                    'method' => 'GET',
+                    'auth' => false,
+                    'action' => function (string $uuid) {
+                        return AccessController::getOnboardingStatus($uuid);
+                    },
+                ],
                 [
                     'pattern' => 'signage/check-access',
                     'method' => 'POST',
@@ -150,6 +183,38 @@ Kirby::plugin('gs/mmh-signage', [
                     },
                 ],
                 [
+                    'pattern' => 'signage/approve-onboarding-request',
+                    'method' => 'POST',
+                    'auth' => true,
+                    'action' => function () use ($kirby) {
+                        $uuid = $kirby->request()->get('uuid');
+                        $screenSlug = $kirby->request()->get('screen');
+                        $label = $kirby->request()->get('label', 'Unknown Device');
+
+                        return AccessController::approveOnboardingRequest($uuid, $screenSlug, $label);
+                    },
+                ],
+                [
+                    'pattern' => 'signage/deny-onboarding-request',
+                    'method' => 'POST',
+                    'auth' => true,
+                    'action' => function () use ($kirby) {
+                        $uuid = $kirby->request()->get('uuid');
+
+                        return AccessController::denyOnboardingRequest($uuid);
+                    },
+                ],
+                [
+                    'pattern' => 'signage/remove-denied-onboarding-request',
+                    'method' => 'POST',
+                    'auth' => true,
+                    'action' => function () use ($kirby) {
+                        $uuid = $kirby->request()->get('uuid');
+
+                        return AccessController::removeDeniedOnboardingRequest($uuid);
+                    },
+                ],
+                [
                     'pattern' => 'signage/approve-request',
                     'method' => 'POST',
                     'auth' => true, // Requires panel login
@@ -159,6 +224,41 @@ Kirby::plugin('gs/mmh-signage', [
                         $label = $kirby->request()->get('label', 'Unknown Device');
 
                         return AccessController::approveRequest($screenSlug, $uuid, $label);
+                    },
+                ],
+                [
+                    'pattern' => 'signage/reassign-approved-device',
+                    'method' => 'POST',
+                    'auth' => true,
+                    'action' => function () use ($kirby) {
+                        $fromScreenSlug = $kirby->request()->get('fromScreen');
+                        $toScreenSlug = $kirby->request()->get('toScreen');
+                        $uuid = $kirby->request()->get('uuid');
+
+                        return AccessController::reassignApprovedDevice($fromScreenSlug, $toScreenSlug, $uuid);
+                    },
+                ],
+                [
+                    'pattern' => 'signage/revoke-approved-device',
+                    'method' => 'POST',
+                    'auth' => true,
+                    'action' => function () use ($kirby) {
+                        $screenSlug = $kirby->request()->get('screen');
+                        $uuid = $kirby->request()->get('uuid');
+
+                        return AccessController::revokeApprovedDevice($screenSlug, $uuid);
+                    },
+                ],
+                [
+                    'pattern' => 'signage/rename-approved-device',
+                    'method' => 'POST',
+                    'auth' => true,
+                    'action' => function () use ($kirby) {
+                        $screenSlug = $kirby->request()->get('screen');
+                        $uuid = $kirby->request()->get('uuid');
+                        $label = $kirby->request()->get('label', '');
+
+                        return AccessController::renameApprovedDevice($screenSlug, $uuid, $label);
                     },
                 ],
                 [
@@ -356,6 +456,20 @@ Kirby::plugin('gs/mmh-signage', [
      * Frontend routes for screen display and plugin assets
      */
     'routes' => [
+        [
+            'pattern' => 'signage',
+            'action' => function () {
+                $page = page('signage');
+                if (! $page) {
+                    return page('error');
+                }
+
+                return new Response(
+                    Tpl::load(__DIR__ . '/templates/onboarding.php', ['page' => $page]),
+                    'text/html'
+                );
+            },
+        ],
         [
             'pattern' => 'signage/assets/css/(:any)',
             'action' => function ($file) {

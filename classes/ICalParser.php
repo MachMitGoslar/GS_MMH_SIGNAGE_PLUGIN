@@ -51,7 +51,6 @@ class ICalParser
                 'events' => $events,
                 'fetched_at' => date('Y-m-d H:i:s'),
             ];
-
         } catch (Exception $e) {
             error_log('ICalParser Error: ' . $e->getMessage());
 

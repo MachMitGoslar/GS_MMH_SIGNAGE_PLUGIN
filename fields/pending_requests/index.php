@@ -7,7 +7,6 @@
  * with approve/deny buttons.
  */
 
-
 return [
     'props' => [
         'value' => function ($value = null) {
@@ -22,7 +21,7 @@ return [
             if (method_exists($this, 'model')) {
                 $model = $this->model();
                 if ($model) {
-                    return AccessController::getPendingRequestsForScreen($model);
+                    return AccessController::getApprovedDevicesForScreen($model);
                 }
             }
 
@@ -33,11 +32,11 @@ return [
 
             return $value ?? [];
         },
-        'deniedRequests' => function () {
+        'approvedDevices' => function () {
             if (method_exists($this, 'model')) {
                 $model = $this->model();
                 if ($model) {
-                    return AccessController::getDeniedRequestsForScreen($model);
+                    return AccessController::getApprovedDevicesForScreen($model);
                 }
             }
 
@@ -55,66 +54,6 @@ return [
         },
     ],
     'api' => function () {
-        return [
-            [
-                'pattern' => 'approve',
-                'method' => 'POST',
-                'action' => function () {
-                    $uuid = $this->requestBody('uuid');
-                    $screenSlug = $this->requestBody('screen');
-                    $label = $this->requestBody('label');
-
-                    if (! $uuid) {
-                        return [
-                            'status' => 'error',
-                            'message' => 'Missing UUID or screen parameter',
-                        ];
-                    }
-
-                    $screen = method_exists($this, 'model') ? $this->model() : null;
-                    if ($screen) {
-                        return AccessController::approveRequestForScreen($screen, $uuid, $label ?: 'Unknown Device');
-                    }
-
-                    if (! $screenSlug) {
-                        return [
-                            'status' => 'error',
-                            'message' => 'Missing screen parameter',
-                        ];
-                    }
-
-                    return AccessController::approveRequest($screenSlug, $uuid, $label ?: 'Unknown Device');
-                },
-            ],
-            [
-                'pattern' => 'deny',
-                'method' => 'POST',
-                'action' => function () {
-                    $uuid = $this->requestBody('uuid');
-                    $screenSlug = $this->requestBody('screen');
-
-                    if (! $uuid) {
-                        return [
-                            'status' => 'error',
-                            'message' => 'Missing UUID or screen parameter',
-                        ];
-                    }
-
-                    $screen = method_exists($this, 'model') ? $this->model() : null;
-                    if ($screen) {
-                        return AccessController::denyRequestForScreen($screen, $uuid);
-                    }
-
-                    if (! $screenSlug) {
-                        return [
-                            'status' => 'error',
-                            'message' => 'Missing screen parameter',
-                        ];
-                    }
-
-                    return AccessController::denyRequest($screenSlug, $uuid);
-                },
-            ],
-        ];
+        return [];
     },
 ];

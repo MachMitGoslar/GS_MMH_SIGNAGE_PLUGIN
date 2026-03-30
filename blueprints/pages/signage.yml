@@ -1,5 +1,5 @@
 title: Beschilderung
-icon: monitor
+icon: display
 options:
   changeSlug: false
   changeStatus: false
@@ -9,7 +9,7 @@ options:
 tabs:
   screens:
     label: Bildschirme
-    icon: monitor
+    icon: display
     columns:
       - width: 1/1
         sections:
@@ -43,3 +43,16 @@ tabs:
             info: "{{ page.children.count }} Folien"
             empty: Noch keine Inhaltskanäle vorhanden
             help: Organisieren Sie Inhalte in wiederverwendbare Kanäle
+
+  onboarding:
+    label: Geräteverwaltung
+    icon: bolt
+    columns:
+      - width: 1/1
+        sections:
+          onboarding_requests_section:
+            type: fields
+            fields:
+              onboarding_requests:
+                label: Geräteanfragen
+                type: onboarding_requests
