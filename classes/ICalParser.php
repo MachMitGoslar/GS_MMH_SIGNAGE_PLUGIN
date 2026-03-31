@@ -11,6 +11,18 @@
 class ICalParser
 {
     /**
+     * Resolve the timezone used for local calendar comparisons and display.
+     */
+    private static function getLocalTimezone(): DateTimeZone
+    {
+        try {
+            return new DateTimeZone(date_default_timezone_get() ?: 'Europe/Berlin');
+        } catch (Exception $e) {
+            return new DateTimeZone('Europe/Berlin');
+        }
+    }
+
+    /**
      * Fetch and parse events from an iCal URL
      *
      * @param string $url iCal feed URL
@@ -183,6 +195,7 @@ class ICalParser
             'end_timestamp' => 0,
             'all_day' => false,
             'uid' => '',
+            'rrule' => null,
         ];
 
         // Title/Summary
@@ -203,6 +216,10 @@ class ICalParser
         // UID
         if (isset($eventData['UID'])) {
             $event['uid'] = $eventData['UID']['value'];
+        }
+
+        if (isset($eventData['RRULE'])) {
+            $event['rrule'] = $eventData['RRULE']['value'];
         }
 
         // Start date/time
@@ -231,6 +248,7 @@ class ICalParser
         $value = $dateData['value'];
         $params = $dateData['params'] ?? [];
         $timezone = $params['TZID'] ?? null;
+        $localTimezone = self::getLocalTimezone();
 
         $allDay = false;
         $timestamp = 0;
@@ -248,30 +266,32 @@ class ICalParser
         if (strlen($value) === 8) {
             // Date only: YYYYMMDD
             $allDay = true;
-            $date = DateTime::createFromFormat('Ymd', $value);
+            $date = DateTime::createFromFormat('Ymd', $value, $localTimezone);
             if ($date) {
+                $date->setTimezone($localTimezone);
                 $timestamp = $date->getTimestamp();
                 $formatted = $date->format('Y-m-d');
             }
         } elseif (strlen($value) >= 15) {
             // Date and time: YYYYMMDDTHHMMSS
-            $value = str_replace('T', '', $value);
-            $date = DateTime::createFromFormat('YmdHis', substr($value, 0, 14));
+            $dateValue = str_replace('T', '', $value);
+            $parseTimezone = $localTimezone;
+
+            if ($isUtc) {
+                $parseTimezone = new DateTimeZone('UTC');
+            } elseif ($timezone) {
+                try {
+                    $parseTimezone = new DateTimeZone($timezone);
+                } catch (Exception $e) {
+                    $parseTimezone = $localTimezone;
+                }
+            }
+
+            $date = DateTime::createFromFormat('YmdHis', substr($dateValue, 0, 14), $parseTimezone);
 
             if ($date) {
-                // Handle timezone
-                if ($isUtc) {
-                    $date->setTimezone(new DateTimeZone('UTC'));
-                } elseif ($timezone) {
-                    try {
-                        $date->setTimezone(new DateTimeZone($timezone));
-                    } catch (Exception $e) {
-                        // Use default timezone if invalid
-                    }
-                }
-
                 // Convert to local timezone for display
-                $date->setTimezone(new DateTimeZone(date_default_timezone_get()));
+                $date->setTimezone($localTimezone);
 
                 $timestamp = $date->getTimestamp();
                 $formatted = $date->format('Y-m-d H:i');
@@ -305,7 +325,7 @@ class ICalParser
      */
     private static function filterByRange(array $events, string $range): array
     {
-        $now = new DateTime();
+        $now = new DateTime('now', self::getLocalTimezone());
         $now->setTime(0, 0, 0);
 
         $startTimestamp = $now->getTimestamp();
@@ -341,12 +361,220 @@ class ICalParser
                 $endTimestamp = $end->getTimestamp();
         }
 
-        return array_filter($events, function ($event) use ($startTimestamp, $endTimestamp) {
-            $eventStart = $event['start_timestamp'];
+        return self::expandEventsForRange($events, $startTimestamp, $endTimestamp);
+    }
 
-            // Include events that start within the range or are ongoing
-            return $eventStart >= $startTimestamp && $eventStart <= $endTimestamp;
-        });
+    /**
+     * Expand recurring events into individual occurrences within the active range.
+     */
+    private static function expandEventsForRange(array $events, int $startTimestamp, int $endTimestamp): array
+    {
+        $expandedEvents = [];
+
+        foreach ($events as $event) {
+            if (empty($event['start_timestamp'])) {
+                continue;
+            }
+
+            if (empty($event['rrule'])) {
+                if ($event['start_timestamp'] >= $startTimestamp && $event['start_timestamp'] <= $endTimestamp) {
+                    $expandedEvents[] = $event;
+                }
+
+                continue;
+            }
+
+            foreach (self::expandRecurringEvent($event, $startTimestamp, $endTimestamp) as $occurrence) {
+                $expandedEvents[] = $occurrence;
+            }
+        }
+
+        return $expandedEvents;
+    }
+
+    /**
+     * Expand a single recurring event into concrete occurrences.
+     */
+    private static function expandRecurringEvent(array $event, int $rangeStartTimestamp, int $rangeEndTimestamp): array
+    {
+        $rule = self::parseRRule($event['rrule'] ?? '');
+
+        if (empty($rule['FREQ'])) {
+            return [];
+        }
+
+        $timezone = self::getLocalTimezone();
+        $baseStart = self::createLocalDateTimeFromTimestamp($event['start_timestamp']);
+        $baseEnd = ! empty($event['end_timestamp'])
+            ? self::createLocalDateTimeFromTimestamp($event['end_timestamp'])
+            : null;
+        $rangeStart = self::createLocalDateTimeFromTimestamp($rangeStartTimestamp)->setTime(0, 0, 0);
+        $rangeEnd = self::createLocalDateTimeFromTimestamp($rangeEndTimestamp);
+        $duration = $baseEnd ? $baseEnd->getTimestamp() - $baseStart->getTimestamp() : 0;
+        $countLimit = isset($rule['COUNT']) ? (int) $rule['COUNT'] : null;
+        $until = self::parseRRuleUntil($rule['UNTIL'] ?? null);
+        $occurrences = [];
+        $occurrenceCount = 0;
+        $scanDate = $baseStart->setTime(0, 0, 0);
+        $scanEnd = $rangeEnd->setTime(23, 59, 59);
+
+        while ($scanDate <= $scanEnd) {
+            $occurrenceStart = self::buildOccurrenceStart($scanDate, $baseStart, $event['all_day']);
+
+            if (
+                $occurrenceStart >= $baseStart &&
+                self::matchesRecurrenceRule($occurrenceStart, $baseStart, $rule)
+            ) {
+                $occurrenceCount++;
+
+                if ($countLimit !== null && $occurrenceCount > $countLimit) {
+                    break;
+                }
+
+                if ($until && $occurrenceStart > $until) {
+                    break;
+                }
+
+                if ($occurrenceStart->getTimestamp() >= $rangeStartTimestamp && $occurrenceStart->getTimestamp() <= $rangeEndTimestamp) {
+                    $occurrence = $event;
+                    $occurrence['start_timestamp'] = $occurrenceStart->getTimestamp();
+                    $occurrence['start'] = $event['all_day']
+                        ? $occurrenceStart->format('Y-m-d')
+                        : $occurrenceStart->format('Y-m-d H:i');
+
+                    if ($duration > 0) {
+                        $occurrenceEnd = $occurrenceStart->modify('+' . $duration . ' seconds');
+                        $occurrence['end_timestamp'] = $occurrenceEnd->getTimestamp();
+                        $occurrence['end'] = $event['all_day']
+                            ? $occurrenceEnd->format('Y-m-d')
+                            : $occurrenceEnd->format('Y-m-d H:i');
+                    }
+
+                    $occurrences[] = $occurrence;
+                }
+            }
+
+            $scanDate = $scanDate->modify('+1 day');
+        }
+
+        return $occurrences;
+    }
+
+    private static function parseRRule(string $rrule): array
+    {
+        $parsed = [];
+
+        foreach (explode(';', $rrule) as $part) {
+            if (strpos($part, '=') === false) {
+                continue;
+            }
+
+            [$key, $value] = explode('=', $part, 2);
+            $parsed[strtoupper(trim($key))] = trim($value);
+        }
+
+        return $parsed;
+    }
+
+    private static function parseRRuleUntil(?string $until): ?DateTimeImmutable
+    {
+        if (empty($until)) {
+            return null;
+        }
+
+        $parsed = self::parseIcalDate([
+            'value' => $until,
+            'params' => [],
+        ]);
+
+        if (empty($parsed['timestamp'])) {
+            return null;
+        }
+
+        return self::createLocalDateTimeFromTimestamp($parsed['timestamp']);
+    }
+
+    private static function createLocalDateTimeFromTimestamp(int $timestamp): DateTimeImmutable
+    {
+        return (new DateTimeImmutable('@' . $timestamp))->setTimezone(self::getLocalTimezone());
+    }
+
+    private static function buildOccurrenceStart(
+        DateTimeImmutable $scanDate,
+        DateTimeImmutable $baseStart,
+        bool $allDay
+    ): DateTimeImmutable {
+        if ($allDay) {
+            return $scanDate->setTime(0, 0, 0);
+        }
+
+        return $scanDate->setTime(
+            (int) $baseStart->format('H'),
+            (int) $baseStart->format('i'),
+            (int) $baseStart->format('s')
+        );
+    }
+
+    private static function matchesRecurrenceRule(
+        DateTimeImmutable $occurrenceStart,
+        DateTimeImmutable $baseStart,
+        array $rule
+    ): bool {
+        $freq = strtoupper($rule['FREQ'] ?? '');
+        $interval = max(1, (int) ($rule['INTERVAL'] ?? 1));
+        $byDay = ! empty($rule['BYDAY']) ? array_map('trim', explode(',', strtoupper($rule['BYDAY']))) : [];
+        $byMonthDay = ! empty($rule['BYMONTHDAY']) ? array_map('intval', explode(',', $rule['BYMONTHDAY'])) : [];
+        $weekday = strtoupper(substr($occurrenceStart->format('D'), 0, 2));
+        $baseWeekday = strtoupper(substr($baseStart->format('D'), 0, 2));
+
+        switch ($freq) {
+            case 'DAILY':
+                $dayDiff = (int) $baseStart->diff($occurrenceStart)->format('%a');
+
+                if ($dayDiff % $interval !== 0) {
+                    return false;
+                }
+
+                return empty($byDay) || in_array($weekday, $byDay, true);
+
+            case 'WEEKLY':
+                $baseWeekStart = $baseStart->modify('monday this week')->setTime(0, 0, 0);
+                $occurrenceWeekStart = $occurrenceStart->modify('monday this week')->setTime(0, 0, 0);
+                $weekDiff = (int) floor(($occurrenceWeekStart->getTimestamp() - $baseWeekStart->getTimestamp()) / 604800);
+
+                if ($weekDiff < 0 || $weekDiff % $interval !== 0) {
+                    return false;
+                }
+
+                $allowedDays = $byDay ?: [$baseWeekday];
+
+                return in_array($weekday, $allowedDays, true);
+
+            case 'MONTHLY':
+                $monthDiff = ((int) $occurrenceStart->format('Y') - (int) $baseStart->format('Y')) * 12;
+                $monthDiff += (int) $occurrenceStart->format('n') - (int) $baseStart->format('n');
+
+                if ($monthDiff < 0 || $monthDiff % $interval !== 0) {
+                    return false;
+                }
+
+                if (! empty($byMonthDay)) {
+                    return in_array((int) $occurrenceStart->format('j'), $byMonthDay, true);
+                }
+
+                return (int) $occurrenceStart->format('j') === (int) $baseStart->format('j');
+
+            case 'YEARLY':
+                $yearDiff = (int) $occurrenceStart->format('Y') - (int) $baseStart->format('Y');
+
+                if ($yearDiff < 0 || $yearDiff % $interval !== 0) {
+                    return false;
+                }
+
+                return $occurrenceStart->format('m-d') === $baseStart->format('m-d');
+        }
+
+        return false;
     }
 
     /**
@@ -358,11 +586,14 @@ class ICalParser
             'title' => $event['title'],
             'location' => $event['location'],
             'description' => $event['description'],
+            'start_timestamp' => $event['start_timestamp'] ?? null,
+            'end_timestamp' => $event['end_timestamp'] ?? null,
+            'all_day' => $event['all_day'] ?? false,
         ];
 
         if ($event['all_day']) {
             $displayEvent['date'] = self::formatDate($event['start']);
-            $displayEvent['time'] = 'All Day';
+            $displayEvent['time'] = 'Ganztägig';
         } else {
             $displayEvent['date'] = self::formatDate($event['start']);
             $displayEvent['time'] = self::formatTime($event['start']);
@@ -384,17 +615,9 @@ class ICalParser
             return '';
         }
 
-        $date = new DateTime($dateString);
-        $today = new DateTime('today');
-        $tomorrow = new DateTime('tomorrow');
+        $date = new DateTime($dateString, self::getLocalTimezone());
 
-        if ($date->format('Y-m-d') === $today->format('Y-m-d')) {
-            return 'Today';
-        } elseif ($date->format('Y-m-d') === $tomorrow->format('Y-m-d')) {
-            return 'Tomorrow';
-        } else {
-            return $date->format('D, M j'); // e.g., "Mon, Jan 15"
-        }
+        return $date->format('Y-m-d');
     }
 
     /**
@@ -406,7 +629,7 @@ class ICalParser
             return '';
         }
 
-        $date = new DateTime($dateString);
+        $date = new DateTime($dateString, self::getLocalTimezone());
 
         return $date->format('H:i'); // 24-hour format, e.g., "14:30"
     }

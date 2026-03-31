@@ -1,6 +1,6 @@
 # GS MachMit!Haus Signage Plugin
 
-Digital signage system for Kirby 5 with screen management, content channels, block-based content, and whitelist-based access control.
+Digital signage system for Kirby 5 with screen management, content channels, block-based content, central device onboarding, and optional whitelist-based access control.
 
 ## Features
 
@@ -8,9 +8,11 @@ Digital signage system for Kirby 5 with screen management, content channels, blo
 - 📡 **Content Channels** - Organize content into reusable channels
 - 🎨 **Block-Based Content** - Leverage existing Kirby blocks (headings, text, images)
 - 🎬 **Video Support** - Upload videos or embed from YouTube/Vimeo
-- 📅 **Calendar Integration** - Display events from CalDAV/iCal or Kirby pages
+- 📅 **Calendar Integration** - Display events from iCal/ICS or Kirby pages
 - ⏰ **Time-Based Scheduling** - Automatically switch channels based on time
-- 🔐 **Access Control** - Whitelist-based device approval system
+- 🔐 **Access Control** - Optional whitelist-based device approval system
+- 🚪 **Onboarding Landing Page** - Central device entry point at `/signage`
+- 🧭 **Device Management** - Approve, deny, move, rename, and revoke devices in one place
 - 📱 **Orientation Support** - Horizontal and vertical screen layouts
 - 🌙 **Standby Mode** - Customizable display during inactive hours
 - ⚡ **Auto Duration** - Smart content duration based on text length and media type
@@ -30,9 +32,10 @@ It's already installed and ready to use. Just access the panel to start configur
 
 1. Log into your Kirby panel
 2. Look for **"Signage"** in the sidebar menu (monitor icon)
-3. You'll see two sections:
-   - **Screens** - Manage display screens
-   - **Channels** - Manage content channels
+3. The Signage root page opens with three tabs:
+   - **Bildschirme** - Manage display screens
+   - **Kanäle** - Manage content channels
+   - **Geräteverwaltung** - Manage onboarding and approved devices
 
 ### 2. Create Your First Channel
 
@@ -41,7 +44,7 @@ It's already installed and ready to use. Just access the panel to start configur
 3. Add slides to your channel:
    - **Blocks** - Text, images, headings (uses your existing design system)
    - **Video** - Upload MP4 or embed YouTube/Vimeo
-   - **Calendar** - Connect external calendar or use Kirby pages
+   - **Calendar** - Connect external iCal/ICS feed or use Kirby pages
 
 ### 3. Create a Screen
 
@@ -52,7 +55,8 @@ It's already installed and ready to use. Just access the panel to start configur
    - **Orientation**: Horizontal or Vertical
    - **Assigned Channel**: Select your channel
    - **Active Hours**: Set when the screen should display content
-   - **Access Control**: Enable whitelist for device approval
+   - **Access Control**: Enable whitelist for device approval or disable it for public access
+   - **Page Status**: Set the screen to `listed` if it should be reachable as an active screen
 
 ### 4. Access Your Screen
 
@@ -61,38 +65,54 @@ Your screen is available at:
 https://your-domain.com/signage/lobby-screen
 ```
 
+If you use restricted screens, the central onboarding entry point is:
+```
+https://your-domain.com/signage
+```
+
 ## Access Control Workflow
 
-The plugin uses a **request-then-approve** whitelist system:
+The plugin supports two access modes:
+
+- **Public Mode** - Whitelist disabled, screen is available immediately
+- **Restricted Mode** - Whitelist enabled, devices must be approved first
+
+When restricted mode is active, the plugin uses a **request-then-approve** system.
 
 ### Device Access Process
 
-1. **First Visit**: Device visits the screen URL
+1. **First Visit**: Device visits `/signage` or the screen URL
 2. **UUID Generated**: Browser creates a unique device ID (stored in localStorage)
 3. **Access Request**: System records the request with:
    - Device UUID
    - IP Address
+   - Backend / URL metadata from onboarding
    - User Agent (device info)
    - Request timestamp
 4. **Pending State**: Screen displays "Access Pending" message
-5. **Admin Approval**: Admin reviews pending requests in panel
+5. **Admin Approval**: Editor reviews pending requests in **Geräteverwaltung**
 6. **Whitelist Added**: Upon approval, device is added to whitelist
-7. **Auto-Reload**: Screen automatically loads content (checks every 5 seconds)
+7. **Auto-Redirect**: Device is sent to the assigned screen automatically
 
 ### Managing Access
 
-**In the Screen Blueprint:**
-- **Access Mode Toggle**: Switch between Public and Whitelist Only
-- **Approved Devices**: View and manage whitelisted devices
-- **Pending Requests**: Review and approve new device requests
+**In the Signage Root Page:**
+- **Geräteverwaltung** is the central place for approvals and denials
+- **Approved Devices** can be renamed, reassigned, or revoked
+- **Denied Requests** can be deleted or approved later
+- **Pending Requests** can be assigned directly to any available screen
 
 **To Approve a Device:**
-1. Open the screen in panel
-2. Scroll to "Pending Access Requests"
-3. Note the UUID and IP
-4. Add to "Approved Devices" structure
-5. Provide a friendly label (e.g., "Lobby Tablet")
-6. Save the screen
+1. Open **Signage → Geräteverwaltung**
+2. Select a screen from the dropdown for the pending device
+3. Assign the device
+4. Optionally rename it later
+
+**Important:**
+- If a device approval is revoked, the device returns to the landing page
+- If a device is moved to another monitor, the old monitor redirects it back to `/signage`
+- If a screen is deleted, assigned devices are moved back to pending requests
+- Public screens bypass the onboarding and approval flow completely
 
 ## Duration Calculation
 
@@ -131,6 +151,11 @@ Content duration is calculated automatically when `duration_mode` is set to "Aut
 
 Set `duration_mode` to "Manual" and specify custom duration (5-300 seconds).
 
+The frontend currently respects the configured slide duration for:
+
+- vertical scroll animation
+- grid carousel animation
+
 ## Time-Based Channel Switching
 
 Screens can automatically switch channels based on time:
@@ -164,7 +189,7 @@ When outside active hours, screens display a standby state:
 ### Standby Options
 
 1. **Blank Screen** - Solid black
-2. **Logo Only** - Show a logo image
+2. **Logo Only** - Show the MMH logo on a branded standby background
 3. **Custom** - Image + custom message
 
 ### Configuration
@@ -222,8 +247,8 @@ Uses your existing Kirby block system:
 
 **Layouts:**
 - **List** - Simple event list
-- **Grid** - Calendar grid view
-- **Agenda** - Agenda-style view
+- **Grid** - Card-based grid with carousel paging
+- **Agenda** - Agenda-style grouped list with vertical scroll
 
 **Best For:**
 - Event schedules
@@ -239,15 +264,16 @@ The player runs client-side JavaScript with:
 - **Auto-Rotation** - Slides advance based on calculated duration
 - **Smooth Transitions** - Fade, slide (left/right/up/down)
 - **Responsive Layout** - Adapts to screen orientation
-- **Access Control** - UUID-based device identification
-- **Auto-Refresh** - Content updates every 60 seconds
+- **Access Control** - UUID-based device identification for restricted screens
+- **Content State Sync** - Content reloads only when the panel content revision changes
+- **Automatic Redirects** - Devices return to onboarding when approval changes
 - **Offline Fallback** - Graceful error handling
 
 ### Browser Compatibility
 
 - Modern browsers (Chrome, Firefox, Safari, Edge)
 - ES6+ JavaScript required
-- LocalStorage required for UUID persistence
+- LocalStorage required for restricted screens
 - No IE11 support
 
 ### Performance
@@ -256,6 +282,7 @@ The player runs client-side JavaScript with:
 - CSS transitions: GPU-accelerated
 - Video: Native HTML5 player
 - Images: Lazy-loaded via browser
+- Access changes: Polling-based, no dedicated WebSocket server at the moment
 
 ## File Structure
 
@@ -266,20 +293,25 @@ site/plugins/gs-mmh-signage/
 ├── blueprints/
 │   └── pages/
 │       ├── signage.yml          # Root signage page blueprint
+│       ├── screens.yml          # Screens container blueprint
+│       ├── channels.yml         # Channels container blueprint
 │       ├── screen.yml           # Screen blueprint
 │       ├── channel.yml          # Channel blueprint
 │       └── slide.yml            # Slide blueprint
 ├── classes/
 │   ├── DurationCalculator.php   # Auto-duration calculation
-│   └── AccessController.php     # Access control & content delivery
+│   ├── ICalParser.php           # External calendar parsing
+│   └── AccessController.php     # Access control, onboarding & content delivery
+├── fields/
+│   ├── onboarding_requests/     # Device management field
+│   └── pending_requests/        # Screen device overview field
 ├── templates/
+│   ├── onboarding.php           # Frontend onboarding / landing page
 │   └── screen.php               # Frontend player template
-└── snippets/
-    ├── player.php               # Player snippet (future)
-    ├── standby.php              # Standby screen snippet (future)
-    ├── slide-blocks.php         # Block rendering (future)
-    ├── slide-video.php          # Video rendering (future)
-    └── slide-calendar.php       # Calendar rendering (future)
+├── assets/
+│   └── css/
+│       └── signage-player.css   # Player styling
+└── index.js                     # Panel UI for device management
 ```
 
 ## API Endpoints
@@ -301,12 +333,44 @@ GET /api/signage/content/{screen-slug}
 Response: { status: "active", slides: [...], channel: {...} }
 ```
 
-### Approve Request (Authenticated)
+### Content State
 
 ```
-POST /api/signage/approve-request
+GET /api/signage/content-state/{screen-slug}
+Response: { status: "active|standby", revision: "..." }
+```
+
+### Onboarding Request
+
+```
+POST /api/signage/onboarding/request
+Body: { uuid: "device-uuid", backend: "...", url: "..." }
+Response: { status: "success|pending|error", access: "granted|pending|denied" }
+```
+
+### Onboarding Status
+
+```
+GET /api/signage/onboarding-status/{uuid}
+Response: { status: "success|pending", access: "granted|pending|denied", screen?: "screen-slug" }
+```
+
+### Approve Onboarding Request (Authenticated)
+
+```
+POST /api/signage/approve-onboarding-request
 Body: { screen: "screen-slug", uuid: "device-uuid", label: "Device Name" }
 Response: { status: "success", message: "..." }
+```
+
+Additional authenticated routes:
+
+```text
+POST /api/signage/deny-onboarding-request
+POST /api/signage/remove-denied-onboarding-request
+POST /api/signage/revoke-approved-device
+POST /api/signage/reassign-approved-device
+POST /api/signage/rename-approved-device
 ```
 
 ## Page Methods
@@ -339,11 +403,20 @@ $screen->activeChannel()   // Page|null - Currently active channel
 ### Screen shows "Access Pending" forever
 
 **Fix:**
-1. Check screen blueprint → "Pending Access Requests"
-2. Find the device UUID
-3. Add to "Approved Devices" structure
-4. Save screen
-5. Device will auto-reload in ~5 seconds
+1. Open **Signage → Geräteverwaltung**
+2. Check whether the device is still pending or denied
+3. Assign it to a screen
+4. Make sure the target screen is `listed`
+5. Wait for the automatic redirect or reload the device once if needed
+
+### Screen shows "Screen is inactive"
+
+**Fix:**
+1. Open the screen in the panel
+2. Set the Kirby page status to `listed`
+3. Save the page
+
+The custom active settings do not replace the required Kirby page status.
 
 ### Video duration not detected
 
@@ -366,11 +439,15 @@ $screen->activeChannel()   // Page|null - Currently active channel
 
 **Verify:**
 - External calendar URL is publicly accessible
-- URL returns valid .ics format
-- CORS is enabled on calendar server (for client-side fetching)
+- URL returns valid .ics / iCal data
+- The chosen range and max events include the expected events
 
 **Alternative:**
 - Use Kirby pages instead of external calendar
+
+**Important:**
+- Plain HTML pages such as `https://oveda.de/eventdates` are not valid ICS sources
+- The plugin expects a real calendar feed URL for external calendars
 
 ## Best Practices
 
@@ -389,10 +466,11 @@ $screen->activeChannel()   // Page|null - Currently active channel
 
 ### Access Control
 
-- **Enable whitelist** for public spaces (prevents unauthorized access)
-- **Use public mode** for internal/trusted networks
+- **Enable whitelist** for restricted screens
+- **Use public mode** for freely accessible screens
 - **Label devices clearly** - "Lobby Tablet", "Reception Display"
-- **Review pending requests regularly**
+- **Review pending and denied requests regularly**
+- **Use Geräteverwaltung** as the single source of truth for device management
 
 ### Performance
 
@@ -431,4 +509,4 @@ Proprietary - Part of GS MachMit!Haus Web project
 **Version**: 1.0.0
 **Kirby**: 5.x
 **PHP**: 8.4+
-**Last Updated**: 2025-01-09
+**Last Updated**: 2026-03-31

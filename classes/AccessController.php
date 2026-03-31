@@ -532,6 +532,14 @@ class AccessController
         $whitelistArray = self::whitelistToArray($screen->whitelist()->toStructure());
         $pendingArray = self::pendingRequestsToArray($screen->pending_requests()->toStructure());
         $deniedArray = self::deniedRequestsToArray($screen->denied_requests()->toStructure());
+        $existingWhitelistEntry = null;
+
+        foreach ($whitelistArray as $entry) {
+            if (($entry['uuid'] ?? '') === ($deviceData['uuid'] ?? '')) {
+                $existingWhitelistEntry = $entry;
+                break;
+            }
+        }
 
         $whitelistArray = array_values(array_filter($whitelistArray, function ($entry) use ($deviceData) {
             return ($entry['uuid'] ?? '') !== ($deviceData['uuid'] ?? '');
@@ -543,12 +551,17 @@ class AccessController
             return ($entry['uuid'] ?? '') !== ($deviceData['uuid'] ?? '');
         }));
 
+        $approvedAt = $deviceData['approved_at']
+            ?? ($existingWhitelistEntry['approved_at'] ?? date('Y-m-d H:i:s'));
+        $approvedBy = $deviceData['approved_by']
+            ?? ($existingWhitelistEntry['approved_by'] ?? (kirby()->user() ? kirby()->user()->email() : 'system'));
+
         $whitelistArray[] = [
             'uuid' => $deviceData['uuid'],
             'ip' => $deviceData['ip'] ?? '',
             'label' => $label,
-            'approved_at' => date('Y-m-d H:i:s'),
-            'approved_by' => kirby()->user() ? kirby()->user()->email() : 'system',
+            'approved_at' => $approvedAt,
+            'approved_by' => $approvedBy,
         ];
 
         try {
@@ -712,13 +725,20 @@ class AccessController
             'ip' => $device['ip'] ?? '',
             'user_agent' => 'Reassigned device',
             'requested_at' => $device['approved_at'] ?? date('Y-m-d H:i:s'),
+            'approved_at' => $device['approved_at'] ?? '',
+            'approved_by' => $device['approved_by'] ?? '',
         ], $device['label'] ?? (self::DEFAULT_LABEL_PREFIX . substr($uuid, 0, 8)));
 
         if (($grant['status'] ?? 'error') !== 'success') {
             return $grant;
         }
 
-        self::syncOnboardingAssignment($uuid, $toScreenSlug);
+        self::syncOnboardingAssignment(
+            $uuid,
+            $toScreenSlug,
+            $device['approved_at'] ?? null,
+            $device['approved_by'] ?? null
+        );
 
         return [
             'status' => 'success',
@@ -1199,7 +1219,12 @@ class AccessController
         return array_values(array_unique($approvedUuids));
     }
 
-    private static function syncOnboardingAssignment(string $uuid, string $screenSlug): void
+    private static function syncOnboardingAssignment(
+        string $uuid,
+        string $screenSlug,
+        ?string $approvedAt = null,
+        ?string $approvedBy = null
+    ): void
     {
         $rootPage = self::getRootPage();
         if (! $rootPage) {
@@ -1216,8 +1241,8 @@ class AccessController
 
             $request['status'] = 'approved';
             $request['assigned_screen'] = $screenSlug;
-            $request['approved_at'] = date('Y-m-d H:i:s');
-            $request['approved_by'] = kirby()->user() ? kirby()->user()->email() : 'system';
+            $request['approved_at'] = $approvedAt ?: ($request['approved_at'] ?? date('Y-m-d H:i:s'));
+            $request['approved_by'] = $approvedBy ?: ($request['approved_by'] ?? (kirby()->user() ? kirby()->user()->email() : 'system'));
             $request['denied_at'] = '';
             $updated = true;
         }
