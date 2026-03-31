@@ -37,8 +37,7 @@
             config: {
                 screenSlug: '<?= $page->slug() ?>',
                 apiBase: '<?= url('api/signage') ?>',
-                checkInterval: 5000, // Check access every 5 seconds if pending
-                refreshInterval: 60000, // Refresh content every minute
+                syncInterval: 5000, // Sync access and content every 5 seconds
             },
 
             state: {
@@ -47,8 +46,7 @@
                 contentData: null,
                 currentSlideIndex: 0,
                 slideTimeout: null,
-                accessIntervalId: null,
-                refreshIntervalId: null,
+                syncIntervalId: null,
             },
 
             /**
@@ -64,21 +62,7 @@
                 // Check access
                 await this.checkAccess();
 
-                // Start access check interval if pending
-                if (this.state.accessStatus === 'pending') {
-                    this.state.accessIntervalId = setInterval(
-                        () => this.checkAccess(),
-                        this.config.checkInterval
-                    );
-                }
-
-                // Start content refresh interval if granted
-                if (this.state.accessStatus === 'granted') {
-                    this.state.refreshIntervalId = setInterval(
-                        () => this.refreshContent(),
-                        this.config.refreshInterval
-                    );
-                }
+                this.startSync();
             },
 
             /**
@@ -139,7 +123,6 @@
                     } else if (data.access === 'pending') {
                         this.showAccessPending();
                     } else {
-                        this.stopAccessChecks();
                         this.showAccessDenied(data.message);
                     }
 
@@ -177,18 +160,23 @@
                 }
             },
 
-            /**
-             * Refresh content (check for updates)
-             */
-            async refreshContent() {
-                console.log('🔄 Refreshing content...');
-                await this.loadContent();
-            },
-            stopAccessChecks() {
-                if (this.state.accessIntervalId) {
-                    clearInterval(this.state.accessIntervalId);
-                    this.state.accessIntervalId = null;
+            startSync() {
+                if (this.state.syncIntervalId) {
+                    return;
                 }
+
+                this.state.syncIntervalId = setInterval(
+                    () => this.checkAccess(),
+                    this.config.syncInterval
+                );
+            },
+            stopSync() {
+                if (!this.state.syncIntervalId) {
+                    return;
+                }
+
+                clearInterval(this.state.syncIntervalId);
+                this.state.syncIntervalId = null;
             },
 
             /**

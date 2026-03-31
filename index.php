@@ -449,6 +449,15 @@ Kirby::plugin('gs/mmh-signage', [
                 }
             }
         },
+        'page.delete:before' => function ($page) {
+            if ($page->intendedTemplate()->name() === 'screen') {
+                try {
+                    AccessController::moveScreenDevicesToPendingForScreen($page);
+                } catch (Throwable $e) {
+                    error_log('Signage: Failed to move devices before screen deletion - ' . $e->getMessage());
+                }
+            }
+        },
     ],
 
     /**

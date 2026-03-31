@@ -1,12 +1,16 @@
 title: Signage-Bildschirm
 icon: display
+num: default
 status:
   draft:
     label: Entwurf
     text: Bildschirm ist nicht aktiv
   unlisted:
+    label: Versteckt
+    text: Bildschirm ist gespeichert, aber nicht in der Liste sichtbar
+  listed:
     label: Aktiv
-    text: Bildschirm ist aktiv
+    text: Bildschirm ist aktiv und für den Zugriff freigegeben
 
 columns:
   - width: 2/3

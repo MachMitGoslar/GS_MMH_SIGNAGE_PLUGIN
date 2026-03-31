@@ -785,6 +785,68 @@ class AccessController
         }
     }
 
+    public static function moveScreenDevicesToPendingForScreen($screen): void
+    {
+        if (! $screen || $screen->intendedTemplate()->name() !== 'screen') {
+            return;
+        }
+
+        $rootPage = self::getRootPage();
+        if (! $rootPage) {
+            return;
+        }
+
+        $screenSlug = $screen->slug();
+        $requests = self::getOnboardingRequests();
+        $requestsByUuid = [];
+        foreach ($requests as $request) {
+            if (! empty($request['uuid'])) {
+                $requestsByUuid[$request['uuid']] = $request;
+            }
+        }
+
+        $devices = array_merge(
+            self::whitelistToArray($screen->whitelist()->toStructure()),
+            self::pendingRequestsToArray($screen->pending_requests()->toStructure()),
+            self::deniedRequestsToArray($screen->denied_requests()->toStructure())
+        );
+
+        $updated = false;
+        foreach ($devices as $device) {
+            $uuid = $device['uuid'] ?? '';
+            if ($uuid === '') {
+                continue;
+            }
+
+            $existing = $requestsByUuid[$uuid] ?? [];
+            $requestsByUuid[$uuid] = [
+                'uuid' => $uuid,
+                'ip' => $existing['ip'] ?? ($device['ip'] ?? ''),
+                'backend' => $existing['backend'] ?? '',
+                'url' => $existing['url'] ?? '',
+                'user_agent' => $existing['user_agent'] ?? ($device['user_agent'] ?? 'Unknown'),
+                'status' => 'pending',
+                'assigned_screen' => '',
+                'requested_at' => $existing['requested_at'] ?? ($device['requested_at'] ?? date('Y-m-d H:i:s')),
+                'last_seen_at' => date('Y-m-d H:i:s'),
+                'approved_at' => '',
+                'approved_by' => '',
+                'denied_at' => '',
+            ];
+            $updated = true;
+        }
+
+        if (! $updated) {
+            return;
+        }
+
+        self::saveOnboardingRequests($rootPage, array_values($requestsByUuid));
+        self::saveDeniedOnboardingStorage(
+            $rootPage,
+            array_values(array_filter(self::getDeniedOnboardingStorage(), fn ($request) => ($request['assigned_screen'] ?? '') !== $screenSlug))
+        );
+    }
+
     private static function approveRequestForScreenModel($screen, string $uuid, ?string $label = null): array
     {
         $pending = $screen->pending_requests()->toStructure();
@@ -956,7 +1018,20 @@ class AccessController
 
     private static function getRootPage()
     {
-        return kirby()->page(self::ROOT_PAGE_ID);
+        $rootPage = kirby()->page(self::ROOT_PAGE_ID);
+        if (! $rootPage) {
+            return null;
+        }
+
+        if ($rootPage->intendedTemplate()->name() !== 'signage') {
+            try {
+                $rootPage = $rootPage->changeTemplate('signage');
+            } catch (Throwable $e) {
+                error_log('Signage: Failed to normalize root page template - ' . $e->getMessage());
+            }
+        }
+
+        return kirby()->page(self::ROOT_PAGE_ID) ?? $rootPage;
     }
 
     private static function getOnboardingRequests(): array
@@ -981,16 +1056,30 @@ class AccessController
 
     private static function saveOnboardingRequests($rootPage, array $requests): void
     {
-        $rootPage->update([
-            'onboarding_requests' => \Kirby\Data\Yaml::encode($requests),
+        self::writeRootPageContent($rootPage, [
+            'onboarding_requests' => empty($requests) ? '' : \Kirby\Data\Yaml::encode($requests),
         ]);
     }
 
     private static function saveDeniedOnboardingStorage($rootPage, array $requests): void
     {
-        $rootPage->update([
-            'denied_onboarding_requests' => \Kirby\Data\Yaml::encode($requests),
+        self::writeRootPageContent($rootPage, [
+            'denied_onboarding_requests' => empty($requests) ? '' : \Kirby\Data\Yaml::encode($requests),
         ]);
+    }
+
+    private static function writeRootPageContent($rootPage, array $data): void
+    {
+        if (! $rootPage) {
+            return;
+        }
+
+        if ($rootPage->intendedTemplate()->name() !== 'signage') {
+            $rootPage = $rootPage->changeTemplate('signage');
+        }
+
+        $content = $rootPage->content()->toArray();
+        $rootPage->version()->save(array_merge($content, $data), 'default', true);
     }
 
     private static function onboardingRequestsToArray($requests): array
