@@ -1335,6 +1335,7 @@ class AccessController
 
         return [
             'status' => 'active',
+            'revision' => self::getContentRevision($screen),
             'screen' => [
                 'title' => $screen->title()->value(),
                 'orientation' => $screen->orientation()->value(),
@@ -1342,11 +1343,17 @@ class AccessController
             'channel' => [
                 'title' => $channel->title()->value(),
                 'slides_count' => count($slidesData),
-                'background' => [
-                    'background_color' => $channel->background_color()->value() ?? '#000000',
-                ],
+                'background' => self::getChannelBackgroundData($channel),
             ],
             'slides' => $slidesData,
+        ];
+    }
+
+    public static function getContentState($screen): array
+    {
+        return [
+            'status' => 'success',
+            'revision' => self::getContentRevision($screen),
         ];
     }
 
@@ -1436,6 +1443,72 @@ class AccessController
         }
 
         return $backgroundData;
+    }
+
+    private static function getChannelBackgroundData($channel): array
+    {
+        $background = [
+            'type' => 'color',
+            'background_color' => $channel->background_color()->value() ?: '#000000',
+            'overlay' => [
+                'enabled' => true,
+                'color' => $channel->default_overlay_color()->value() ?: '#000000',
+                'opacity' => (int) ($channel->default_overlay_opacity()->value() ?: 40),
+                'gradient' => 'none',
+            ],
+        ];
+
+        $bgImage = $channel->default_bg_image()->toFile();
+        if ($bgImage) {
+            $background['type'] = 'image';
+            $background['image'] = [
+                'url' => $bgImage->url(),
+                'position' => 'center',
+                'size' => 'cover',
+            ];
+        }
+
+        $bgVideo = $channel->default_bg_video()->toFile();
+        if ($bgVideo) {
+            $background['type'] = 'video';
+            $background['video'] = [
+                'url' => $bgVideo->url(),
+                'type' => $bgVideo->mime(),
+            ];
+        }
+
+        return $background;
+    }
+
+    private static function getContentRevision($screen): string
+    {
+        $parts = [
+            'screen:' . $screen->modified('U'),
+            'assigned:' . $screen->assigned_channel()->value(),
+            'schedule:' . sha1($screen->channel_schedule()->value()),
+            'times:' . sha1($screen->active_times()->value()),
+            'standby:' . sha1($screen->standby_mode()->value() . '|' . $screen->standby_message()->value() . '|' . $screen->standby_image()->value()),
+        ];
+
+        $channelIds = [$screen->assigned_channel()->value()];
+        foreach ($screen->channel_schedule()->toStructure() as $entry) {
+            $channelIds[] = $entry->channel()->value();
+        }
+
+        foreach (array_unique(array_filter($channelIds)) as $channelId) {
+            $channel = kirby()->page($channelId);
+            if (! $channel) {
+                continue;
+            }
+
+            $parts[] = 'channel:' . $channel->id() . ':' . $channel->modified('U');
+
+            foreach ($channel->childrenAndDrafts() as $slide) {
+                $parts[] = 'slide:' . $slide->id() . ':' . $slide->modified('U');
+            }
+        }
+
+        return sha1(implode('|', $parts));
     }
 
     /**

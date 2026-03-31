@@ -37,7 +37,7 @@ tabs:
             type: pages
             label: Inhaltskanäle
             parent: site.find('signage/channels')
-            query: site.find('signage/channels').children
+            query: site.find('signage/channels').childrenAndDrafts
             template: channel
             status: all
             info: "{{ page.children.count }} Folien"

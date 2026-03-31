@@ -101,7 +101,7 @@ body[data-orientation="horizontal"] .signage-slide {
   width: 100%;
   position: relative;
   z-index: 20;
-  color: var(--color-dead-pixel-1200)
+  color: #000000;
 }
 
 /* Content Positioning */

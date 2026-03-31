@@ -183,6 +183,24 @@ Kirby::plugin('gs/mmh-signage', [
                     },
                 ],
                 [
+                    'pattern' => 'signage/content-state/(:any)',
+                    'method' => 'GET',
+                    'auth' => false,
+                    'action' => function (string $screenSlug) use ($kirby) {
+                        $screen = $kirby->page('signage/screens/' . $screenSlug);
+
+                        if (! $screen) {
+                            return [
+                                'code' => 404,
+                                'status' => 'error',
+                                'message' => 'Screen not found',
+                            ];
+                        }
+
+                        return AccessController::getContentState($screen);
+                    },
+                ],
+                [
                     'pattern' => 'signage/approve-onboarding-request',
                     'method' => 'POST',
                     'auth' => true,
@@ -345,7 +363,8 @@ Kirby::plugin('gs/mmh-signage', [
                 return false;
             }
 
-            $now = new DateTime();
+            $timezone = new DateTimeZone(kirby()->option('date.timezone', 'Europe/Berlin'));
+            $now = new DateTime('now', $timezone);
             $currentDay = strtolower($now->format('D')); // mon, tue, wed, etc.
             $activeTimes = $this->active_times()->toStructure();
 
@@ -363,14 +382,14 @@ Kirby::plugin('gs/mmh-signage', [
                 $startValue = $timeRange->start()->value();
                 $endValue = $timeRange->end()->value();
 
-                $start = DateTime::createFromFormat('H:i:s', $startValue);
+                $start = DateTime::createFromFormat('H:i:s', $startValue, $timezone);
                 if (! $start) {
-                    $start = DateTime::createFromFormat('H:i', $startValue);
+                    $start = DateTime::createFromFormat('H:i', $startValue, $timezone);
                 }
 
-                $end = DateTime::createFromFormat('H:i:s', $endValue);
+                $end = DateTime::createFromFormat('H:i:s', $endValue, $timezone);
                 if (! $end) {
-                    $end = DateTime::createFromFormat('H:i', $endValue);
+                    $end = DateTime::createFromFormat('H:i', $endValue, $timezone);
                 }
 
                 if (! $start || ! $end) {
@@ -392,11 +411,19 @@ Kirby::plugin('gs/mmh-signage', [
             if ($this->intendedTemplate()->name() === 'screen') {
                 // Check for time-based channel schedule
                 $schedule = $this->channel_schedule()->toStructure();
-                $now = new DateTime();
+                $timezone = new DateTimeZone(kirby()->option('date.timezone', 'Europe/Berlin'));
+                $now = new DateTime('now', $timezone);
 
                 foreach ($schedule as $entry) {
-                    $start = DateTime::createFromFormat('H:i', $entry->time_start()->value());
-                    $end = DateTime::createFromFormat('H:i', $entry->time_end()->value());
+                    $start = DateTime::createFromFormat('H:i', $entry->time_start()->value(), $timezone);
+                    $end = DateTime::createFromFormat('H:i', $entry->time_end()->value(), $timezone);
+
+                    if (! $start || ! $end) {
+                        continue;
+                    }
+
+                    $start->setDate($now->format('Y'), $now->format('m'), $now->format('d'));
+                    $end->setDate($now->format('Y'), $now->format('m'), $now->format('d'));
 
                     if ($now >= $start && $now <= $end) {
                         $channelSlug = $entry->channel()->value();

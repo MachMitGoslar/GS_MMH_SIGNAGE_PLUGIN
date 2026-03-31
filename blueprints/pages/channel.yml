@@ -1,8 +1,12 @@
 title: Inhaltskanal
 icon: layers
 status:
-  draft: false
-  listed: true
+  draft:
+    label: Entwurf
+    text: Kanal ist nur im Panel sichtbar
+  listed:
+    label: Veröffentlicht
+    text: Kanal ist aktiv und kann Bildschirmen zugewiesen werden
 
 columns:
   - width: 2/3

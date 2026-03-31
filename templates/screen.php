@@ -37,16 +37,19 @@
             config: {
                 screenSlug: '<?= $page->slug() ?>',
                 apiBase: '<?= url('api/signage') ?>',
-                syncInterval: 5000, // Sync access and content every 5 seconds
+                onboardingUrl: '<?= url('signage') ?>',
+                syncInterval: 1000, // Check access changes every second
             },
 
             state: {
                 uuid: null,
                 accessStatus: null,
                 contentData: null,
+                contentRevision: null,
                 currentSlideIndex: 0,
                 slideTimeout: null,
                 syncIntervalId: null,
+                redirectTimeoutId: null,
             },
 
             /**
@@ -119,7 +122,11 @@
                     console.log('🔐 Access status:', data.access);
 
                     if (data.access === 'granted') {
-                        await this.loadContent();
+                        if (data.message && data.message !== 'Device approved') {
+                            this.redirectToOnboarding(300);
+                            return;
+                        }
+                        await this.syncGrantedContent();
                     } else if (data.access === 'pending') {
                         this.showAccessPending();
                     } else {
@@ -143,6 +150,7 @@
                     const data = await response.json();
 
                     this.state.contentData = data;
+                    this.state.contentRevision = data.revision || null;
                     console.log('📥 Content data loaded:', data);
 
                     if (data.status === 'active') {
@@ -157,6 +165,24 @@
                 } catch (error) {
                     console.error('❌ Content load failed:', error);
                     this.showError('Failed to load content');
+                }
+            },
+
+            async syncGrantedContent() {
+                if (!this.state.contentData) {
+                    await this.loadContent();
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${this.config.apiBase}/content-state/${this.config.screenSlug}`);
+                    const data = await response.json();
+
+                    if (!data.revision || data.revision !== this.state.contentRevision) {
+                        await this.loadContent();
+                    }
+                } catch (error) {
+                    console.error('❌ Content state check failed:', error);
                 }
             },
 
@@ -178,6 +204,15 @@
                 clearInterval(this.state.syncIntervalId);
                 this.state.syncIntervalId = null;
             },
+            redirectToOnboarding(delay = 1200) {
+                if (this.state.redirectTimeoutId) {
+                    return;
+                }
+
+                this.state.redirectTimeoutId = window.setTimeout(() => {
+                    window.location.href = this.config.onboardingUrl;
+                }, delay);
+            },
 
             /**
              * Render slides
@@ -197,7 +232,7 @@
                     slideEl.style.transitionDuration = `${slide.transition_duration || 1}s`;
 
                     // Apply background
-                    this.applyBackground(slideEl, slide.background);
+                    this.applyBackground(slideEl, this.getEffectiveBackground(slide.background));
 
                     // Render content
                     const contentWrapper = document.createElement('div');
@@ -211,12 +246,20 @@
                 console.log(`✅ Rendered ${slides.length} slides`);
             },
 
+            getEffectiveBackground(slideBackground) {
+                if (slideBackground && slideBackground.type && slideBackground.type !== 'none') {
+                    return slideBackground;
+                }
+
+                return this.state.contentData?.channel?.background || slideBackground;
+            },
+
             /**
              * Apply background to slide element
              */
             applyBackground(slideEl, background) {
                 if (!background || background.type === 'none') {
-                    return; // Use channel default
+                    return;
                 }
 
                 if (background.type === 'image' && background.image) {
@@ -327,16 +370,26 @@
                 }).join('');
             },
 
+            getBlockText(block) {
+                if (!block || block.text == null) {
+                    return '';
+                }
+
+                return typeof block.text === 'string'
+                    ? block.text
+                    : (block.text.value || '');
+            },
+
             /**
              * Render individual block
              */
             renderBlock(block) {
                 switch (block.type) {
                     case 'signage-heading':
-                        return `<${block.level || 'h2'}>${block.text.value}</${block.level || 'h2'}>`;
+                        return `<${block.level || 'h2'}>${this.getBlockText(block)}</${block.level || 'h2'}>`;
                     
                     case 'signage-text':
-                        return `<div class="text-block">${block.text.value}</div>`;
+                        return `<div class="text-block">${this.getBlockText(block)}</div>`;
                     
                     case 'image':
                         if (!block.src) return '';
@@ -348,12 +401,12 @@
                         `;
                     
                     case 'list':
-                        return `<div class="list-block">${block.text.value}</div>`;
+                        return `<div class="list-block">${this.getBlockText(block)}</div>`;
                     
                     case 'quote':
                         return `
                             <blockquote class="quote-block">
-                                ${block.text.value}
+                                ${this.getBlockText(block)}
                                 ${block.citation ? `<cite>${block.citation}</cite>` : ''}
                             </blockquote>
                         `;
@@ -544,17 +597,15 @@
                 const player = document.getElementById('signage-player');
                 player.innerHTML = `
                     <div id="access-pending">
-                        <h1>Access Request Pending</h1>
-                        <p>This device is waiting for approval to display content.</p>
+                        <h1>Zugriff wird neu angefragt</h1>
+                        <p>Dieses Geraet wurde von diesem Monitor getrennt und wird zur Landing Page zurueckgeleitet.</p>
                         <div class="device-id">
                             <strong>Device ID:</strong><br>
                             ${this.state.uuid}
                         </div>
-                        <p style="margin-top: 2rem; font-size: 0.9rem;">
-                            Contact your administrator to approve this device.
-                        </p>
                     </div>
                 `;
+                this.redirectToOnboarding();
             },
 
             /**@abstract
@@ -567,8 +618,10 @@
                     <div style="text-align: center; padding: 2rem;">
                         <h1>🚫 Access Denied</h1>
                         <p>${message || 'This device is not authorized to display content.'}</p>
+                        <p style="margin-top: 1rem;">Weiterleitung zur Landing Page...</p>
                     </div>
                 `;
+                this.redirectToOnboarding();
             },
 
             /**
