@@ -1,40 +1,40 @@
 {
-	"name": "MachMitGoslar/gs-mmh-signage",
-	"description": "Kirby plugin for managing digital signage screens for MachMit!Haus Goslar",
-	"type": "kirby-plugin",
-	"license": "gpl-3.0",
-	"homepage": "https://mmh.goslar.de",
-	"version": "0.0.1",
-	"authors": [
-		{
-			"name": "Martin Sänger",
-			"email": "stuff@stuffdev.de"	
-		}
-	],
-	"autoload": {
-		"psr-4": {
-			"MachMitGoslar\\gsMMHSignage\\": "classes"
-		}
-	},
-	"minimum-stability": "RC",
-	"require": {
-		"php": ">=8.3.0",
-		"getkirby/composer-installer": "^1.2.1"
-	},
-	"scripts": {
-		"dist": "composer install --no-dev --optimize-autoloader",
-		"fix": "php-cs-fixer fix"
-	},
-	"config": {
-		"optimize-autoloader": true,
-		"allow-plugins": {
-			"getkirby/composer-installer": true
-		}
-	},
-	"extra": {
-		"kirby-cms-path": false
-	},
-	"require-dev": {
-		"getkirby/cms": "^5"
-	}
+  "name": "MachMitGoslar/gs-mmh-signage",
+  "description": "Kirby plugin for managing digital signage screens for MachMit!Haus Goslar",
+  "type": "kirby-plugin",
+  "license": "gpl-3.0",
+  "homepage": "https://mmh.goslar.de",
+  "version": "0.0.1",
+  "authors": [
+    {
+      "name": "Martin Sänger",
+      "email": "stuff@stuffdev.de"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "MachMitGoslar\\gsMMHSignage\\": "classes"
+    }
+  },
+  "minimum-stability": "RC",
+  "require": {
+    "php": ">=8.3.0",
+    "getkirby/composer-installer": "^1.2.1"
+  },
+  "scripts": {
+    "dist": "composer install --no-dev --optimize-autoloader",
+    "fix": "php-cs-fixer fix"
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "allow-plugins": {
+      "getkirby/composer-installer": true
+    }
+  },
+  "extra": {
+    "kirby-cms-path": false
+  },
+  "require-dev": {
+    "getkirby/cms": "^5"
+  }
 }

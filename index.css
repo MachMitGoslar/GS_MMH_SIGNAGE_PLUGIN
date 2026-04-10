@@ -1,19 +1,19 @@
-mark[data-type=textcolor][data-color=ripe-mango] {
+mark[data-type='textcolor'][data-color='ripe-mango'] {
   color: var(--color-yellow-500, #fcce4c);
 }
 
-mark[data-type=textcolor][data-color=dead-pixel] {
+mark[data-type='textcolor'][data-color='dead-pixel'] {
   color: var(--color-gray-500, #c6c6c6);
 }
 
-mark[data-type=textcolor][data-color=white] {
+mark[data-type='textcolor'][data-color='white'] {
   color: #fff;
   background: #0003;
   padding: 0 2px;
   border-radius: 2px;
 }
 
-mark[data-type=textcolor][data-color=black] {
+mark[data-type='textcolor'][data-color='black'] {
   color: #000;
   background: #fff3;
   padding: 0 2px;
@@ -62,12 +62,11 @@ mark[data-type=textcolor][data-color=black] {
   padding: 1rem;
   border: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent);
   border-radius: calc(var(--rounded) * 1.2);
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--color-background) 94%, white 6%),
-      var(--color-background)
-    );
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-background) 94%, white 6%),
+    var(--color-background)
+  );
   box-shadow: 0 1px 0 color-mix(in srgb, var(--color-black) 5%, transparent);
 }
 
@@ -204,7 +203,8 @@ mark[data-type=textcolor][data-color=black] {
 
 .k-pending-request-actions-emphasis {
   padding-top: 0.25rem;
-  border-top: 1px dashed color-mix(in srgb, var(--color-border) 75%, transparent);
+  border-top: 1px dashed
+    color-mix(in srgb, var(--color-border) 75%, transparent);
 }
 
 .k-pending-request-actions .k-button {
@@ -226,7 +226,9 @@ mark[data-type=textcolor][data-color=black] {
   background-position:
     calc(100% - 1rem) calc(50% - 2px),
     calc(100% - 0.7rem) calc(50% - 2px);
-  background-size: 0.38rem 0.38rem, 0.38rem 0.38rem;
+  background-size:
+    0.38rem 0.38rem,
+    0.38rem 0.38rem;
   background-repeat: no-repeat;
 }
 

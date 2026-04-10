@@ -73,7 +73,7 @@ panel.plugin('gs/mmh-signage', {
               submitButton: 'Apply Color',
             },
             on: {
-              submit: (values) => {
+              submit: values => {
                 this.$emit('submit', values);
                 this.$panel.dialog.close();
               },
@@ -111,7 +111,10 @@ panel.plugin('gs/mmh-signage', {
       },
       data() {
         return {
-          approvedItems: normalizeRequests(this.approvedDevices, this.requests || this.value),
+          approvedItems: normalizeRequests(
+            this.approvedDevices,
+            this.requests || this.value
+          ),
         };
       },
       computed: {
@@ -211,14 +214,17 @@ panel.plugin('gs/mmh-signage', {
           approvedItems,
           selectedScreens: {
             ...Object.fromEntries(
-              items.map((request) => [request.uuid, this.screens?.[0]?.value || ''])
+              items.map(request => [
+                request.uuid,
+                this.screens?.[0]?.value || '',
+              ])
             ),
             ...Object.fromEntries(
-              approvedItems.map((device) => [device.uuid, ''])
+              approvedItems.map(device => [device.uuid, ''])
             ),
           },
           labels: Object.fromEntries(
-            approvedItems.map((device) => [device.uuid, device.label || ''])
+            approvedItems.map(device => [device.uuid, device.label || ''])
           ),
           processing: null,
         };
@@ -237,23 +243,25 @@ panel.plugin('gs/mmh-signage', {
       watch: {
         requests(next) {
           this.items = normalizeRequests(next, this.value);
-          this.items.forEach((request) => {
+          this.items.forEach(request => {
             if (!this.selectedScreens[request.uuid]) {
-              this.selectedScreens[request.uuid] = this.screens?.[0]?.value || '';
+              this.selectedScreens[request.uuid] =
+                this.screens?.[0]?.value || '';
             }
           });
         },
         deniedRequests(next) {
           this.deniedItems = normalizeRequests(next, []);
-          this.deniedItems.forEach((request) => {
+          this.deniedItems.forEach(request => {
             if (!(request.uuid in this.selectedScreens)) {
-              this.selectedScreens[request.uuid] = this.screens?.[0]?.value || '';
+              this.selectedScreens[request.uuid] =
+                this.screens?.[0]?.value || '';
             }
           });
         },
         approvedDevices(next) {
           this.approvedItems = normalizeRequests(next, []);
-          this.approvedItems.forEach((device) => {
+          this.approvedItems.forEach(device => {
             if (!(device.uuid in this.selectedScreens)) {
               this.selectedScreens[device.uuid] = '';
             }
@@ -263,7 +271,9 @@ panel.plugin('gs/mmh-signage', {
       },
       methods: {
         screenOptionsFor(deviceUuid, currentScreen = null) {
-          return (this.screens || []).filter((screen) => screen.value !== currentScreen);
+          return (this.screens || []).filter(
+            screen => screen.value !== currentScreen
+          );
         },
         async approve(uuid, label = '') {
           const screen = this.selectedScreens[uuid];
@@ -285,18 +295,24 @@ panel.plugin('gs/mmh-signage', {
             );
 
             if (response.status === 'success') {
-              this.$panel.notification.success(response.message || 'Gerät zugewiesen');
-              this.items = this.items.filter((request) => request.uuid !== uuid);
+              this.$panel.notification.success(
+                response.message || 'Gerät zugewiesen'
+              );
+              this.items = this.items.filter(request => request.uuid !== uuid);
               if (this.$panel?.view?.reload) {
                 this.$panel.view.reload();
               } else if (this.$reload) {
                 this.$reload();
               }
             } else {
-              this.$panel.notification.error(response.message || 'Zuweisung fehlgeschlagen');
+              this.$panel.notification.error(
+                response.message || 'Zuweisung fehlgeschlagen'
+              );
             }
           } catch (error) {
-            this.$panel.notification.error(error.message || 'Zuweisung fehlgeschlagen');
+            this.$panel.notification.error(
+              error.message || 'Zuweisung fehlgeschlagen'
+            );
           } finally {
             this.processing = null;
           }
@@ -312,16 +328,20 @@ panel.plugin('gs/mmh-signage', {
             );
 
             if (response.status === 'success') {
-              this.$panel.notification.success(response.message || 'Anfrage abgelehnt');
-              const deniedRequest = this.items.find((request) => request.uuid === uuid);
-              this.items = this.items.filter((request) => request.uuid !== uuid);
+              this.$panel.notification.success(
+                response.message || 'Anfrage abgelehnt'
+              );
+              const deniedRequest = this.items.find(
+                request => request.uuid === uuid
+              );
+              this.items = this.items.filter(request => request.uuid !== uuid);
               if (deniedRequest) {
                 this.deniedItems = [
                   {
                     ...deniedRequest,
                     denied_at: new Date().toISOString(),
                   },
-                  ...this.deniedItems.filter((request) => request.uuid !== uuid),
+                  ...this.deniedItems.filter(request => request.uuid !== uuid),
                 ];
               }
               if (this.$panel?.view?.reload) {
@@ -330,10 +350,14 @@ panel.plugin('gs/mmh-signage', {
                 this.$reload();
               }
             } else {
-              this.$panel.notification.error(response.message || 'Ablehnung fehlgeschlagen');
+              this.$panel.notification.error(
+                response.message || 'Ablehnung fehlgeschlagen'
+              );
             }
           } catch (error) {
-            this.$panel.notification.error(error.message || 'Ablehnung fehlgeschlagen');
+            this.$panel.notification.error(
+              error.message || 'Ablehnung fehlgeschlagen'
+            );
           } finally {
             this.processing = null;
           }
@@ -357,8 +381,12 @@ panel.plugin('gs/mmh-signage', {
             );
 
             if (response.status === 'success') {
-              this.$panel.notification.success(response.message || 'Gerät genehmigt');
-              this.deniedItems = this.deniedItems.filter((request) => request.uuid !== uuid);
+              this.$panel.notification.success(
+                response.message || 'Gerät genehmigt'
+              );
+              this.deniedItems = this.deniedItems.filter(
+                request => request.uuid !== uuid
+              );
               delete this.selectedScreens[uuid];
               if (this.$panel?.view?.reload) {
                 this.$panel.view.reload();
@@ -366,10 +394,14 @@ panel.plugin('gs/mmh-signage', {
                 this.$reload();
               }
             } else {
-              this.$panel.notification.error(response.message || 'Genehmigung fehlgeschlagen');
+              this.$panel.notification.error(
+                response.message || 'Genehmigung fehlgeschlagen'
+              );
             }
           } catch (error) {
-            this.$panel.notification.error(error.message || 'Genehmigung fehlgeschlagen');
+            this.$panel.notification.error(
+              error.message || 'Genehmigung fehlgeschlagen'
+            );
           } finally {
             this.processing = null;
           }
@@ -385,8 +417,12 @@ panel.plugin('gs/mmh-signage', {
             );
 
             if (response.status === 'success') {
-              this.$panel.notification.success(response.message || 'Eintrag entfernt');
-              this.deniedItems = this.deniedItems.filter((request) => request.uuid !== uuid);
+              this.$panel.notification.success(
+                response.message || 'Eintrag entfernt'
+              );
+              this.deniedItems = this.deniedItems.filter(
+                request => request.uuid !== uuid
+              );
               delete this.selectedScreens[uuid];
               if (this.$panel?.view?.reload) {
                 this.$panel.view.reload();
@@ -394,10 +430,14 @@ panel.plugin('gs/mmh-signage', {
                 this.$reload();
               }
             } else {
-              this.$panel.notification.error(response.message || 'Entfernen fehlgeschlagen');
+              this.$panel.notification.error(
+                response.message || 'Entfernen fehlgeschlagen'
+              );
             }
           } catch (error) {
-            this.$panel.notification.error(error.message || 'Entfernen fehlgeschlagen');
+            this.$panel.notification.error(
+              error.message || 'Entfernen fehlgeschlagen'
+            );
           } finally {
             this.processing = null;
           }
@@ -414,14 +454,18 @@ panel.plugin('gs/mmh-signage', {
           });
         },
         screenLabel(screenSlug) {
-          const match = (this.screens || []).find((screen) => screen.value === screenSlug);
+          const match = (this.screens || []).find(
+            screen => screen.value === screenSlug
+          );
           return match ? match.text : screenSlug;
         },
         async reassignApproved(uuid, fromScreen, skipReload = false) {
           const toScreen = this.selectedScreens[uuid];
           if (!toScreen || toScreen === fromScreen) {
             if (!skipReload) {
-              this.$panel.notification.error('Bitte einen anderen Monitor auswählen.');
+              this.$panel.notification.error(
+                'Bitte einen anderen Monitor auswählen.'
+              );
             }
             return;
           }
@@ -438,7 +482,9 @@ panel.plugin('gs/mmh-signage', {
 
             if (response.status === 'success') {
               if (!skipReload) {
-                this.$panel.notification.success(response.message || 'Gerät verschoben');
+                this.$panel.notification.success(
+                  response.message || 'Gerät verschoben'
+                );
                 if (this.$panel?.view?.reload) {
                   this.$panel.view.reload();
                 } else if (this.$reload) {
@@ -446,15 +492,21 @@ panel.plugin('gs/mmh-signage', {
                 }
               }
             } else {
-              this.$panel.notification.error(response.message || 'Verschieben fehlgeschlagen');
+              this.$panel.notification.error(
+                response.message || 'Verschieben fehlgeschlagen'
+              );
             }
           } catch (error) {
-            this.$panel.notification.error(error.message || 'Verschieben fehlgeschlagen');
+            this.$panel.notification.error(
+              error.message || 'Verschieben fehlgeschlagen'
+            );
           }
         },
         async revokeApproved(uuid, screen) {
           if (!screen) {
-            this.$panel.notification.error('Konnte den Monitor nicht ermitteln.');
+            this.$panel.notification.error(
+              'Konnte den Monitor nicht ermitteln.'
+            );
             return;
           }
 
@@ -470,17 +522,23 @@ panel.plugin('gs/mmh-signage', {
             );
 
             if (response.status === 'success') {
-              this.$panel.notification.success(response.message || 'Freigabe entzogen');
+              this.$panel.notification.success(
+                response.message || 'Freigabe entzogen'
+              );
               if (this.$panel?.view?.reload) {
                 this.$panel.view.reload();
               } else if (this.$reload) {
                 this.$reload();
               }
             } else {
-              this.$panel.notification.error(response.message || 'Entzug fehlgeschlagen');
+              this.$panel.notification.error(
+                response.message || 'Entzug fehlgeschlagen'
+              );
             }
           } catch (error) {
-            this.$panel.notification.error(error.message || 'Entzug fehlgeschlagen');
+            this.$panel.notification.error(
+              error.message || 'Entzug fehlgeschlagen'
+            );
           } finally {
             this.processing = null;
           }
@@ -489,7 +547,9 @@ panel.plugin('gs/mmh-signage', {
           const label = (this.labels[uuid] || '').trim();
           if (!screen) {
             if (!skipReload) {
-              this.$panel.notification.error('Konnte den Monitor nicht ermitteln.');
+              this.$panel.notification.error(
+                'Konnte den Monitor nicht ermitteln.'
+              );
             }
             return;
           }
@@ -506,7 +566,9 @@ panel.plugin('gs/mmh-signage', {
 
             if (response.status === 'success') {
               if (!skipReload) {
-                this.$panel.notification.success(response.message || 'Gerätename aktualisiert');
+                this.$panel.notification.success(
+                  response.message || 'Gerätename aktualisiert'
+                );
                 if (this.$panel?.view?.reload) {
                   this.$panel.view.reload();
                 } else if (this.$reload) {
@@ -514,17 +576,24 @@ panel.plugin('gs/mmh-signage', {
                 }
               }
             } else {
-              this.$panel.notification.error(response.message || 'Umbenennen fehlgeschlagen');
+              this.$panel.notification.error(
+                response.message || 'Umbenennen fehlgeschlagen'
+              );
             }
           } catch (error) {
-            this.$panel.notification.error(error.message || 'Umbenennen fehlgeschlagen');
+            this.$panel.notification.error(
+              error.message || 'Umbenennen fehlgeschlagen'
+            );
           }
         },
         async saveApprovedChanges(uuid, screen) {
           this.processing = uuid;
 
-          const currentLabel = this.approvedItems.find((device) => device.uuid === uuid)?.label || '';
-          const hasLabelChange = (this.labels[uuid] || '').trim() !== currentLabel.trim();
+          const currentLabel =
+            this.approvedItems.find(device => device.uuid === uuid)?.label ||
+            '';
+          const hasLabelChange =
+            (this.labels[uuid] || '').trim() !== currentLabel.trim();
           const targetScreen = this.selectedScreens[uuid];
           const shouldMove = targetScreen && targetScreen !== screen;
 

@@ -1224,8 +1224,7 @@ class AccessController
         string $screenSlug,
         ?string $approvedAt = null,
         ?string $approvedBy = null
-    ): void
-    {
+    ): void {
         $rootPage = self::getRootPage();
         if (! $rootPage) {
             return;

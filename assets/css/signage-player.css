@@ -17,7 +17,7 @@ body {
     --font-family-default,
     -apple-system,
     BlinkMacSystemFont,
-    "Segoe UI",
+    'Segoe UI',
     Arial,
     sans-serif
   );
@@ -46,7 +46,9 @@ body {
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  transition: opacity 1s ease-in-out, transform 1s ease-in-out;
+  transition:
+    opacity 1s ease-in-out,
+    transform 1s ease-in-out;
 }
 
 .signage-slide.active {
@@ -55,32 +57,32 @@ body {
 }
 
 /* Orientation-specific layouts */
-body[data-orientation="vertical"] .signage-slide {
+body[data-orientation='vertical'] .signage-slide {
   flex-direction: column;
 }
 
-body[data-orientation="horizontal"] .signage-slide {
+body[data-orientation='horizontal'] .signage-slide {
   flex-direction: row;
 }
 
 /* Transitions */
-.signage-slide[data-transition="fade"] {
+.signage-slide[data-transition='fade'] {
   transform: none;
 }
 
-.signage-slide[data-transition="slide-left"]:not(.active) {
+.signage-slide[data-transition='slide-left']:not(.active) {
   transform: translateX(100%);
 }
 
-.signage-slide[data-transition="slide-right"]:not(.active) {
+.signage-slide[data-transition='slide-right']:not(.active) {
   transform: translateX(-100%);
 }
 
-.signage-slide[data-transition="slide-up"]:not(.active) {
+.signage-slide[data-transition='slide-up']:not(.active) {
   transform: translateY(100%);
 }
 
-.signage-slide[data-transition="slide-down"]:not(.active) {
+.signage-slide[data-transition='slide-down']:not(.active) {
   transform: translateY(-100%);
 }
 
@@ -111,7 +113,6 @@ body[data-orientation="horizontal"] .signage-slide {
   align-items: center;
 }
 
-
 /* Top Position */
 .signage-slide.content-position-top {
   justify-content: center;
@@ -132,9 +133,12 @@ body[data-orientation="horizontal"] .signage-slide {
   padding-bottom: 4rem;
 }
 
-
-body[data-orientation="vertical"] .signage-slide.content-position-top .slide-content,
-body[data-orientation="vertical"] .signage-slide.content-position-bottom .slide-content {
+body[data-orientation='vertical']
+  .signage-slide.content-position-top
+  .slide-content,
+body[data-orientation='vertical']
+  .signage-slide.content-position-bottom
+  .slide-content {
   max-width: 90%;
 }
 
@@ -147,32 +151,32 @@ body[data-orientation="vertical"] .signage-slide.content-position-bottom .slide-
 }
 
 /* Vertical Alignment */
-.layout-row[data-vertical-align="start"] {
+.layout-row[data-vertical-align='start'] {
   align-items: flex-start;
 }
 
-.layout-row[data-vertical-align="center"] {
+.layout-row[data-vertical-align='center'] {
   align-items: center;
 }
 
-.layout-row[data-vertical-align="end"] {
+.layout-row[data-vertical-align='end'] {
   align-items: flex-end;
 }
 
 /* Padding */
-.layout-row[data-padding="none"] {
+.layout-row[data-padding='none'] {
   padding: 0;
 }
 
-.layout-row[data-padding="small"] {
+.layout-row[data-padding='small'] {
   padding: 1rem;
 }
 
-.layout-row[data-padding="medium"] {
+.layout-row[data-padding='medium'] {
   padding: 2rem;
 }
 
-.layout-row[data-padding="large"] {
+.layout-row[data-padding='large'] {
   padding: 4rem;
 }
 
@@ -183,37 +187,37 @@ body[data-orientation="vertical"] .signage-slide.content-position-bottom .slide-
 }
 
 /* Column Widths */
-.layout-column[data-width="1/1"] {
+.layout-column[data-width='1/1'] {
   flex: 0 0 100%;
 }
 
-.layout-column[data-width="1/2"] {
+.layout-column[data-width='1/2'] {
   flex: 0 0 calc(50% - 1rem);
 }
 
-.layout-column[data-width="1/3"] {
+.layout-column[data-width='1/3'] {
   flex: 0 0 calc(33.333% - 1.333rem);
 }
 
-.layout-column[data-width="2/3"] {
+.layout-column[data-width='2/3'] {
   flex: 0 0 calc(66.666% - 0.666rem);
 }
 
-.layout-column[data-width="1/4"] {
+.layout-column[data-width='1/4'] {
   flex: 0 0 calc(25% - 1.5rem);
 }
 
-.layout-column[data-width="3/4"] {
+.layout-column[data-width='3/4'] {
   flex: 0 0 calc(75% - 0.5rem);
 }
 
 /* Responsive: Stack columns on portrait orientation */
-body[data-orientation="vertical"] .layout-row {
+body[data-orientation='vertical'] .layout-row {
   flex-direction: column;
   gap: 1.5rem;
 }
 
-body[data-orientation="vertical"] .layout-column {
+body[data-orientation='vertical'] .layout-column {
   flex: 0 0 auto;
   width: 100%;
 }
@@ -234,19 +238,19 @@ body[data-orientation="vertical"] .layout-column {
   /* Color applied via inline style from backend */
 }
 
-.slide-content [data-text-color="ripe-mango"] {
+.slide-content [data-text-color='ripe-mango'] {
   color: var(--color-ripe-mango-700, #fcce4c);
 }
 
-.slide-content [data-text-color="dead-pixel"] {
+.slide-content [data-text-color='dead-pixel'] {
   color: var(--color-dead-pixel-400, #c6c6c6);
 }
 
-.slide-content [data-text-color="white"] {
+.slide-content [data-text-color='white'] {
   color: #ffffff;
 }
 
-.slide-content [data-text-color="black"] {
+.slide-content [data-text-color='black'] {
   color: #000000;
 }
 
@@ -447,7 +451,13 @@ body[data-orientation="vertical"] .layout-column {
   position: relative;
   overflow: hidden;
   max-height: min(68vh, 900px);
-  mask-image: linear-gradient(to bottom, transparent 0, #000 4%, #000 96%, transparent 100%);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 4%,
+    #000 96%,
+    transparent 100%
+  );
 }
 
 .calendar-scroll-track {
@@ -513,7 +523,7 @@ body[data-orientation="vertical"] .layout-column {
 }
 
 .calendar-list .event-location::before {
-  content: "📍 ";
+  content: '📍 ';
 }
 
 .calendar-list .event-description {
@@ -629,7 +639,7 @@ body[data-orientation="vertical"] .layout-column {
 }
 
 .calendar-agenda .event-location::before {
-  content: "📍";
+  content: '📍';
 }
 
 .agenda-card-grid {
@@ -679,7 +689,7 @@ body[data-orientation="vertical"] .layout-column {
 }
 
 .agenda-card-location::before {
-  content: "📍 ";
+  content: '📍 ';
 }
 
 .agenda-card-description {
@@ -708,7 +718,9 @@ body[data-orientation="vertical"] .layout-column {
   padding: 1.25rem;
   border: 1px solid var(--signage-border-color, rgba(255, 255, 255, 0.1));
   box-shadow: 0 8px 25px -5px var(--signage-shadow-color, rgba(0, 0, 0, 0.1));
-  transition: transform 0.2s, background 0.2s;
+  transition:
+    transform 0.2s,
+    background 0.2s;
 }
 
 .calendar-grid .event-card:hover {
@@ -750,7 +762,7 @@ body[data-orientation="vertical"] .layout-column {
 }
 
 .calendar-grid .event-location::before {
-  content: "📍 ";
+  content: '📍 ';
 }
 
 .calendar-grid .event-description {
@@ -761,31 +773,31 @@ body[data-orientation="vertical"] .layout-column {
 }
 
 /* Vertical Orientation Adjustments */
-body[data-orientation="vertical"] .calendar-list .event-item {
+body[data-orientation='vertical'] .calendar-list .event-item {
   flex-direction: column;
   gap: 0.5rem;
 }
 
-body[data-orientation="vertical"] .calendar-list .event-date-time {
+body[data-orientation='vertical'] .calendar-list .event-date-time {
   flex: 0 0 auto;
   text-align: left;
   display: flex;
   gap: 1rem;
 }
 
-body[data-orientation="vertical"] .calendar-grid .event-cards {
+body[data-orientation='vertical'] .calendar-grid .event-cards {
   grid-template-columns: 1fr;
 }
 
-body[data-orientation="vertical"] .agenda-card-grid {
+body[data-orientation='vertical'] .agenda-card-grid {
   grid-template-columns: 1fr;
 }
 
-body[data-orientation="vertical"] .calendar-agenda .agenda-event {
+body[data-orientation='vertical'] .calendar-agenda .agenda-event {
   grid-template-columns: 1fr;
   gap: 0.75rem;
 }
 
-body[data-orientation="vertical"] .calendar-agenda .agenda-event-time {
+body[data-orientation='vertical'] .calendar-agenda .agenda-event-time {
   justify-content: flex-start;
 }
