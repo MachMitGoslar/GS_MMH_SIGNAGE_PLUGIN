@@ -1,19 +1,19 @@
-mark[data-type=textcolor][data-color=ripe-mango] {
+mark[data-type='textcolor'][data-color='ripe-mango'] {
   color: var(--color-yellow-500, #fcce4c);
 }
 
-mark[data-type=textcolor][data-color=dead-pixel] {
+mark[data-type='textcolor'][data-color='dead-pixel'] {
   color: var(--color-gray-500, #c6c6c6);
 }
 
-mark[data-type=textcolor][data-color=white] {
+mark[data-type='textcolor'][data-color='white'] {
   color: #fff;
   background: #0003;
   padding: 0 2px;
   border-radius: 2px;
 }
 
-mark[data-type=textcolor][data-color=black] {
+mark[data-type='textcolor'][data-color='black'] {
   color: #000;
   background: #fff3;
   padding: 0 2px;
@@ -42,6 +42,45 @@ mark[data-type=textcolor][data-color=black] {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.k-device-management-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.k-device-management-column,
+.k-device-management-section,
+.k-device-management-stack {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.k-device-management-panel {
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent);
+  border-radius: calc(var(--rounded) * 1.2);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-background) 94%, white 6%),
+    var(--color-background)
+  );
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-black) 5%, transparent);
+}
+
+.k-device-management-header {
+  display: grid;
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.k-device-management-copy {
+  margin: 0;
+  color: var(--color-text-dimmed);
+  font-size: var(--text-sm);
+  line-height: 1.45;
 }
 
 .k-denied-requests {
@@ -110,7 +149,7 @@ mark[data-type=textcolor][data-color=black] {
   border-top: 1px solid var(--color-border);
   padding: 0.75rem 1rem 1rem;
   display: grid;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .k-pending-request-info {
@@ -118,9 +157,18 @@ mark[data-type=textcolor][data-color=black] {
   gap: 0.5rem;
 }
 
+.k-pending-request-info-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+}
+
 .k-pending-request-field {
   display: grid;
   gap: 0.15rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: calc(var(--rounded) * 0.9);
+  background: color-mix(in srgb, var(--color-background) 92%, white 8%);
 }
 
 .k-pending-request-field-label {
@@ -153,11 +201,67 @@ mark[data-type=textcolor][data-color=black] {
   flex-wrap: wrap;
 }
 
+.k-pending-request-actions-emphasis {
+  padding-top: 0.25rem;
+  border-top: 1px dashed
+    color-mix(in srgb, var(--color-border) 75%, transparent);
+}
+
 .k-pending-request-actions .k-button {
   min-width: 7.5rem;
 }
 
+.k-device-management-formgrid .k-input,
+.k-pending-request-actions .k-input {
+  padding-left: 0.85rem;
+}
+
+.k-device-management-formgrid select.k-input,
+.k-pending-request-actions select.k-input {
+  appearance: none;
+  padding-right: 2.4rem;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--color-text-dimmed) 50%),
+    linear-gradient(135deg, var(--color-text-dimmed) 50%, transparent 50%);
+  background-position:
+    calc(100% - 1rem) calc(50% - 2px),
+    calc(100% - 0.7rem) calc(50% - 2px);
+  background-size:
+    0.38rem 0.38rem,
+    0.38rem 0.38rem;
+  background-repeat: no-repeat;
+}
+
+.k-device-management-formgrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: calc(var(--rounded) * 0.9);
+  background: color-mix(in srgb, var(--color-background) 96%, black 4%);
+}
+
+.k-device-management-control {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.k-device-management-control-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-dimmed);
+}
+
 @media (max-width: 900px) {
+  .k-device-management-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .k-pending-request-info-grid,
+  .k-device-management-formgrid {
+    grid-template-columns: 1fr;
+  }
+
   .k-pending-request-summary {
     grid-template-columns: auto 1fr;
     gap: 0.4rem;

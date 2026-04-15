@@ -1,12 +1,16 @@
 title: Signage-Bildschirm
-icon: monitor
+icon: display
+num: default
 status:
   draft:
     label: Entwurf
     text: Bildschirm ist nicht aktiv
   unlisted:
+    label: Versteckt
+    text: Bildschirm ist gespeichert, aber nicht in der Liste sichtbar
+  listed:
     label: Aktiv
-    text: Bildschirm ist aktiv
+    text: Bildschirm ist aktiv und für den Zugriff freigegeben
 
 columns:
   - width: 2/3
@@ -231,45 +235,12 @@ columns:
             default: true
             help: Bei Aktivierung müssen neue Geräte vor der Anzeige genehmigt werden
 
-          whitelist:
-            label: Genehmigte Geräte
-            type: structure
-            fields:
-              label:
-                label: Gerätebezeichnung
-                type: text
-                placeholder: z.B. "Lobby-Tablet"
-                width: 1/2
-              uuid:
-                label: Geräte-UUID
-                type: text
-                width: 1/4
-                font: mono
-              ip:
-                label: IP-Adresse
-                type: text
-                width: 1/4
-                font: mono
-              approved_at:
-                label: Genehmigt am
-                type: date
-                time: true
-                disabled: true
-                width: 1/2
-              approved_by:
-                label: Genehmigt von
-                type: text
-                disabled: true
-                width: 1/2
-            sortable: true
-            max: 50
-            help: Geräte, die diesen Bildschirm anzeigen dürfen
-
       pending_requests_display:
         type: fields
         fields:
           pending_requests:
-            label: Ausstehende Zugriffsanfragen
+            label: Genehmigte Geräte
+            help: Übersicht der Geräte, die aktuell für diesen Bildschirm freigegeben sind
             type: pending_requests
             screen: "{{ page.slug }}"
 
