@@ -1350,7 +1350,14 @@ class AccessController
         }
 
         // Get slides from channel
-        $slides = $channel->children()->unlisted();
+        $slides = $channel->children()->listed();
+        $legacySlides = $channel->children()->unlisted();
+
+        if ($slides->isEmpty()) {
+            $slides = $legacySlides;
+        } elseif ($legacySlides->isNotEmpty()) {
+            $slides = $slides->merge($legacySlides);
+        }
         $slidesData = [];
 
         foreach ($slides as $slide) {

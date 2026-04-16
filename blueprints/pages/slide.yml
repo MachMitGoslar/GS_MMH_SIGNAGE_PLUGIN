@@ -4,7 +4,7 @@ status:
   draft:
     label: Entwurf
     text: Folie ist ausgeblendet
-  unlisted:
+  listed:
     label: Aktiv
     text: Folie ist in der Rotation sichtbar
 

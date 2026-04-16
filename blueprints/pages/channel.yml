@@ -94,7 +94,7 @@ columns:
         sortable: true
         status: all
         help: |
-          Ziehen zum Neuanordnen der Folien. Dauer wird automatisch basierend auf dem Inhalt berechnet.
+          Aktive Folien lassen sich per Drag-and-drop neu anordnen. Dauer wird automatisch basierend auf dem Inhalt berechnet.
           Verschiedene Folientypen hinzufügen: Blöcke (Text/Bilder), Videos oder Kalenderansichten.
         empty: Noch keine Folien. Klicken Sie auf "Hinzufügen", um Ihre erste Inhaltsfolie zu erstellen.
 

@@ -252,6 +252,33 @@ mark[data-type='textcolor'][data-color='black'] {
   color: var(--color-text-dimmed);
 }
 
+/* Keep Kirby's native drag handle visible in list sections */
+.k-pages-section .k-items[data-layout='list'] .k-item {
+  padding-right: calc(var(--height-md) * 2.5);
+}
+
+.k-pages-section .k-items[data-layout='list'] .k-item .k-sort-button {
+  left: auto;
+  right: calc(var(--height-md) + 0.25rem);
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 1;
+}
+
+.k-pages-section
+  .k-items[data-layout='list']
+  .k-item
+  .k-sort-button
+  .k-button {
+  --button-width: var(--height-md);
+  justify-content: center;
+}
+
+.k-pages-section .k-items[data-layout='list'] .k-item .k-item-options {
+  position: relative;
+  z-index: 2;
+}
+
 @media (max-width: 900px) {
   .k-device-management-layout {
     grid-template-columns: 1fr;
