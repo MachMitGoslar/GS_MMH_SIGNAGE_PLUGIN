@@ -19,7 +19,7 @@ require_once __DIR__ . '/classes/DurationCalculator.php';
 require_once __DIR__ . '/classes/ICalParser.php';
 require_once __DIR__ . '/classes/AccessController.php';
 
-Kirby::plugin('gs/mmh-signage', [
+Kirby::plugin('gs-mmh/mmh-signage-plugin', [
     'panel' => [
         'js' => [
             'index.js',
