@@ -2,15 +2,16 @@
   "name": "gs-mmh-signage",
   "version": "1.0.0",
   "description": "Digital signage plugin for Kirby CMS",
-    "scripts": {
-      "build": "echo \"Building signage plugin...\"",
-      "format": "prettier --write \"**/*.{js,vue}\"",
-      "format:check": "prettier --check \"**/*.{js,vue}\"",
-      "lint": "npm run format:check",
-      "pre-push": "npm run lint && npm run build",
-      "prepare": "npm run build"
-    },
-    "devDependencies": {
-      "prettier": "^3.0.0"
-    }
+  "scripts": {
+    "build": "echo \"Building signage plugin...\"; kirbyup src/index.js",
+    "format": "prettier --write \"**/*.{js,vue}\"",
+    "format:check": "prettier --check \"**/*.{js,vue}\"",
+    "lint": "npm run format:check",
+    "pre-push": "npm run lint && npm run build",
+    "prepare": "npm run build"
+  },
+  "devDependencies": {
+    "kirbyup": "^3.4.1",
+    "prettier": "^3.0.0"
+  }
 }
