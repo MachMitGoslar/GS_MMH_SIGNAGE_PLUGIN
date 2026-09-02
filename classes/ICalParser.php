@@ -15,11 +15,7 @@ class ICalParser
      */
     private static function getLocalTimezone(): DateTimeZone
     {
-        try {
-            return new DateTimeZone(date_default_timezone_get() ?: 'Europe/Berlin');
-        } catch (Exception $e) {
-            return new DateTimeZone('Europe/Berlin');
-        }
+        return new DateTimeZone('Europe/Berlin');
     }
 
     /**
