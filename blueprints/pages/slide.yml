@@ -92,7 +92,6 @@ tabs:
                 label: Canva-Design einbetten
                 type: url
                 placeholder: https://www.canva.com/design/...
-                required: true
                 help: Fügen Sie die Einbettungs-URL Ihres Canva-Designs ein. Stellen Sie sicher, dass das Design öffentlich zugänglich ist.
             when:
               slide_type: canva
