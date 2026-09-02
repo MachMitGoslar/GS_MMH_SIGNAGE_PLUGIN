@@ -1408,6 +1408,11 @@ class AccessController
 
                 break;
 
+            case 'template':
+                $baseData['template'] = self::getTemplateData($slide);
+
+                break;
+
             case 'video':
                 $baseData['video'] = self::getVideoData($slide);
 
@@ -1612,6 +1617,33 @@ class AccessController
         }
 
         return $layoutData;
+    }
+
+    /**
+     * Extract template slide data
+     */
+    private static function getTemplateData($slide): array
+    {
+        $image = $slide->template_image()->toFile();
+
+        return [
+            'preset' => $slide->template_preset()->value() ?: 'event_focus',
+            'theme' => $slide->template_theme()->value() ?: 'light',
+            'title' => $slide->template_title()->value(),
+            'subtitle' => $slide->template_subtitle()->value(),
+            'label' => $slide->template_label()->value(),
+            'message' => $slide->template_message()->value(),
+            'highlight' => $slide->template_highlight()->value(),
+            'footer' => $slide->template_footer()->value(),
+            'date' => $slide->template_date()->value(),
+            'time' => $slide->template_time()->value(),
+            'end_time' => $slide->template_end_time()->value(),
+            'location' => $slide->template_location()->value(),
+            'image' => $image ? [
+                'url' => $image->url(),
+                'alt' => $image->alt()->value() ?: $slide->template_title()->value(),
+            ] : null,
+        ];
     }
 
     /**
