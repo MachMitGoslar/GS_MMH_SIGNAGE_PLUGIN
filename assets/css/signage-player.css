@@ -682,6 +682,26 @@ body[data-orientation='vertical'] .template-slide__compact {
   line-height: 1.16;
 }
 
+.slide-content--canva {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.canva-embed {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+
+  width: 100vw;
+  height: 100vh;
+
+  border: 0;
+
+  transform: translate(-50%, -50%) scale(1.00);
+  transform-origin: center;
+}
+
 .template-slide__footer {
   width: fit-content;
   padding-top: 0.75rem;

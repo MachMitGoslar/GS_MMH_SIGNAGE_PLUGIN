@@ -1418,6 +1418,11 @@ class AccessController
 
                 break;
 
+            case 'canva':
+                $baseData['canva'] = self::getCanvaData($slide);
+
+                break;
+
             case 'calendar':
                 $baseData['calendar'] = self::getCalendarData($slide);
 
@@ -1643,6 +1648,16 @@ class AccessController
                 'url' => $image->url(),
                 'alt' => $image->alt()->value() ?: $slide->template_title()->value(),
             ] : null,
+        ];
+    }
+
+    /**
+     * Extract Canva data
+     */
+    private static function getCanvaData($slide): array
+    {
+        return [
+            'embed_url' => $slide->canva_embed_url()->value(),
         ];
     }
 

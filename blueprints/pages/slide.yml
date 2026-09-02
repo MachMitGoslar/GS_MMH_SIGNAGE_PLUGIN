@@ -31,6 +31,7 @@ tabs:
                 options:
                   blocks: Inhaltsblöcke
                   template: Template-Folie
+                  canva: Canva-Design
                   video: Vollbild-Video
                   calendar: Kalender / Termine
                 default: blocks
@@ -84,6 +85,18 @@ tabs:
             when:
               slide_type: blocks
 
+          template_canva_content:
+            type: fields
+            fields:
+              canva_embed_url:
+                label: Canva-Design einbetten
+                type: url
+                placeholder: https://www.canva.com/design/...
+                required: true
+                help: Fügen Sie die Einbettungs-URL Ihres Canva-Designs ein. Stellen Sie sicher, dass das Design öffentlich zugänglich ist.
+            when:
+              slide_type: canva
+
           template_content:
             type: fields
             fields:
@@ -97,7 +110,7 @@ tabs:
                 default: event_focus
                 required: true
                 width: 1/2
-                help: Vorgefertigtes Layout mit fester Typografie und gut lesbaren Metadaten.
+                help: Vorgefertigtes Layout
 
               template_theme:
                 label: Farbschema

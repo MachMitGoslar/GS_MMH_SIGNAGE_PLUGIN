@@ -438,18 +438,20 @@
              * Render individual slide content
              */
             renderSlideContent(slide) {
-                switch (slide.type) {
-                    case 'blocks':
-                        return this.renderLayoutSlide(slide.layout);
-                    case 'template':
-                        return this.renderTemplateSlide(slide.template);
-                    case 'video':
-                        return this.renderVideoSlide(slide.video);
-                    case 'calendar':
-                        return this.renderCalendarSlide(slide.calendar);
-                    default:
-                        return '<p>Unknown slide type</p>';
-                }
+              switch (slide.type) {
+                case 'blocks':
+                  return this.renderLayoutSlide(slide.layout);
+                case 'template':
+                  return this.renderTemplateSlide(slide.template);
+                case 'video':
+                  return this.renderVideoSlide(slide.video);
+                case 'calendar':
+                  return this.renderCalendarSlide(slide.calendar);
+                case 'canva':
+                  return this.renderCanvaSlide(slide.canva);
+                default:
+                  return '<p>Unknown slide type</p>';
+              }
             },
 
             /**
@@ -763,7 +765,25 @@
                         return '';
                 }
             },
+          /**
+           * Render Canva slide
+           */
+          renderCanvaSlide(canva) {
+            if (!canva || !canva.embed_url) {
+              return '<p>Kein Canva-Design hinterlegt</p>';
+            }
 
+            return `
+        <iframe
+            class="canva-embed"
+            src="${this.escapeHtml(canva.embed_url)}"
+            frameborder="0"
+            scrolling="no"
+            allowfullscreen
+
+        ></iframe>
+    `;
+          },
             /**
              * Render video slide
              */
