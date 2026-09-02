@@ -235,7 +235,7 @@
                 slides.forEach((slide, index) => {
                     const slideEl = document.createElement('div');
                     const contentPosition = slide.content_position || 'center';
-                    const effectiveBackground = this.getEffectiveBackground(slide.background);
+                    const effectiveBackground = this.getEffectiveBackground(slide);
                     slideEl.className = `signage-slide content-position-${contentPosition}`;
                     slideEl.dataset.transition = slide.transition || 'fade';
                     slideEl.dataset.duration = slide.duration;
@@ -248,7 +248,9 @@
 
                     // Render content
                     const contentWrapper = document.createElement('div');
-                    contentWrapper.className = 'slide-content';
+                    contentWrapper.className = slide.type === 'template'
+                        ? 'slide-content slide-content--template'
+                        : 'slide-content';
                     contentWrapper.innerHTML = this.renderSlideContent(slide);
                     
                     slideEl.appendChild(contentWrapper);
@@ -258,9 +260,34 @@
                 console.log(`✅ Rendered ${slides.length} slides`);
             },
 
-            getEffectiveBackground(slideBackground) {
+            getEffectiveBackground(slide) {
+                const slideBackground = slide?.background || null;
+
                 if (slideBackground && slideBackground.type && slideBackground.type !== 'none') {
                     return slideBackground;
+                }
+
+                if (slide?.type === 'template' && slide.template?.image?.url) {
+                    const themeOverlays = {
+                        light: { color: '#f4dfbd', opacity: 66 },
+                        dark: { color: '#10100f', opacity: 58 },
+                    };
+                    const overlay = themeOverlays[slide.template.theme] || themeOverlays.light;
+
+                    return {
+                        type: 'image',
+                        image: {
+                            url: slide.template.image.url,
+                            position: 'center',
+                            size: 'cover',
+                        },
+                        overlay: {
+                            enabled: true,
+                            color: overlay.color,
+                            opacity: overlay.opacity,
+                            gradient: 'none',
+                        },
+                    };
                 }
 
                 return this.state.contentData?.channel?.background || slideBackground;
@@ -411,16 +438,20 @@
              * Render individual slide content
              */
             renderSlideContent(slide) {
-                switch (slide.type) {
-                    case 'blocks':
-                        return this.renderLayoutSlide(slide.layout);
-                    case 'video':
-                        return this.renderVideoSlide(slide.video);
-                    case 'calendar':
-                        return this.renderCalendarSlide(slide.calendar);
-                    default:
-                        return '<p>Unknown slide type</p>';
-                }
+              switch (slide.type) {
+                case 'blocks':
+                  return this.renderLayoutSlide(slide.layout);
+                case 'template':
+                  return this.renderTemplateSlide(slide.template);
+                case 'video':
+                  return this.renderVideoSlide(slide.video);
+                case 'calendar':
+                  return this.renderCalendarSlide(slide.calendar);
+                case 'canva':
+                  return this.renderCanvaSlide(slide.canva);
+                default:
+                  return '<p>Unknown slide type</p>';
+              }
             },
 
             /**
@@ -454,6 +485,120 @@
                 }).join('');
             },
 
+            /**
+             * Render predefined template slide
+             */
+            renderTemplateSlide(template) {
+                const preset = template?.preset || 'event_focus';
+                const theme = template?.theme || 'light';
+                const title = this.escapeHtml(template?.title || '');
+                const subtitle = this.escapeHtml(template?.subtitle || '');
+                const label = this.escapeHtml(template?.label || '');
+                const message = this.escapeHtml(template?.message || '');
+                const highlight = this.escapeHtml(template?.highlight || '');
+                const footer = this.escapeHtml(template?.footer || '');
+                const date = this.formatTemplateDate(template?.date || '');
+                const shortDate = this.formatTemplateDateShort(template?.date || '');
+                const time = this.escapeHtml(template?.time || '');
+                const timeLabel = this.formatTemplateTimeRange(template?.time || '', template?.end_time || '');
+                const location = this.escapeHtml(template?.location || '');
+                const hasMeta = Boolean(date || time || location);
+
+                if (preset === 'event_focus') {
+                    const eventDate = shortDate || date;
+                    const eventTime = timeLabel || time;
+
+                    return `
+                        <article class="template-slide template-slide--event_focus template-slide--${theme}">
+                            <div class="template-slide__body">
+                                ${title ? `<h1 class="template-slide__title">${title}</h1>` : ''}
+                                ${subtitle ? `<p class="template-slide__subtitle">${subtitle}</p>` : ''}
+                            </div>
+                            ${eventDate || eventTime || location ? `
+                                <dl class="template-slide__date-card">
+                                    ${eventDate ? `
+                                        <div class="template-slide__date-item">
+                                            <dt>Datum</dt>
+                                            <dd>${eventDate}</dd>
+                                        </div>
+                                    ` : ''}
+                                    ${eventTime ? `
+                                        <div class="template-slide__date-item">
+                                            <dt>Zeit</dt>
+                                            <dd>${eventTime}</dd>
+                                        </div>
+                                    ` : ''}
+                                    ${location ? `
+                                        <div class="template-slide__date-item">
+                                            <dt>Ort</dt>
+                                            <dd>${location}</dd>
+                                        </div>
+                                    ` : ''}
+                                </dl>
+                            ` : ''}
+                        </article>
+                    `;
+                }
+
+                if (preset === 'announcement') {
+                    return `
+                        <article class="template-slide template-slide--announcement template-slide--${theme}">
+                            <div class="template-slide__announcement">
+                                ${label ? `<p class="template-slide__label">${label}</p>` : ''}
+                                ${title ? `<h1 class="template-slide__title">${title}</h1>` : ''}
+                                ${message ? `<p class="template-slide__message">${message}</p>` : ''}
+                                ${footer ? `<p class="template-slide__footer">${footer}</p>` : ''}
+                            </div>
+                        </article>
+                    `;
+                }
+
+                if (preset === 'compact_info') {
+                    return `
+                        <article class="template-slide template-slide--compact_info template-slide--${theme}">
+                            <div class="template-slide__compact">
+                                ${label ? `<p class="template-slide__label">${label}</p>` : ''}
+                                ${highlight ? `<p class="template-slide__highlight">${highlight}</p>` : ''}
+                                ${title ? `<h1 class="template-slide__title">${title}</h1>` : ''}
+                                ${message ? `<p class="template-slide__message">${message}</p>` : ''}
+                                ${footer ? `<p class="template-slide__footer">${footer}</p>` : ''}
+                            </div>
+                        </article>
+                    `;
+                }
+
+                return `
+                    <article class="template-slide template-slide--${preset} template-slide--${theme}">
+                        <div class="template-slide__body">
+                            ${title ? `<h1 class="template-slide__title">${title}</h1>` : ''}
+                            ${subtitle ? `<p class="template-slide__subtitle">${subtitle}</p>` : ''}
+                        </div>
+                        ${hasMeta ? `
+                            <dl class="template-slide__meta">
+                                ${date ? `
+                                    <div class="template-slide__meta-item">
+                                        <dt>Datum</dt>
+                                        <dd>${date}</dd>
+                                    </div>
+                                ` : ''}
+                                ${time ? `
+                                    <div class="template-slide__meta-item">
+                                        <dt>Uhrzeit</dt>
+                                        <dd>${time}</dd>
+                                    </div>
+                                ` : ''}
+                                ${location ? `
+                                    <div class="template-slide__meta-item">
+                                        <dt>Ort</dt>
+                                        <dd>${location}</dd>
+                                    </div>
+                                ` : ''}
+                            </dl>
+                        ` : ''}
+                    </article>
+                `;
+            },
+
             getBlockText(block) {
                 if (!block || block.text == null) {
                     return '';
@@ -462,6 +607,87 @@
                 return typeof block.text === 'string'
                     ? block.text
                     : (block.text.value || '');
+            },
+
+            escapeHtml(value) {
+                return String(value || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            },
+
+            formatTemplateDate(value) {
+                if (!value) {
+                    return '';
+                }
+
+                const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                const parsed = match
+                    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+                    : new Date(value);
+
+                if (Number.isNaN(parsed.getTime())) {
+                    return this.escapeHtml(value);
+                }
+
+                return new Intl.DateTimeFormat('de-DE', {
+                    weekday: 'long',
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric',
+                    timeZone: 'Europe/Berlin',
+                }).format(parsed);
+            },
+
+            formatTemplateDateShort(value) {
+                if (!value) {
+                    return '';
+                }
+
+                const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                const parsed = match
+                    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+                    : new Date(value);
+
+                if (Number.isNaN(parsed.getTime())) {
+                    return this.escapeHtml(value);
+                }
+
+                return new Intl.DateTimeFormat('de-DE', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    timeZone: 'Europe/Berlin',
+                }).format(parsed);
+            },
+
+            formatTemplateTimeLabel(value) {
+                if (!value) {
+                    return '';
+                }
+
+                const match = String(value).match(/^(\d{1,2}):(\d{2})/);
+                if (!match) {
+                    return this.escapeHtml(value);
+                }
+
+                const hours = String(Number(match[1]));
+                const minutes = match[2];
+
+                return `${hours}:${minutes}`;
+            },
+
+            formatTemplateTimeRange(start, end) {
+                const startLabel = this.formatTemplateTimeLabel(start);
+                const endLabel = this.formatTemplateTimeLabel(end);
+
+                if (startLabel && endLabel) {
+                    return `${startLabel} bis ${endLabel}`;
+                }
+
+                return startLabel || endLabel;
             },
 
             formatEventDate(eventOrDate) {
@@ -539,7 +765,25 @@
                         return '';
                 }
             },
+          /**
+           * Render Canva slide
+           */
+          renderCanvaSlide(canva) {
+            if (!canva || !canva.embed_url) {
+              return '<p>Kein Canva-Design hinterlegt</p>';
+            }
 
+            return `
+        <iframe
+            class="canva-embed"
+            src="${this.escapeHtml(canva.embed_url)}"
+            frameborder="0"
+            scrolling="no"
+            allowfullscreen
+
+        ></iframe>
+    `;
+          },
             /**
              * Render video slide
              */

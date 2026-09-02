@@ -30,6 +30,8 @@ tabs:
                 type: select
                 options:
                   blocks: Inhaltsblöcke
+                  template: Template-Folie
+                  canva: Canva-Design
                   video: Vollbild-Video
                   calendar: Kalender / Termine
                 default: blocks
@@ -82,6 +84,142 @@ tabs:
                 help: Gestalten Sie Ihren Folieninhalt mit einem flexiblen Spaltenlayout
             when:
               slide_type: blocks
+
+          template_canva_content:
+            type: fields
+            fields:
+              canva_embed_url:
+                label: Canva-Design einbetten
+                type: url
+                placeholder: https://www.canva.com/design/...
+                help: Fügen Sie die Einbettungs-URL Ihres Canva-Designs ein. Stellen Sie sicher, dass das Design öffentlich zugänglich ist.
+            when:
+              slide_type: canva
+
+          template_content:
+            type: fields
+            fields:
+              template_preset:
+                label: Template
+                type: select
+                options:
+                  event_focus: Veranstaltung
+                  announcement: Ankündigung / Botschaft
+                  compact_info: Kompakte Info / Hinweis
+                default: event_focus
+                required: true
+                width: 1/2
+                help: Vorgefertigtes Layout
+
+              template_theme:
+                label: Farbschema
+                type: select
+                options:
+                  light: Hell
+                  dark: Dunkel
+                default: light
+                width: 1/2
+
+              template_title:
+                label: Titel
+                type: text
+                required: true
+                placeholder: z.B. Kleidertauschbörse
+
+              template_subtitle:
+                label: Untertitel
+                type: textarea
+                buttons: false
+                maxlength: 180
+                placeholder: Kurzer erklärender Satz oder Claim
+                when:
+                  template_preset: event_focus
+
+              template_date:
+                label: Datum
+                type: date
+                width: 1/4
+                display: DD.MM.YYYY
+                when:
+                  template_preset: event_focus
+
+              template_time:
+                label: Startzeit
+                type: time
+                width: 1/4
+                when:
+                  template_preset: event_focus
+
+              template_end_time:
+                label: Endzeit
+                type: time
+                width: 1/4
+                when:
+                  template_preset: event_focus
+
+              template_location:
+                label: Ort
+                type: text
+                width: 1/4
+                placeholder: z.B. MachMit!Haus, Markt 7
+                when:
+                  template_preset: event_focus
+
+              template_label:
+                label: Label / Kategorie
+                type: text
+                width: 1/2
+                placeholder: z.B. Hinweis, Neu im Haus, Heute
+                when:
+                  template_preset:
+                    - announcement
+                    - compact_info
+
+              template_message:
+                label: Haupttext
+                type: textarea
+                buttons: false
+                maxlength: 260
+                width: 1/2
+                placeholder: Kurze Nachricht oder Beschreibung
+                when:
+                  template_preset:
+                    - announcement
+                    - compact_info
+
+              template_highlight:
+                label: Hervorhebung
+                type: text
+                width: 1/2
+                placeholder: z.B. Heute geschlossen, Raumwechsel, 3 freie Plätze
+                when:
+                  template_preset: compact_info
+
+              template_footer:
+                label: Zusatzinfo
+                type: text
+                width: 1/2
+                placeholder: z.B. Mehr Infos am Empfang
+                when:
+                  template_preset:
+                    - announcement
+                    - compact_info
+
+              template_image:
+                label: Hintergrundbild
+                type: files
+                max: 1
+                layout: cards
+                size: large
+                uploads:
+                  template: blocks/image
+                accepts:
+                  - image/jpeg
+                  - image/png
+                  - image/webp
+                help: Wird für Template-Folien bevorzugt. Falls leer, greift der allgemeine Folien- oder Kanal-Hintergrund.
+            when:
+              slide_type: template
 
           video_content:
             type: fields

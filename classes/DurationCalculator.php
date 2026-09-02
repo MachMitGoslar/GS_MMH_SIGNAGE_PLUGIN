@@ -48,6 +48,7 @@ class DurationCalculator
 
         $duration = match ($slideType) {
             'blocks' => self::calculateBlocksDuration($slide),
+            'template' => self::calculateTemplateDuration($slide),
             'video' => self::calculateVideoDuration($slide),
             'calendar' => self::calculateCalendarDuration($slide),
             default => 10
@@ -73,6 +74,7 @@ class DurationCalculator
 
         return match ($slideType) {
             'blocks' => self::getBlocksCalculationDetails($slide),
+            'template' => self::getTemplateCalculationDetails($slide),
             'video' => self::getVideoCalculationDetails($slide),
             'calendar' => self::getCalendarCalculationDetails($slide),
             default => 'Default: 10 seconds'
@@ -206,6 +208,42 @@ class DurationCalculator
 
         // Base duration + per-item duration
         return 3 + ($itemCount * 2); // 3s base + 2s per item
+    }
+
+    /**
+     * Calculate duration for template slides
+     *
+     * @param \Kirby\Cms\Page $slide
+     * @return int Duration in seconds
+     */
+    private static function calculateTemplateDuration($slide): int
+    {
+        $textParts = [
+            $slide->template_title()->value(),
+            $slide->template_subtitle()->value(),
+            $slide->template_label()->value(),
+            $slide->template_message()->value(),
+            $slide->template_highlight()->value(),
+            $slide->template_footer()->value(),
+            $slide->template_date()->value(),
+            $slide->template_time()->value(),
+            $slide->template_end_time()->value(),
+            $slide->template_location()->value(),
+        ];
+
+        $textDuration = self::calculateTextDuration(implode(' ', array_filter($textParts)));
+
+        return max(10, $textDuration + 4);
+    }
+
+    /**
+     * Get calculation details for template slides
+     */
+    private static function getTemplateCalculationDetails($slide): string
+    {
+        $duration = self::calculateTemplateDuration($slide);
+
+        return "Template fields: {$duration} seconds";
     }
 
     /**
