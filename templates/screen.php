@@ -375,7 +375,7 @@
 
                 if (background.type === 'image' && background.image) {
                     slideEl.style.backgroundImage = `url('${background.image.url}')`;
-                    slideEl.style.backgroundPosition = background.image.position || 'center';
+                    slideEl.style.backgroundPosition = background.image.position || '50% 50%';
                     slideEl.style.backgroundSize = background.image.size || 'cover';
                     slideEl.style.backgroundRepeat = 'no-repeat';
                 } else if (background.type === 'video' && background.video) {
@@ -402,24 +402,21 @@
                     const overlay = document.createElement('div');
                     overlay.className = 'slide-overlay';
                     
-                    const opacity = background.overlay.opacity / 100;
-                    const color = background.overlay.color;
-                    const gradient = background.overlay.gradient;
+                    const opacity = Math.max(0, Math.min(1, Number(background.overlay.opacity || 0) / 100));
+                    const color = this.normalizeHexColor(background.overlay.color) || '#000000';
+                    const gradient = background.overlay.gradient || 'none';
                     
-                    if (gradient !== 'none') {
-                        // Apply gradient overlay
-                        const gradientDirection = gradient; // e.g., 'to-bottom'
+                    if (gradient === 'radial') {
                         const transparentColor = this.hexToRgba(color, 0);
                         const opaqueColor = this.hexToRgba(color, opacity);
-                        overlay.style.background = `linear-gradient(${gradientDirection}, ${transparentColor}, ${opaqueColor})`;
+                        overlay.style.background = `radial-gradient(circle at center, ${transparentColor}, ${opaqueColor})`;
+                    } else if (gradient !== 'none') {
+                        const transparentColor = this.hexToRgba(color, 0);
+                        const opaqueColor = this.hexToRgba(color, opacity);
+                        overlay.style.background = `linear-gradient(${gradient}, ${transparentColor}, ${opaqueColor})`;
                     } else {
-                        // Apply solid overlay
                         overlay.style.backgroundColor = this.hexToRgba(color, opacity);
                     }
-                    overlay.style.width = '100%';
-                    overlay.style.height = '100%';
-                    overlay.style.position = 'absolute';
-                    overlay.style.top = '0';
                     slideEl.appendChild(overlay);
                 }
             },
