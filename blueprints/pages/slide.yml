@@ -301,12 +301,13 @@ tabs:
                 label: Position
                 type: select
                 options:
+                  focus: Bild-Fokuspunkt verwenden
                   center: Mitte
                   top: Oben
                   bottom: Unten
                   left: Links
                   right: Rechts
-                default: center
+                default: focus
                 width: 1/2
                 when:
                   bg_type:
@@ -335,7 +336,7 @@ tabs:
                 type: info
                 label: Farbüberlagerung
                 theme: info
-                text: Fügen Sie eine Farbüberlagerung über dem Hintergrund hinzu, um die Textlesbarkeit zu verbessern
+                text: Fügen Sie eine Farbüberlagerung über Bild- oder Video-Hintergründe hinzu, um die Textlesbarkeit zu verbessern
 
               overlay_enabled:
                 label: Overlay aktivieren
