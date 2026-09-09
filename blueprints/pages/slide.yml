@@ -211,7 +211,9 @@ tabs:
                 max: 1
                 layout: cards
                 size: large
+                query: site.find('signage/assets').images
                 uploads:
+                  parent: site.find('signage/assets')
                   template: blocks/image
                 accepts:
                   - image/jpeg
@@ -417,6 +419,10 @@ tabs:
                 max: 1
                 layout: cards
                 size: large
+                query: site.find('signage/assets').images
+                uploads:
+                  parent: site.find('signage/assets')
+                  template: blocks/image
                 accepts:
                   - image/jpeg
                   - image/png
@@ -428,6 +434,10 @@ tabs:
                 label: Hintergrundvideo
                 type: files
                 max: 1
+                query: site.find('signage/assets').videos
+                uploads:
+                  parent: site.find('signage/assets')
+                  template: blocks/video
                 accepts:
                   - video/mp4
                   - video/webm

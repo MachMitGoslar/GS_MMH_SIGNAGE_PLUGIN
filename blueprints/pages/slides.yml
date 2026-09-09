@@ -1,0 +1,24 @@
+title: Folien-Bibliothek
+icon: images
+options:
+  changeSlug: false
+  changeStatus: false
+  changeTitle: false
+  delete: false
+
+columns:
+  - width: 1/1
+    sections:
+      slides:
+        type: pages
+        label: Wiederverwendbare Folien
+        template: slide
+        create: slide
+        status: all
+        image:
+          query: page.bg_image.toFile
+          cover: true
+        info: "{{ page.slide_type.or('blocks') }} - {{ page.calculatedDuration }} Sek."
+        sortable: true
+        empty: Noch keine wiederverwendbaren Folien vorhanden
+        help: Folien hier einmal erstellen und danach in beliebig vielen Kanälen verwenden.

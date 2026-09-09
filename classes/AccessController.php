@@ -1349,8 +1349,8 @@ class AccessController
             ];
         }
 
-        // Get slides from channel
-        $slides = $channel->children()->unlisted();
+        // Get slides from channel references in the shared slide library.
+        $slides = self::getChannelSlides($channel);
         $slidesData = [];
 
         foreach ($slides as $slide) {
@@ -1371,6 +1371,33 @@ class AccessController
             ],
             'slides' => $slidesData,
         ];
+    }
+
+    private static function getChannelSlides($channel): array
+    {
+        $referencedSlides = [];
+        $seen = [];
+
+        foreach ($channel->channel_slides()->toStructure() as $entry) {
+            if (! $entry->enabled()->isEmpty() && ! $entry->enabled()->toBool()) {
+                continue;
+            }
+
+            $slide = $entry->slide()->toPage();
+            if (! $slide || $slide->isDraft()) {
+                continue;
+            }
+
+            $id = $slide->id();
+            if (isset($seen[$id])) {
+                continue;
+            }
+
+            $seen[$id] = true;
+            $referencedSlides[] = $slide;
+        }
+
+        return $referencedSlides;
     }
 
     public static function getContentState($screen): array
@@ -1448,7 +1475,7 @@ class AccessController
             if ($bgImage) {
                 $backgroundData['image'] = [
                     'url' => $bgImage->url(),
-                    'position' => $slide->bg_position()->value() ?? 'center',
+                    'position' => self::backgroundPosition($bgImage, $slide->bg_position()->value()),
                     'size' => $slide->bg_size()->value() ?? 'cover',
                 ];
             }
@@ -1464,12 +1491,14 @@ class AccessController
             $backgroundData['color'] = $slide->overlay_color()->value() ?? '#000000';
         }
 
-        // Overlay settings
-        if ($slide->overlay_enabled()->toBool()) {
+        // Overlay settings only apply to media backgrounds. A solid color should
+        // remain the exact selected color, and channel-default slides use the
+        // channel background settings instead.
+        if (in_array($bgType, ['image', 'video'], true) && $slide->overlay_enabled()->toBool()) {
             $backgroundData['overlay'] = [
                 'enabled' => true,
                 'color' => $slide->overlay_color()->value() ?? '#000000',
-                'opacity' => (int) ($slide->overlay_opacity()->value() ?? 40),
+                'opacity' => self::overlayOpacity($slide->overlay_opacity()->value(), 40),
                 'gradient' => $slide->overlay_gradient()->value() ?? 'none',
             ];
         } else {
@@ -1481,13 +1510,15 @@ class AccessController
 
     private static function getChannelBackgroundData($channel): array
     {
+        $overlayOpacity = self::overlayOpacity($channel->default_overlay_opacity()->value(), 40);
+
         $background = [
             'type' => 'color',
             'background_color' => $channel->background_color()->value() ?: '#000000',
             'overlay' => [
-                'enabled' => true,
+                'enabled' => false,
                 'color' => $channel->default_overlay_color()->value() ?: '#000000',
-                'opacity' => (int) ($channel->default_overlay_opacity()->value() ?: 40),
+                'opacity' => $overlayOpacity,
                 'gradient' => 'none',
             ],
         ];
@@ -1495,9 +1526,10 @@ class AccessController
         $bgImage = $channel->default_bg_image()->toFile();
         if ($bgImage) {
             $background['type'] = 'image';
+            $background['overlay']['enabled'] = $overlayOpacity > 0;
             $background['image'] = [
                 'url' => $bgImage->url(),
-                'position' => 'center',
+                'position' => self::backgroundPosition($bgImage),
                 'size' => 'cover',
             ];
         }
@@ -1505,6 +1537,7 @@ class AccessController
         $bgVideo = $channel->default_bg_video()->toFile();
         if ($bgVideo) {
             $background['type'] = 'video';
+            $background['overlay']['enabled'] = $overlayOpacity > 0;
             $background['video'] = [
                 'url' => $bgVideo->url(),
                 'type' => $bgVideo->mime(),
@@ -1512,6 +1545,31 @@ class AccessController
         }
 
         return $background;
+    }
+
+    private static function backgroundPosition($image, ?string $position = null): string
+    {
+        $position = trim((string) $position);
+        $focus = $image->focus()->isNotEmpty() ? (string) $image->focus() : null;
+
+        if ($focus !== null && ($position === '' || $position === 'center' || $position === 'focus')) {
+            return $focus;
+        }
+
+        if ($position !== '') {
+            return $position;
+        }
+
+        return '50% 50%';
+    }
+
+    private static function overlayOpacity($value, int $fallback): int
+    {
+        if ($value === null || $value === '') {
+            return $fallback;
+        }
+
+        return max(0, min(100, (int) $value));
     }
 
     private static function getContentRevision($screen): string
@@ -1536,8 +1594,9 @@ class AccessController
             }
 
             $parts[] = 'channel:' . $channel->id() . ':' . $channel->modified('U');
+            $parts[] = 'channel-slides:' . sha1((string) $channel->channel_slides()->value());
 
-            foreach ($channel->childrenAndDrafts() as $slide) {
+            foreach (self::getChannelSlides($channel) as $slide) {
                 $parts[] = 'slide:' . $slide->id() . ':' . $slide->modified('U');
             }
         }

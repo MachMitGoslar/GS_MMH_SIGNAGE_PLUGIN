@@ -14,6 +14,6 @@ columns:
         label: Inhaltskanäle
         template: channel
         status: all
-        info: "{{ page.children.count }} Folien"
+        info: "{{ page.channel_slides.toPages.count }} Folien"
         empty: Noch keine Inhaltskanäle vorhanden
         help: Organisieren Sie Inhalte in wiederverwendbare Kanäle

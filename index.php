@@ -66,6 +66,12 @@ Kirby::plugin('gs-mmh/mmh-signage-plugin', [
                             return page('signage/channels')->panel()->view();
                         },
                     ],
+                    [
+                        'pattern' => 'signage/slides',
+                        'action' => function () use ($kirby) {
+                            return page('signage/slides')->panel()->view();
+                        },
+                    ],
                 ],
             ];
         },
@@ -76,8 +82,10 @@ Kirby::plugin('gs-mmh/mmh-signage-plugin', [
      */
     'blueprints' => [
         'pages/signage' => __DIR__ . '/blueprints/pages/signage.yml',
+        'pages/signage-assets' => __DIR__ . '/blueprints/pages/signage-assets.yml',
         'pages/screens' => __DIR__ . '/blueprints/pages/screens.yml',
         'pages/channels' => __DIR__ . '/blueprints/pages/channels.yml',
+        'pages/slides' => __DIR__ . '/blueprints/pages/slides.yml',
         'pages/screen' => __DIR__ . '/blueprints/pages/screen.yml',
         'pages/channel' => __DIR__ . '/blueprints/pages/channel.yml',
         'pages/slide' => __DIR__ . '/blueprints/pages/slide.yml',

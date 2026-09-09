@@ -31,7 +31,7 @@ tabs:
     label: Kanäle
     icon: layers
     columns:
-      - width: 1/1
+      - width: 2/3
         sections:
           channels:
             type: pages
@@ -40,9 +40,25 @@ tabs:
             query: site.find('signage/channels').childrenAndDrafts
             template: channel
             status: all
-            info: "{{ page.children.count }} Folien"
+            info: "{{ page.channel_slides.toPages.count }} Folien"
             empty: Noch keine Inhaltskanäle vorhanden
             help: Organisieren Sie Inhalte in wiederverwendbare Kanäle
+      - width: 1/3
+        sections:
+          slide_library:
+            type: pages
+            label: Folien-Bibliothek
+            parent: site.find('signage/slides')
+            query: site.find('signage/slides').childrenAndDrafts
+            template: slide
+            create: slide
+            status: all
+            image:
+              query: page.bg_image.toFile
+              cover: true
+            info: "{{ page.slide_type.or('blocks') }} - {{ page.calculatedDuration }} Sek."
+            empty: Noch keine wiederverwendbaren Folien vorhanden
+            help: Folien einmal erstellen und in mehreren Kanälen verwenden
 
   onboarding:
     label: Geräteverwaltung

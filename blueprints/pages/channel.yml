@@ -50,7 +50,9 @@ columns:
             max: 1
             layout: cards
             width: 1/2
+            query: site.find('signage/assets').images
             uploads:
+              parent: site.find('signage/assets')
               template: blocks/image
             help: Fallback-Hintergrund für Folien ohne eigene Medien
 
@@ -60,7 +62,9 @@ columns:
             max: 1
             layout: cards
             width: 1/2
+            query: site.find('signage/assets').videos
             uploads:
+              parent: site.find('signage/assets')
               template: blocks/video
             accepts:
               - video/mp4
@@ -85,18 +89,20 @@ columns:
             after: "%"
             help: 0% = kein Overlay, 100% = Volltonfarbe
 
-      slides:
-        type: pages
-        label: Inhaltsfolien
-        template: slide
-        create: slide
-        info: "{{ page.slide_type.or('blocks') }} — {{ page.calculatedDuration }} Sek."
-        sortable: true
-        status: all
-        help: |
-          Ziehen zum Neuanordnen der Folien. Dauer wird automatisch basierend auf dem Inhalt berechnet.
-          Verschiedene Folientypen hinzufügen: Blöcke (Text/Bilder), Videos oder Kalenderansichten.
-        empty: Noch keine Folien. Klicken Sie auf "Hinzufügen", um Ihre erste Inhaltsfolie zu erstellen.
+      channel_slides:
+        type: fields
+        fields:
+          channel_slides:
+            label: Inhaltsfolien
+            type: pages
+            multiple: true
+            sortable: true
+            query: site.find('signage/slides').childrenAndDrafts
+            image:
+              query: page.bg_image.toFile
+              cover: true
+            info: "{{ page.slide_type.or('blocks') }} - {{ page.calculatedDuration }} Sek."
+            help: Folien aus der zentralen Bibliothek auswählen und per Drag & Drop sortieren. Dieselbe Folie kann in mehreren Kanälen verwendet werden.
 
   - width: 1/3
     sections:
@@ -108,8 +114,7 @@ columns:
             label: Kanalstatistiken
             theme: info
             text: |
-              **Anzahl Folien:** {{ page.children.count }}
-              **Gesamtdauer:** {{ page.children.sum('calculatedDuration') }} Sekunden
+              **Zugeordnete Folien:** {{ page.channel_slides.toPages.count }}
 
       preview:
         type: fields

@@ -1,0 +1,42 @@
+title: Signage-Assets
+icon: images
+options:
+  changeSlug: false
+  changeStatus: false
+  changeTitle: false
+  delete: false
+
+columns:
+  - width: 1/1
+    sections:
+      info:
+        type: fields
+        fields:
+          info_assets:
+            type: info
+            label: Gemeinsamer Medienpool
+            theme: notice
+            text: Diese Dateien können als Hintergrundmedien in mehreren Signage-Kanälen und Folien verwendet werden.
+
+      images:
+        type: files
+        label: Hintergrundbilder
+        layout: cards
+        size: medium
+        template: blocks/image
+        uploads:
+          template: blocks/image
+        query: page.images
+        image:
+          cover: true
+        empty: Noch keine Hintergrundbilder hochgeladen
+
+      videos:
+        type: files
+        label: Hintergrundvideos
+        layout: list
+        template: blocks/video
+        uploads:
+          template: blocks/video
+        query: page.videos
+        empty: Noch keine Hintergrundvideos hochgeladen
