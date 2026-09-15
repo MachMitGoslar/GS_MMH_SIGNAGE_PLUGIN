@@ -60,6 +60,25 @@ tabs:
             empty: Noch keine wiederverwendbaren Folien vorhanden
             help: Folien einmal erstellen und in mehreren Kanälen verwenden
 
+  assets:
+    label: Medienpool
+    icon: images
+    columns:
+      - width: 1/1
+        sections:
+          assets:
+            type: pages
+            label: Signage-Assets
+            parent: site.find('signage')
+            query: site.find('signage').children.filterBy('intendedTemplate', 'signage-assets')
+            template: signage-assets
+            status: all
+            create: false
+            image:
+              query: page.images.first
+              cover: true
+            empty: Medienpool-Seite fehlt
+
   onboarding:
     label: Geräteverwaltung
     icon: bolt

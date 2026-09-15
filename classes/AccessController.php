@@ -1378,12 +1378,7 @@ class AccessController
         $referencedSlides = [];
         $seen = [];
 
-        foreach ($channel->channel_slides()->toStructure() as $entry) {
-            if (! $entry->enabled()->isEmpty() && ! $entry->enabled()->toBool()) {
-                continue;
-            }
-
-            $slide = $entry->slide()->toPage();
+        foreach ($channel->channel_slides()->toPages() as $slide) {
             if (! $slide || $slide->isDraft()) {
                 continue;
             }
