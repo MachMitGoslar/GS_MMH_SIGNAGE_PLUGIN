@@ -49,6 +49,16 @@ body {
   transition:
     opacity 1s ease-in-out,
     transform 1s ease-in-out;
+  isolation: isolate;
+}
+
+.bg-video {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .signage-slide.active {
@@ -89,8 +99,7 @@ body[data-orientation='horizontal'] .signage-slide {
 /* Slide Overlay */
 .slide-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
   z-index: 15;
