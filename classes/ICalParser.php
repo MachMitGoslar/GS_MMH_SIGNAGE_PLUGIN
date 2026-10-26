@@ -32,7 +32,7 @@ class ICalParser
             // Fetch iCal data
             $icalData = self::fetchIcalData($url);
 
-            if (! $icalData) {
+            if (!$icalData) {
                 return [
                     'error' => true,
                     'message' => 'Failed to fetch calendar data',
@@ -118,7 +118,7 @@ class ICalParser
         $icalData = str_replace(["\r\n", "\r"], "\n", $icalData);
 
         // Unfold long lines (iCal spec allows line folding with space/tab)
-        $icalData = preg_replace("/\n[ \t]/", "", $icalData);
+        $icalData = preg_replace("/\n[ \t]/", '', $icalData);
 
         // Split into lines
         $lines = explode("\n", $icalData);
@@ -138,7 +138,7 @@ class ICalParser
 
             if ($line === 'END:VEVENT') {
                 $inEvent = false;
-                if (! empty($currentEvent)) {
+                if (!empty($currentEvent)) {
                     $events[] = self::processEvent($currentEvent);
                 }
 
@@ -160,7 +160,7 @@ class ICalParser
                     $propertyName = $parts[0];
                     for ($i = 1; $i < count($parts); $i++) {
                         if (strpos($parts[$i], '=') !== false) {
-                            list($paramName, $paramValue) = explode('=', $parts[$i], 2);
+                            [$paramName, $paramValue] = explode('=', $parts[$i], 2);
                             $propertyParams[$paramName] = $paramValue;
                         }
                     }
@@ -310,7 +310,7 @@ class ICalParser
         $text = str_replace(
             ['\\n', '\\N', '\\,', '\\;', '\\\\'],
             ["\n", "\n", ',', ';', '\\'],
-            $text
+            $text,
         );
 
         return trim($text);
@@ -401,7 +401,7 @@ class ICalParser
 
         $timezone = self::getLocalTimezone();
         $baseStart = self::createLocalDateTimeFromTimestamp($event['start_timestamp']);
-        $baseEnd = ! empty($event['end_timestamp'])
+        $baseEnd = !empty($event['end_timestamp'])
             ? self::createLocalDateTimeFromTimestamp($event['end_timestamp'])
             : null;
         $rangeStart = self::createLocalDateTimeFromTimestamp($rangeStartTimestamp)->setTime(0, 0, 0);
@@ -498,7 +498,7 @@ class ICalParser
     private static function buildOccurrenceStart(
         DateTimeImmutable $scanDate,
         DateTimeImmutable $baseStart,
-        bool $allDay
+        bool $allDay,
     ): DateTimeImmutable {
         if ($allDay) {
             return $scanDate->setTime(0, 0, 0);
@@ -507,19 +507,19 @@ class ICalParser
         return $scanDate->setTime(
             (int) $baseStart->format('H'),
             (int) $baseStart->format('i'),
-            (int) $baseStart->format('s')
+            (int) $baseStart->format('s'),
         );
     }
 
     private static function matchesRecurrenceRule(
         DateTimeImmutable $occurrenceStart,
         DateTimeImmutable $baseStart,
-        array $rule
+        array $rule,
     ): bool {
         $freq = strtoupper($rule['FREQ'] ?? '');
         $interval = max(1, (int) ($rule['INTERVAL'] ?? 1));
-        $byDay = ! empty($rule['BYDAY']) ? array_map('trim', explode(',', strtoupper($rule['BYDAY']))) : [];
-        $byMonthDay = ! empty($rule['BYMONTHDAY']) ? array_map('intval', explode(',', $rule['BYMONTHDAY'])) : [];
+        $byDay = !empty($rule['BYDAY']) ? array_map('trim', explode(',', strtoupper($rule['BYDAY']))) : [];
+        $byMonthDay = !empty($rule['BYMONTHDAY']) ? array_map('intval', explode(',', $rule['BYMONTHDAY'])) : [];
         $weekday = strtoupper(substr($occurrenceStart->format('D'), 0, 2));
         $baseWeekday = strtoupper(substr($baseStart->format('D'), 0, 2));
 
@@ -554,7 +554,7 @@ class ICalParser
                     return false;
                 }
 
-                if (! empty($byMonthDay)) {
+                if (!empty($byMonthDay)) {
                     return in_array((int) $occurrenceStart->format('j'), $byMonthDay, true);
                 }
 

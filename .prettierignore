@@ -1,0 +1,10 @@
+node_modules/
+vendor/
+kirby/
+storage/
+*.log
+*.min.js
+*.min.css
+coverage/
+.nyc_output/
+/index.js

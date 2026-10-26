@@ -18,3 +18,10 @@ Thumbs.db
 # Environment files
 .env
 .env.local
+
+# PHP tooling
+composer.lock
+.phpunit.cache/
+.php-cs-fixer.cache
+
+.editorconfig

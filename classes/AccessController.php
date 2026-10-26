@@ -16,7 +16,7 @@ class AccessController
     public static function registerOnboardingRequest(string $uuid, string $ip, ?string $backend = null, ?string $url = null): array
     {
         $rootPage = self::getRootPage();
-        if (! $rootPage) {
+        if (!$rootPage) {
             return [
                 'status' => 'error',
                 'access' => 'denied',
@@ -60,7 +60,7 @@ class AccessController
         $existing = self::findOnboardingRequest($requests, $uuid);
 
         if ($existing) {
-            if (($existing['status'] ?? 'pending') === 'approved' && ! empty($existing['assigned_screen'])) {
+            if (($existing['status'] ?? 'pending') === 'approved' && !empty($existing['assigned_screen'])) {
                 return self::formatOnboardingResponse($existing);
             }
 
@@ -85,7 +85,7 @@ class AccessController
         }
         unset($request);
 
-        if (! $updated) {
+        if (!$updated) {
             $requests[] = [
                 'uuid' => $uuid,
                 'ip' => $ip,
@@ -130,7 +130,7 @@ class AccessController
 
         $request = self::findOnboardingRequest($requests, $uuid);
 
-        if (! $request) {
+        if (!$request) {
             return [
                 'status' => 'pending',
                 'access' => 'pending',
@@ -143,7 +143,7 @@ class AccessController
 
     public static function approveOnboardingRequest(string $uuid, string $screenSlug, ?string $label = null): array
     {
-        if (! $uuid || ! $screenSlug) {
+        if (!$uuid || !$screenSlug) {
             return [
                 'status' => 'error',
                 'message' => 'Missing uuid or screen parameter',
@@ -152,7 +152,7 @@ class AccessController
 
         $rootPage = self::getRootPage();
         $screen = kirby()->page('signage/screens/' . $screenSlug);
-        if (! $rootPage || ! $screen) {
+        if (!$rootPage || !$screen) {
             return [
                 'status' => 'error',
                 'message' => 'Screen not found',
@@ -162,9 +162,9 @@ class AccessController
         $existingRequests = self::getOnboardingRequests();
         $existingDeniedRequests = self::getDeniedOnboardingStorage();
         $request = self::findOnboardingRequest($existingRequests, $uuid);
-        if (! $request) {
+        if (!$request) {
             $request = self::findOnboardingRequest($existingDeniedRequests, $uuid);
-            if (! $request) {
+            if (!$request) {
                 return [
                     'status' => 'error',
                     'message' => 'Onboarding request not found',
@@ -216,7 +216,7 @@ class AccessController
 
     public static function denyOnboardingRequest(string $uuid): array
     {
-        if (! $uuid) {
+        if (!$uuid) {
             return [
                 'status' => 'error',
                 'message' => 'Missing uuid parameter',
@@ -224,7 +224,7 @@ class AccessController
         }
 
         $rootPage = self::getRootPage();
-        if (! $rootPage) {
+        if (!$rootPage) {
             return [
                 'status' => 'error',
                 'message' => 'Signage root page not found',
@@ -240,6 +240,7 @@ class AccessController
         foreach ($requests as $entry) {
             if (($entry['uuid'] ?? null) !== $uuid) {
                 $remainingRequests[] = $entry;
+
                 continue;
             }
 
@@ -250,7 +251,7 @@ class AccessController
             $deniedEntry = $entry;
         }
 
-        if (! $found) {
+        if (!$found) {
             return [
                 'status' => 'error',
                 'message' => 'Onboarding request not found',
@@ -273,7 +274,7 @@ class AccessController
 
     public static function removeDeniedOnboardingRequest(string $uuid): array
     {
-        if (! $uuid) {
+        if (!$uuid) {
             return [
                 'status' => 'error',
                 'message' => 'Missing uuid parameter',
@@ -281,7 +282,7 @@ class AccessController
         }
 
         $rootPage = self::getRootPage();
-        if (! $rootPage) {
+        if (!$rootPage) {
             return [
                 'status' => 'error',
                 'message' => 'Signage root page not found',
@@ -318,8 +319,8 @@ class AccessController
 
         return array_values(array_filter(self::getOnboardingRequests(), function (array $request) use ($deniedUuids, $approvedUuids) {
             return ($request['status'] ?? 'pending') === 'pending'
-                && ! in_array(($request['uuid'] ?? ''), $deniedUuids, true)
-                && ! in_array(($request['uuid'] ?? ''), $approvedUuids, true);
+                && !in_array(($request['uuid'] ?? ''), $deniedUuids, true)
+                && !in_array(($request['uuid'] ?? ''), $approvedUuids, true);
         }));
     }
 
@@ -331,7 +332,7 @@ class AccessController
         }));
 
         foreach ($fallbackDenied as $request) {
-            if (! self::findOnboardingRequest($denied, $request['uuid'] ?? '')) {
+            if (!self::findOnboardingRequest($denied, $request['uuid'] ?? '')) {
                 $denied[] = $request;
             }
         }
@@ -341,7 +342,7 @@ class AccessController
         if ($screensRoot) {
             foreach ($screensRoot->children() as $screen) {
                 foreach (self::whitelistToArray($screen->whitelist()->toStructure()) as $device) {
-                    if (! empty($device['uuid'])) {
+                    if (!empty($device['uuid'])) {
                         $approvedUuids[] = $device['uuid'];
                     }
                 }
@@ -349,21 +350,21 @@ class AccessController
         }
 
         return array_values(array_filter($denied, function (array $request) use ($approvedUuids) {
-            return ! in_array(($request['uuid'] ?? ''), $approvedUuids, true);
+            return !in_array(($request['uuid'] ?? ''), $approvedUuids, true);
         }));
     }
 
     public static function getApprovedOnboardingDevices(): array
     {
         $screensRoot = kirby()->page('signage/screens');
-        if (! $screensRoot) {
+        if (!$screensRoot) {
             return [];
         }
 
         $onboardingRequests = self::getOnboardingRequests();
         $requestsByUuid = [];
         foreach ($onboardingRequests as $request) {
-            if (! empty($request['uuid'])) {
+            if (!empty($request['uuid'])) {
                 $requestsByUuid[$request['uuid']] = $request;
             }
         }
@@ -396,7 +397,7 @@ class AccessController
     public static function getAvailableScreens(): array
     {
         $screens = kirby()->page('signage/screens');
-        if (! $screens) {
+        if (!$screens) {
             return [];
         }
 
@@ -422,7 +423,7 @@ class AccessController
     public static function checkAccess(string $screenSlug, string $uuid, string $ip): array
     {
         $screen = kirby()->page('signage/screens/' . $screenSlug);
-        if (! $screen) {
+        if (!$screen) {
             return [
                 'status' => 'error',
                 'message' => 'Screen not found',
@@ -440,7 +441,7 @@ class AccessController
         }
 
         // If whitelist is disabled, grant access immediately
-        if (! $screen->whitelist_enabled()->toBool()) {
+        if (!$screen->whitelist_enabled()->toBool()) {
             return [
                 'status' => 'success',
                 'access' => 'granted',
@@ -502,7 +503,7 @@ class AccessController
         }
 
         // Add new request if not already pending
-        if (! $alreadyPending) {
+        if (!$alreadyPending) {
             $pendingArray[] = [
                 'uuid' => $uuid,
                 'ip' => $ip,
@@ -537,6 +538,7 @@ class AccessController
         foreach ($whitelistArray as $entry) {
             if (($entry['uuid'] ?? '') === ($deviceData['uuid'] ?? '')) {
                 $existingWhitelistEntry = $entry;
+
                 break;
             }
         }
@@ -595,7 +597,7 @@ class AccessController
     {
         $screen = kirby()->page('signage/screens/' . $screenSlug);
 
-        if (! $screen) {
+        if (!$screen) {
             return [
                 'status' => 'error',
                 'message' => 'Screen not found',
@@ -609,7 +611,7 @@ class AccessController
     {
         $screen = kirby()->page('signage/screens/' . $screenSlug);
 
-        if (! $screen) {
+        if (!$screen) {
             return [
                 'status' => 'error',
                 'message' => 'Screen not found',
@@ -651,7 +653,7 @@ class AccessController
     public static function revokeApprovedDevice(string $screenSlug, string $uuid): array
     {
         $screen = kirby()->page('signage/screens/' . $screenSlug);
-        if (! $screen) {
+        if (!$screen) {
             return [
                 'status' => 'error',
                 'message' => 'Screen not found',
@@ -660,7 +662,7 @@ class AccessController
 
         $whitelistArray = array_values(array_filter(
             self::whitelistToArray($screen->whitelist()->toStructure()),
-            fn ($entry) => ($entry['uuid'] ?? '') !== $uuid
+            fn ($entry) => ($entry['uuid'] ?? '') !== $uuid,
         ));
 
         try {
@@ -683,7 +685,7 @@ class AccessController
 
     public static function reassignApprovedDevice(string $fromScreenSlug, string $toScreenSlug, string $uuid): array
     {
-        if (! $fromScreenSlug || ! $toScreenSlug || ! $uuid) {
+        if (!$fromScreenSlug || !$toScreenSlug || !$uuid) {
             return [
                 'status' => 'error',
                 'message' => 'Missing screen or uuid parameter',
@@ -693,7 +695,7 @@ class AccessController
         $fromScreen = kirby()->page('signage/screens/' . $fromScreenSlug);
         $toScreen = kirby()->page('signage/screens/' . $toScreenSlug);
 
-        if (! $fromScreen || ! $toScreen) {
+        if (!$fromScreen || !$toScreen) {
             return [
                 'status' => 'error',
                 'message' => 'Screen not found',
@@ -704,11 +706,12 @@ class AccessController
         foreach (self::whitelistToArray($fromScreen->whitelist()->toStructure()) as $entry) {
             if (($entry['uuid'] ?? '') === $uuid) {
                 $device = $entry;
+
                 break;
             }
         }
 
-        if (! $device) {
+        if (!$device) {
             return [
                 'status' => 'error',
                 'message' => 'Approved device not found',
@@ -737,7 +740,7 @@ class AccessController
             $uuid,
             $toScreenSlug,
             $device['approved_at'] ?? null,
-            $device['approved_by'] ?? null
+            $device['approved_by'] ?? null,
         );
 
         return [
@@ -748,7 +751,7 @@ class AccessController
 
     public static function renameApprovedDevice(string $screenSlug, string $uuid, string $label): array
     {
-        if (! $screenSlug || ! $uuid) {
+        if (!$screenSlug || !$uuid) {
             return [
                 'status' => 'error',
                 'message' => 'Missing screen or uuid parameter',
@@ -756,7 +759,7 @@ class AccessController
         }
 
         $screen = kirby()->page('signage/screens/' . $screenSlug);
-        if (! $screen) {
+        if (!$screen) {
             return [
                 'status' => 'error',
                 'message' => 'Screen not found',
@@ -781,7 +784,7 @@ class AccessController
         }
         unset($entry);
 
-        if (! $found) {
+        if (!$found) {
             return [
                 'status' => 'error',
                 'message' => 'Approved device not found',
@@ -807,12 +810,12 @@ class AccessController
 
     public static function moveScreenDevicesToPendingForScreen($screen): void
     {
-        if (! $screen || $screen->intendedTemplate()->name() !== 'screen') {
+        if (!$screen || $screen->intendedTemplate()->name() !== 'screen') {
             return;
         }
 
         $rootPage = self::getRootPage();
-        if (! $rootPage) {
+        if (!$rootPage) {
             return;
         }
 
@@ -820,7 +823,7 @@ class AccessController
         $requests = self::getOnboardingRequests();
         $requestsByUuid = [];
         foreach ($requests as $request) {
-            if (! empty($request['uuid'])) {
+            if (!empty($request['uuid'])) {
                 $requestsByUuid[$request['uuid']] = $request;
             }
         }
@@ -828,7 +831,7 @@ class AccessController
         $devices = array_merge(
             self::whitelistToArray($screen->whitelist()->toStructure()),
             self::pendingRequestsToArray($screen->pending_requests()->toStructure()),
-            self::deniedRequestsToArray($screen->denied_requests()->toStructure())
+            self::deniedRequestsToArray($screen->denied_requests()->toStructure()),
         );
 
         $updated = false;
@@ -856,14 +859,14 @@ class AccessController
             $updated = true;
         }
 
-        if (! $updated) {
+        if (!$updated) {
             return;
         }
 
         self::saveOnboardingRequests($rootPage, array_values($requestsByUuid));
         self::saveDeniedOnboardingStorage(
             $rootPage,
-            array_values(array_filter(self::getDeniedOnboardingStorage(), fn ($request) => ($request['assigned_screen'] ?? '') !== $screenSlug))
+            array_values(array_filter(self::getDeniedOnboardingStorage(), fn ($request) => ($request['assigned_screen'] ?? '') !== $screenSlug)),
         );
     }
 
@@ -889,7 +892,7 @@ class AccessController
         }
 
         $denied = $screen->denied_requests()->toStructure();
-        if (! $approvedRequest) {
+        if (!$approvedRequest) {
             foreach ($denied as $entry) {
                 $entryData = [
                     'uuid' => $entry->uuid()->value(),
@@ -909,14 +912,14 @@ class AccessController
             }
         }
 
-        if (! $approvedRequest) {
+        if (!$approvedRequest) {
             return [
                 'status' => 'error',
                 'message' => 'Request not found in pending or denied list',
             ];
         }
 
-        if (! $label || trim($label) === '') {
+        if (!$label || trim($label) === '') {
             $label = self::DEFAULT_LABEL_PREFIX . substr($uuid, 0, 8);
         }
 
@@ -939,6 +942,7 @@ class AccessController
 
             if ($requestData['uuid'] !== $uuid) {
                 $pendingArray[] = $requestData;
+
                 continue;
             }
 
@@ -1039,7 +1043,7 @@ class AccessController
     private static function getRootPage()
     {
         $rootPage = kirby()->page(self::ROOT_PAGE_ID);
-        if (! $rootPage) {
+        if (!$rootPage) {
             return null;
         }
 
@@ -1057,7 +1061,7 @@ class AccessController
     private static function getOnboardingRequests(): array
     {
         $rootPage = self::getRootPage();
-        if (! $rootPage) {
+        if (!$rootPage) {
             return [];
         }
 
@@ -1067,7 +1071,7 @@ class AccessController
     private static function getDeniedOnboardingStorage(): array
     {
         $rootPage = self::getRootPage();
-        if (! $rootPage) {
+        if (!$rootPage) {
             return [];
         }
 
@@ -1090,7 +1094,7 @@ class AccessController
 
     private static function writeRootPageContent($rootPage, array $data): void
     {
-        if (! $rootPage) {
+        if (!$rootPage) {
             return;
         }
 
@@ -1157,12 +1161,12 @@ class AccessController
         $requests ??= self::getOnboardingRequests();
         $request = self::findOnboardingRequest($requests, $uuid);
 
-        if ($request && ($request['status'] ?? '') === 'approved' && ! empty($request['assigned_screen'])) {
+        if ($request && ($request['status'] ?? '') === 'approved' && !empty($request['assigned_screen'])) {
             return $request;
         }
 
         $screenSlug = self::findApprovedScreenSlugByUuid($uuid);
-        if (! $screenSlug) {
+        if (!$screenSlug) {
             return null;
         }
 
@@ -1185,7 +1189,7 @@ class AccessController
     private static function findApprovedScreenSlugByUuid(string $uuid): ?string
     {
         $screensRoot = kirby()->page('signage/screens');
-        if (! $screensRoot) {
+        if (!$screensRoot) {
             return null;
         }
 
@@ -1203,14 +1207,14 @@ class AccessController
     private static function getApprovedDeviceUuids(): array
     {
         $screensRoot = kirby()->page('signage/screens');
-        if (! $screensRoot) {
+        if (!$screensRoot) {
             return [];
         }
 
         $approvedUuids = [];
         foreach ($screensRoot->children() as $screen) {
             foreach (self::whitelistToArray($screen->whitelist()->toStructure()) as $device) {
-                if (! empty($device['uuid'])) {
+                if (!empty($device['uuid'])) {
                     $approvedUuids[] = $device['uuid'];
                 }
             }
@@ -1223,10 +1227,10 @@ class AccessController
         string $uuid,
         string $screenSlug,
         ?string $approvedAt = null,
-        ?string $approvedBy = null
+        ?string $approvedBy = null,
     ): void {
         $rootPage = self::getRootPage();
-        if (! $rootPage) {
+        if (!$rootPage) {
             return;
         }
 
@@ -1255,7 +1259,7 @@ class AccessController
     private static function clearOnboardingAssignment(string $uuid, string $screenSlug): void
     {
         $rootPage = self::getRootPage();
-        if (! $rootPage) {
+        if (!$rootPage) {
             return;
         }
 
@@ -1331,7 +1335,7 @@ class AccessController
         }
 
         // Check if within active hours
-        if (! $screen->isActiveNow()) {
+        if (!$screen->isActiveNow()) {
             return [
                 'status' => 'standby',
                 'standby_mode' => $screen->standby_mode()->value(),
@@ -1342,7 +1346,7 @@ class AccessController
 
         // Get active channel
         $channel = $screen->activeChannel();
-        if (! $channel) {
+        if (!$channel) {
             return [
                 'status' => 'error',
                 'message' => 'No channel assigned',
@@ -1562,7 +1566,7 @@ class AccessController
 
         foreach (array_unique(array_filter($channelIds)) as $channelId) {
             $channel = kirby()->page($channelId);
-            if (! $channel) {
+            if (!$channel) {
                 continue;
             }
 
@@ -1743,7 +1747,7 @@ class AccessController
             if ($icalUrl) {
                 $icalResult = ICalParser::fetchEvents($icalUrl, $range, $maxEvents);
 
-                if (! $icalResult['error']) {
+                if (!$icalResult['error']) {
                     // Format events for display
                     $calendarData['events'] = array_map(function ($event) {
                         return ICalParser::formatEventForDisplay($event);

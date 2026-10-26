@@ -123,7 +123,7 @@ Kirby::plugin('gs-mmh/mmh-signage-plugin', [
                         $url = $data['url'] ?? null;
                         $ip = $kirby->visitor()->ip();
 
-                        if (! $uuid) {
+                        if (!$uuid) {
                             return [
                                 'status' => 'error',
                                 'access' => 'denied',
@@ -153,7 +153,7 @@ Kirby::plugin('gs-mmh/mmh-signage-plugin', [
                         $uuid = $data['uuid'] ?? null;
                         $ip = $kirby->visitor()->ip();
 
-                        if (! $screenSlug || ! $uuid) {
+                        if (!$screenSlug || !$uuid) {
                             return [
                                 'status' => 'error',
                                 'access' => 'denied',
@@ -171,7 +171,7 @@ Kirby::plugin('gs-mmh/mmh-signage-plugin', [
                     'action' => function (string $screenSlug) use ($kirby) {
                         $screen = $kirby->page('signage/screens/' . $screenSlug);
 
-                        if (! $screen) {
+                        if (!$screen) {
                             return [
                                 'code' => 404,
                                 'status' => 'error',
@@ -189,7 +189,7 @@ Kirby::plugin('gs-mmh/mmh-signage-plugin', [
                     'action' => function (string $screenSlug) use ($kirby) {
                         $screen = $kirby->page('signage/screens/' . $screenSlug);
 
-                        if (! $screen) {
+                        if (!$screen) {
                             return [
                                 'code' => 404,
                                 'status' => 'error',
@@ -298,7 +298,7 @@ Kirby::plugin('gs-mmh/mmh-signage-plugin', [
                         $screenSlug = $kirby->request()->get('screen');
                         $uuid = $kirby->request()->get('uuid');
 
-                        if (! $screenSlug || ! $uuid) {
+                        if (!$screenSlug || !$uuid) {
                             return [
                                 'status' => 'error',
                                 'message' => 'Missing screen or uuid parameter',
@@ -306,7 +306,7 @@ Kirby::plugin('gs-mmh/mmh-signage-plugin', [
                         }
 
                         $screen = $kirby->page('signage/screens/' . $screenSlug);
-                        if (! $screen) {
+                        if (!$screen) {
                             return [
                                 'status' => 'error',
                                 'message' => 'Screen not found',
@@ -373,7 +373,7 @@ Kirby::plugin('gs-mmh/mmh-signage-plugin', [
                 $daysValue = $timeRange->days()->value();
                 if ($daysValue) {
                     $allowedDays = array_map('trim', explode(',', strtolower($daysValue)));
-                    if (! in_array($currentDay, $allowedDays)) {
+                    if (!in_array($currentDay, $allowedDays)) {
                         continue; // Skip this time range if today is not an allowed day
                     }
                 }
@@ -383,16 +383,16 @@ Kirby::plugin('gs-mmh/mmh-signage-plugin', [
                 $endValue = $timeRange->end()->value();
 
                 $start = DateTime::createFromFormat('H:i:s', $startValue, $timezone);
-                if (! $start) {
+                if (!$start) {
                     $start = DateTime::createFromFormat('H:i', $startValue, $timezone);
                 }
 
                 $end = DateTime::createFromFormat('H:i:s', $endValue, $timezone);
-                if (! $end) {
+                if (!$end) {
                     $end = DateTime::createFromFormat('H:i', $endValue, $timezone);
                 }
 
-                if (! $start || ! $end) {
+                if (!$start || !$end) {
                     continue;
                 }
 
@@ -418,7 +418,7 @@ Kirby::plugin('gs-mmh/mmh-signage-plugin', [
                     $start = DateTime::createFromFormat('H:i', $entry->time_start()->value(), $timezone);
                     $end = DateTime::createFromFormat('H:i', $entry->time_end()->value(), $timezone);
 
-                    if (! $start || ! $end) {
+                    if (!$start || !$end) {
                         continue;
                     }
 
@@ -496,13 +496,13 @@ Kirby::plugin('gs-mmh/mmh-signage-plugin', [
             'pattern' => 'signage',
             'action' => function () {
                 $page = page('signage');
-                if (! $page) {
+                if (!$page) {
                     return page('error');
                 }
 
                 return new Response(
                     Tpl::load(__DIR__ . '/templates/onboarding.php', ['page' => $page]),
-                    'text/html'
+                    'text/html',
                 );
             },
         ],
@@ -535,7 +535,7 @@ Kirby::plugin('gs-mmh/mmh-signage-plugin', [
             'pattern' => 'signage/(:any)',
             'action' => function ($screenSlug) {
                 $screen = page('signage/screens/' . $screenSlug);
-                if (! $screen) {
+                if (!$screen) {
                     return page('error');
                 }
 
