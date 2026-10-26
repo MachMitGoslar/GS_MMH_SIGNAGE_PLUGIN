@@ -7,6 +7,7 @@
     "format": "prettier --write \"**/*.{js,vue}\" && ddev composer run format",
     "format:check": "prettier --check \"**/*.{js,vue}\"",
     "lint": "npm run format:check && ddev composer run lint",
+    "lint:frontend": "npm run format:check",
     "pre-push": "npm run lint && npm run build",
     "prepare": "npm run build"
   },
