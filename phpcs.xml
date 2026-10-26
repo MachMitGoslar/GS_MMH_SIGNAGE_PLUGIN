@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<ruleset name="gs-mmh-signage-plugin">
+    <description>PSR-12 with Kirby CMS exceptions (same strategy as GS_MMH_WEB)</description>
+
+    <file>.</file>
+    <config name="ignore_warnings_on_exit" value="1"/>
+    <arg name="extensions" value="php"/>
+
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/node_modules/*</exclude-pattern>
+    <exclude-pattern>*/tests/fixtures/*</exclude-pattern>
+
+    <rule ref="PSR12"/>
+
+    <!-- Kirby plugin entry points and snippets are procedural by design. -->
+    <rule ref="PSR1.Files.SideEffects">
+        <exclude-pattern>*/templates/*</exclude-pattern>
+        <exclude-pattern>*/snippets/*</exclude-pattern>
+        <exclude-pattern>*/controllers/*</exclude-pattern>
+        <exclude-pattern>*/index.php</exclude-pattern>
+    </rule>
+
+    <rule ref="PSR12.Files.FileHeader">
+        <exclude-pattern>*/snippets/*</exclude-pattern>
+        <exclude-pattern>*/templates/*</exclude-pattern>
+        <exclude-pattern>*/controllers/*</exclude-pattern>
+    </rule>
+
+    <!-- php-cs-fixer does not re-indent PHP inside HTML-mixed files. -->
+    <rule ref="Generic.WhiteSpace.ScopeIndent">
+        <exclude-pattern>*/templates/*</exclude-pattern>
+        <exclude-pattern>*/snippets/*</exclude-pattern>
+    </rule>
+    <rule ref="Squiz.WhiteSpace.ScopeClosingBrace">
+        <exclude-pattern>*/templates/*</exclude-pattern>
+        <exclude-pattern>*/snippets/*</exclude-pattern>
+    </rule>
+
+    <rule ref="Generic.Files.LineLength">
+        <exclude-pattern>*/templates/*</exclude-pattern>
+        <exclude-pattern>*/snippets/*</exclude-pattern>
+        <properties>
+            <property name="lineLimit" value="120"/>
+            <property name="absoluteLineLimit" value="0"/>
+        </properties>
+    </rule>
+    <!-- Legacy classes without namespaces. -->
+    <rule ref="PSR1.Classes.ClassDeclaration.MissingNamespace">
+        <exclude-pattern>*/classes/*</exclude-pattern>
+        <exclude-pattern>*/tests/*</exclude-pattern>
+    </rule>
+</ruleset>

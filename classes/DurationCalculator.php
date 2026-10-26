@@ -181,13 +181,13 @@ class DurationCalculator
 
         // Add time for caption if present
         $caption = $block->caption()->value();
-        if (! empty($caption)) {
+        if (!empty($caption)) {
             $baseDuration += self::calculateTextDuration($caption);
         }
 
         // Add time for alt text if present (fallback)
         $alt = $block->alt()->value();
-        if (empty($caption) && ! empty($alt)) {
+        if (empty($caption) && !empty($alt)) {
             $baseDuration += self::calculateTextDuration($alt);
         }
 
@@ -324,7 +324,7 @@ class DurationCalculator
         // Fallback: Try FFprobe if available
         if (function_exists('exec')) {
             $ffprobePath = trim(shell_exec('which ffprobe 2>/dev/null') ?? '');
-            if (! empty($ffprobePath)) {
+            if (!empty($ffprobePath)) {
                 $command = escapeshellcmd($ffprobePath) . ' -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 ' . escapeshellarg($file->root());
                 $duration = trim(shell_exec($command) ?? '');
 
