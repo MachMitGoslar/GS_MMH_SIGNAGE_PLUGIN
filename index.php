@@ -19,15 +19,7 @@ require_once __DIR__ . '/classes/DurationCalculator.php';
 require_once __DIR__ . '/classes/ICalParser.php';
 require_once __DIR__ . '/classes/AccessController.php';
 
-Kirby::plugin('gs-mmh/mmh-signage-plugin', [
-    'panel' => [
-        'js' => [
-            'index.js',
-        ],
-        'css' => [
-            'index.css',
-        ],
-    ],
+Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
     /**
      * Custom Panel Fields
      */
@@ -97,11 +89,6 @@ Kirby::plugin('gs-mmh/mmh-signage-plugin', [
      * Snippets
      */
     'snippets' => [
-        'signage/player' => __DIR__ . '/snippets/player.php',
-        'signage/standby' => __DIR__ . '/snippets/standby.php',
-        'signage/slide-blocks' => __DIR__ . '/snippets/slide-blocks.php',
-        'signage/slide-video' => __DIR__ . '/snippets/slide-video.php',
-        'signage/slide-calendar' => __DIR__ . '/snippets/slide-calendar.php',
         'blocks/signage-text' => __DIR__ . '/snippets/blocks/signage-text.php',
         'blocks/signage-heading' => __DIR__ . '/snippets/blocks/signage-heading.php',
     ],
@@ -512,20 +499,6 @@ Kirby::plugin('gs-mmh/mmh-signage-plugin', [
                 $path = __DIR__ . '/assets/css/' . $file;
                 if (file_exists($path)) {
                     return new Response(file_get_contents($path), 'text/css');
-                }
-
-                return false;
-            },
-        ],
-        [
-            'pattern' => 'signage/assets/js/(:any)',
-            'action' => function ($file) {
-                $path = __DIR__ . '/assets/js/' . $file;
-                if (file_exists($path)) {
-                    return [
-                        'body' => file_get_contents($path),
-                        'type' => 'text/javascript',
-                    ];
                 }
 
                 return false;

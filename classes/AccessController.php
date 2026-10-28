@@ -1325,7 +1325,6 @@ class AccessController
      */
     public static function getContentData($screen): array
     {
-        //var_dump('Getting content data for screen: ' . $screen->isActiveNow());
         // Check if screen is active
         if ($screen->status() != 'listed') {
             return [
