@@ -59,7 +59,6 @@
              * Initialize player
              */
             async init() {
-                console.log('🎬 Signage Player initializing...');
 
                 if (!this.config.requiresAccessControl) {
                     await this.loadContent();
@@ -69,7 +68,6 @@
 
                 // Generate or retrieve device UUID
                 this.state.uuid = this.getOrCreateUUID();
-                console.log('📱 Device UUID:', this.state.uuid);
 
                 // Check access
                 await this.checkAccess();
@@ -128,7 +126,6 @@
                     const data = await response.json();
                     this.state.accessStatus = data.access;
 
-                    console.log('🔐 Access status:', data.access);
 
                     if (data.access === 'granted') {
                         if (data.message && data.message !== 'Device approved') {
@@ -160,7 +157,6 @@
 
                     this.state.contentData = data;
                     this.state.contentRevision = data.revision || null;
-                    console.log('📥 Content data loaded:', data);
 
                     if (data.status === 'active') {
                         this.renderSlides(data.slides);
@@ -230,7 +226,6 @@
             renderSlides(slides) {
                 const player = document.getElementById('signage-player');
                 player.innerHTML = '';
-                console.log('🖥️ Rendering slides...', this.state.contentData.channel);
                 player.style.backgroundColor = this.state.contentData.channel.background.background_color || '#000000';
                 slides.forEach((slide, index) => {
                     const slideEl = document.createElement('div');
@@ -257,7 +252,6 @@
                     player.appendChild(slideEl);
                 });
 
-                console.log(`✅ Rendered ${slides.length} slides`);
             },
 
             getEffectiveBackground(slide) {
@@ -1010,7 +1004,6 @@
 
                 const configuredDuration = parseInt(currentSlide.dataset.duration) * 1000;
                 this.startSlideAnimation(currentSlide, configuredDuration);
-                console.log(`📺 Showing slide ${index + 1}/${slides.length} for ${configuredDuration / 1000}s`);
 
                 // Schedule next slide
                 this.state.currentSlideIndex = index;
