@@ -217,6 +217,11 @@ columns:
                 <span class="k-button-text">Bildschirm öffnen</span>
               </a>
 
+          screen_preview:
+            label: Live-Vorschau
+            type: signage_preview
+            help: Zeigt den Bildschirm direkt im Panel – ohne Gerät einzuhängen und freizugeben.
+
       access_control:
         type: fields
         fields:

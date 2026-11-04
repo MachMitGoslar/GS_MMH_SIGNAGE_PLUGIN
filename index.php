@@ -17,6 +17,7 @@ use Kirby\Toolkit\Tpl;
 // Load plugin classes
 require_once __DIR__ . '/classes/DurationCalculator.php';
 require_once __DIR__ . '/classes/ICalParser.php';
+require_once __DIR__ . '/classes/SlideLibrary.php';
 require_once __DIR__ . '/classes/AccessController.php';
 
 Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
@@ -26,6 +27,8 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
     'fields' => [
         'pending_requests' => require __DIR__ . '/fields/pending_requests/index.php',
         'onboarding_requests' => require __DIR__ . '/fields/onboarding_requests/index.php',
+        'signage_preview' => require __DIR__ . '/fields/signage_preview/index.php',
+        'slide_migration' => require __DIR__ . '/fields/slide_migration/index.php',
     ],
 
     /**
@@ -53,6 +56,12 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
                         },
                     ],
                     [
+                        'pattern' => 'signage/slides',
+                        'action' => function () use ($kirby) {
+                            return page('signage/slides')->panel()->view();
+                        },
+                    ],
+                    [
                         'pattern' => 'signage/channels',
                         'action' => function () use ($kirby) {
                             return page('signage/channels')->panel()->view();
@@ -72,6 +81,7 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
         'pages/channels' => __DIR__ . '/blueprints/pages/channels.yml',
         'pages/screen' => __DIR__ . '/blueprints/pages/screen.yml',
         'pages/channel' => __DIR__ . '/blueprints/pages/channel.yml',
+        'pages/slides' => __DIR__ . '/blueprints/pages/slides.yml',
         'pages/slide' => __DIR__ . '/blueprints/pages/slide.yml',
         'blocks/signage-heading' => __DIR__ . '/blueprints/blocks/signage-heading.yml',
         'blocks/signage-text' => __DIR__ . '/blueprints/blocks/signage-text.yml',
@@ -166,7 +176,7 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
                             ];
                         }
 
-                        return AccessController::getContentData($screen);
+                        return AccessController::getContentData($screen, AccessController::previewOptions($kirby));
                     },
                 ],
                 [
@@ -184,7 +194,26 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
                             ];
                         }
 
-                        return AccessController::getContentState($screen);
+                        return AccessController::getContentState($screen, AccessController::previewOptions($kirby));
+                    },
+                ],
+                [
+                    'pattern' => 'signage/migrate-slides',
+                    'method' => 'POST',
+                    'auth' => true,
+                    'action' => function () use ($kirby) {
+                        $user = $kirby->user();
+                        if (!$user || !$user->isAdmin()) {
+                            return ['code' => 403, 'status' => 'error', 'message' => 'Nur Administratoren dürfen die Migration ausführen.'];
+                        }
+
+                        try {
+                            $result = SlideLibrary::migrate();
+                        } catch (Throwable $e) {
+                            return ['code' => 500, 'status' => 'error', 'message' => $e->getMessage()];
+                        }
+
+                        return ['status' => 'success'] + $result;
                     },
                 ],
                 [
@@ -345,6 +374,39 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
 
             return '';
         },
+        'channelSlides' => function () {
+            if ($this->intendedTemplate()->name() !== 'channel') {
+                return new \Kirby\Cms\Pages([]);
+            }
+
+            return SlideLibrary::slidesOf($this);
+        },
+        'slideCount' => function () {
+            return $this->channelSlides()->count();
+        },
+        'slidesTotalDuration' => function () {
+            return array_sum($this->channelSlides()->toArray(fn ($slide) => $slide->calculatedDuration()));
+        },
+        'usedInChannels' => function () {
+            if ($this->intendedTemplate()->name() !== 'slide') {
+                return new \Kirby\Cms\Pages([]);
+            }
+
+            return SlideLibrary::channelsUsing($this);
+        },
+        'usageInfo' => function () {
+            $channels = $this->usedInChannels();
+
+            if ($channels->count() === 0) {
+                return 'Keinem Kanal zugeordnet – kann gelöscht werden.';
+            }
+
+            $titles = implode(', ', array_map(fn ($c) => $c->title()->value(), $channels->values()));
+
+            return $channels->count() === 1
+                ? 'Verwendet in: ' . $titles . ' – kann gelöscht werden (wird dort entfernt).'
+                : 'Verwendet in ' . $channels->count() . ' Kanälen: ' . $titles . ' – Löschen erst möglich, wenn nur noch ein Kanal übrig ist.';
+        },
         'isActiveNow' => function () {
             if ($this->intendedTemplate()->name() !== 'screen') {
                 return false;
@@ -464,12 +526,20 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
             }
         },
         'page.delete:before' => function ($page) {
+            if ($page->intendedTemplate()->name() === 'slide') {
+                SlideLibrary::guardDelete($page);
+            }
             if ($page->intendedTemplate()->name() === 'screen') {
                 try {
                     AccessController::moveScreenDevicesToPendingForScreen($page);
                 } catch (Throwable $e) {
                     error_log('Signage: Failed to move devices before screen deletion - ' . $e->getMessage());
                 }
+            }
+        },
+        'page.delete:after' => function ($status, $page) {
+            if ($page->intendedTemplate()->name() === 'slide') {
+                SlideLibrary::afterDelete($page);
             }
         },
     ],

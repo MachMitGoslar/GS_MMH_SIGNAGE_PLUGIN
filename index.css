@@ -271,3 +271,47 @@ mark[data-type='textcolor'][data-color='black'] {
     justify-self: start;
   }
 }
+
+/* SignagePreview */
+.k-signage-preview-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-3);
+}
+.k-signage-preview-field {
+  min-width: 0;
+}
+.k-signage-preview-stage {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  contain: inline-size paint;
+  background: #000;
+  border-radius: var(--rounded);
+  overflow: hidden;
+}
+.k-signage-preview-stage[data-orientation='vertical'] {
+  max-width: 360px;
+  margin: 0 auto;
+}
+.k-signage-preview-scaler {
+  position: relative;
+  overflow: hidden;
+}
+.k-signage-preview-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none;
+  border: 0;
+  transform-origin: top left;
+}
+.k-signage-preview-empty {
+  color: var(--color-text-dimmed);
+}
+
+/* SlideMigration */
+.k-slide-migration-button {
+  margin-top: var(--spacing-3);
+}

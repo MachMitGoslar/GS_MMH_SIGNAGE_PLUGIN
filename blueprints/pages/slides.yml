@@ -1,0 +1,30 @@
+title: Folien-Bibliothek
+icon: image
+options:
+  changeSlug: false
+  changeStatus: false
+  changeTitle: false
+  delete: false
+
+columns:
+  - width: 1/1
+    sections:
+      migration:
+        type: fields
+        fields:
+          slide_migration:
+            label: Migration
+            type: slide_migration
+
+      slides:
+        type: pages
+        label: Alle Inhaltsfolien
+        template: slide
+        create: slide
+        status: all
+        info: "{{ page.slide_type.or('blocks') }} — {{ page.calculatedDuration }} Sek."
+        text: "{{ page.title }}"
+        help: |
+          Folien werden hier einmal angelegt und können in beliebig vielen Kanälen verwendet werden.
+          Eine Folie kann gelöscht werden, sobald sie höchstens noch in einem Kanal verwendet wird.
+        empty: Noch keine Folien. Klicken Sie auf "Hinzufügen", um Ihre erste Inhaltsfolie zu erstellen.

@@ -5,6 +5,22 @@
  * Frontend display template for digital signage screens.
  * Handles access control, content loading, and player initialization.
  */
+
+// Panel preview: logged-in users may render the player without device approval
+// and optionally force a channel/slide (?preview=1&channel=…&slide=…&orientation=…).
+$isPreview = kirby()->user() !== null && get('preview') === '1';
+$previewQuery = '';
+$orientation = (string) $page->orientation();
+if ($isPreview) {
+    $previewQuery = '?' . http_build_query(array_filter([
+        'preview' => '1',
+        'channel' => get('channel'),
+        'slide' => get('slide'),
+    ]));
+    if (in_array(get('orientation'), ['vertical', 'horizontal'], true)) {
+        $orientation = get('orientation');
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -22,7 +38,7 @@
     <!-- Signage Player Styles -->
     <link rel="stylesheet" href="<?= url('signage/assets/css/signage-player.css') ?>">
 </head>
-<body data-orientation="<?= $page->orientation() ?>">
+<body data-orientation="<?= $orientation ?>">
 
     <div id="signage-player"></div>
     <div class="loading" id="loading-indicator"></div>
@@ -39,7 +55,8 @@
                 apiBase: '<?= url('api/signage') ?>',
                 onboardingUrl: '<?= url('signage') ?>',
                 standbyLogoUrl: '<?= url('/assets/svg/machmit-logo.svg') ?>',
-                requiresAccessControl: <?= $page->whitelist_enabled()->toBool() ? 'true' : 'false' ?>,
+                requiresAccessControl: <?= !$isPreview && $page->whitelist_enabled()->toBool() ? 'true' : 'false' ?>,
+                previewQuery: <?= json_encode($previewQuery) ?>,
                 syncInterval: 1000, // Check access changes every second
             },
 
@@ -152,7 +169,7 @@
              */
             async loadContent() {
                 try {
-                    const response = await fetch(`${this.config.apiBase}/content/${this.config.screenSlug}`);
+                    const response = await fetch(`${this.config.apiBase}/content/${this.config.screenSlug}${this.config.previewQuery}`);
                     const data = await response.json();
 
                     this.state.contentData = data;
@@ -180,7 +197,7 @@
                 }
 
                 try {
-                    const response = await fetch(`${this.config.apiBase}/content-state/${this.config.screenSlug}`);
+                    const response = await fetch(`${this.config.apiBase}/content-state/${this.config.screenSlug}${this.config.previewQuery}`);
                     const data = await response.json();
 
                     if (!data.revision || data.revision !== this.state.contentRevision) {

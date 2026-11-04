@@ -110,6 +110,8 @@ tabs:
                 required: true
                 width: 1/2
                 help: Vorgefertigtes Layout
+                when:
+                  slide_type: template
 
               template_theme:
                 label: Farbschema
@@ -125,6 +127,8 @@ tabs:
                 type: text
                 required: true
                 placeholder: z.B. Kleidertauschbörse
+                when:
+                  slide_type: template
 
               template_subtitle:
                 label: Untertitel
@@ -515,6 +519,21 @@ tabs:
                   overlay_enabled: true
                 help: Erzeugt einen Verlaufs-Overlay-Effekt
 
+  usage:
+    label: Verwendung
+    icon: layers
+    columns:
+      - width: 1/1
+        sections:
+          usage_info:
+            type: fields
+            fields:
+              info_usage:
+                type: info
+                label: Verwendung in Kanälen
+                theme: notice
+                text: "{{ page.usageInfo }}"
+
   preview:
     label: Vorschau
     icon: preview
@@ -526,11 +545,14 @@ tabs:
             fields:
               info_preview:
                 type: info
-                label: Folienvorschau
+                label: Folieninfo
                 theme: notice
                 text: |
                   **Folientyp:** {{ page.slide_type.or('blocks') }}
                   **Dauer:** {{ page.calculatedDuration }} Sekunden
                   **Übergang:** {{ page.transition.or('fade') }}
 
-                  Um diese Folie in der Vorschau zu sehen, weisen Sie den Kanal einem Bildschirm zu und öffnen Sie die Bildschirm-URL.
+              slide_preview:
+                label: Vorschau
+                type: signage_preview
+                help: Zeigt die gespeicherte Folie im Player – ohne Gerätefreigabe. Nach dem Speichern „Neu laden“ klicken.
