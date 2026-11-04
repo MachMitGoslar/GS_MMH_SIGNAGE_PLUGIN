@@ -1351,7 +1351,6 @@ class AccessController
      */
     public static function getContentData($screen, array $preview = []): array
     {
-        //var_dump('Getting content data for screen: ' . $screen->isActiveNow());
         $isPreview = !empty($preview);
 
         // Check if screen is active
