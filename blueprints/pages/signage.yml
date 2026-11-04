@@ -40,9 +40,33 @@ tabs:
             query: site.find('signage/channels').childrenAndDrafts
             template: channel
             status: all
-            info: "{{ page.children.count }} Folien"
+            info: "{{ page.slideCount }} Folien"
             empty: Noch keine Inhaltskanäle vorhanden
             help: Organisieren Sie Inhalte in wiederverwendbare Kanäle
+
+  slides:
+    label: Folien
+    icon: image
+    columns:
+      - width: 1/1
+        sections:
+          migration:
+            type: fields
+            fields:
+              slide_migration:
+                label: Migration
+                type: slide_migration
+          slides:
+            type: pages
+            label: Folien-Bibliothek
+            parent: site.find('signage/slides')
+            query: site.find('signage/slides').childrenAndDrafts
+            template: slide
+            create: slide
+            status: all
+            info: "{{ page.slide_type.or('blocks') }} — {{ page.calculatedDuration }} Sek."
+            empty: Noch keine Folien vorhanden
+            help: Folien werden einmal angelegt und können in beliebig vielen Kanälen verwendet werden
 
   onboarding:
     label: Geräteverwaltung

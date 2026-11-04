@@ -1317,17 +1317,45 @@ class AccessController
         ];
     }
 
+    public const PREVIEW_CHANNEL_ROOT = 'signage/channels/';
+
+    /**
+     * Preview options (channel/slide override) – only honoured for
+     * logged-in Panel users, so public devices can never use them.
+     *
+     * @return array{channel?:string,slide?:string}
+     */
+    public static function previewOptions($kirby): array
+    {
+        $request = $kirby->request();
+        if (!$kirby->user() || $request->get('preview') !== '1') {
+            return [];
+        }
+
+        $options = ['preview' => true];
+        foreach (['channel', 'slide'] as $key) {
+            $value = (string) $request->get($key, '');
+            if (preg_match('/^[A-Za-z0-9_\-]+$/', $value)) {
+                $options[$key] = $value;
+            }
+        }
+
+        return $options;
+    }
+
     /**
      * Get content data for an approved device
      *
      * @param \Kirby\Cms\Page $screen
      * @return array Content data
      */
-    public static function getContentData($screen): array
+    public static function getContentData($screen, array $preview = []): array
     {
         //var_dump('Getting content data for screen: ' . $screen->isActiveNow());
+        $isPreview = !empty($preview);
+
         // Check if screen is active
-        if ($screen->status() != 'listed') {
+        if (!$isPreview && $screen->status() != 'listed') {
             return [
                 'status' => 'inactive',
                 'message' => 'Screen is currently inactive',
@@ -1335,7 +1363,7 @@ class AccessController
         }
 
         // Check if within active hours
-        if (!$screen->isActiveNow()) {
+        if (!$isPreview && !$screen->isActiveNow()) {
             return [
                 'status' => 'standby',
                 'standby_mode' => $screen->standby_mode()->value(),
@@ -1345,7 +1373,9 @@ class AccessController
         }
 
         // Get active channel
-        $channel = $screen->activeChannel();
+        $channel = !empty($preview['channel'])
+            ? kirby()->page(self::PREVIEW_CHANNEL_ROOT . $preview['channel'])
+            : $screen->activeChannel();
         if (!$channel) {
             return [
                 'status' => 'error',
@@ -1354,7 +1384,12 @@ class AccessController
         }
 
         // Get slides from channel
-        $slides = $channel->children()->unlisted();
+        if (!empty($preview['slide'])) {
+            $previewSlide = kirby()->page(SlideLibrary::POOL_ID . '/' . $preview['slide']);
+            $slides = $previewSlide ? [$previewSlide] : [];
+        } else {
+            $slides = SlideLibrary::activeSlidesOf($channel);
+        }
         $slidesData = [];
 
         foreach ($slides as $slide) {
@@ -1363,7 +1398,7 @@ class AccessController
 
         return [
             'status' => 'active',
-            'revision' => self::getContentRevision($screen),
+            'revision' => self::getContentRevision($screen, $preview),
             'screen' => [
                 'title' => $screen->title()->value(),
                 'orientation' => $screen->orientation()->value(),
@@ -1377,11 +1412,11 @@ class AccessController
         ];
     }
 
-    public static function getContentState($screen): array
+    public static function getContentState($screen, array $preview = []): array
     {
         return [
             'status' => 'success',
-            'revision' => self::getContentRevision($screen),
+            'revision' => self::getContentRevision($screen, $preview),
         ];
     }
 
@@ -1549,7 +1584,7 @@ class AccessController
         return max(0, min(100, (int) $value));
     }
 
-    private static function getContentRevision($screen): string
+    private static function getContentRevision($screen, array $preview = []): string
     {
         $parts = [
             'screen:' . $screen->modified('U'),
@@ -1564,6 +1599,16 @@ class AccessController
             $channelIds[] = $entry->channel()->value();
         }
 
+        if (!empty($preview['channel'])) {
+            $channelIds[] = self::PREVIEW_CHANNEL_ROOT . $preview['channel'];
+        }
+        if (!empty($preview['slide'])) {
+            $previewSlide = kirby()->page(SlideLibrary::POOL_ID . '/' . $preview['slide']);
+            if ($previewSlide) {
+                $parts[] = 'slide:' . $previewSlide->id() . ':' . $previewSlide->modified('U');
+            }
+        }
+
         foreach (array_unique(array_filter($channelIds)) as $channelId) {
             $channel = kirby()->page($channelId);
             if (!$channel) {
@@ -1572,7 +1617,7 @@ class AccessController
 
             $parts[] = 'channel:' . $channel->id() . ':' . $channel->modified('U');
 
-            foreach ($channel->childrenAndDrafts() as $slide) {
+            foreach (SlideLibrary::slidesOf($channel) as $slide) {
                 $parts[] = 'slide:' . $slide->id() . ':' . $slide->modified('U');
             }
         }
