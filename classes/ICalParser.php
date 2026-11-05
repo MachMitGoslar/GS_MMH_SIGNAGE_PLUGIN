@@ -165,11 +165,12 @@ class ICalParser
                         }
                     }
                 }
-
                 $currentEvent[$propertyName] = [
                     'value' => $value,
                     'params' => $propertyParams,
                 ];
+
+
             }
         }
 
@@ -201,7 +202,17 @@ class ICalParser
 
         // Description
         if (isset($eventData['DESCRIPTION'])) {
-            $event['description'] = self::decodeIcalText($eventData['DESCRIPTION']['value']);
+            if(isset($eventData['URL']))
+                //Sanitizing description by removing URL, organizer, and organization information
+                $description = self::decodeIcalText($eventData['DESCRIPTION']['value']);
+                $organizer = self::decodeIcalText($eventData['X-EVENTCALLY-ORGANIZER']['value'] ?? '');
+                $organization = self::decodeIcalText($eventData['X-EVENTCALLY-ORGANIZATION']['value'] ?? '');
+                
+                $description = str_replace($eventData['URL']['value'], '', $description);
+                $description = str_replace("Veranstalter: ".$organizer, '', $description);
+                $description = str_replace("Organisation: ".$organization, '', $description);
+
+            $event['description'] = $description;
         }
 
         // Location
@@ -578,6 +589,7 @@ class ICalParser
      */
     public static function formatEventForDisplay(array $event): array
     {
+
         $displayEvent = [
             'title' => $event['title'],
             'location' => $event['location'],
