@@ -165,11 +165,12 @@ class ICalParser
                         }
                     }
                 }
-
                 $currentEvent[$propertyName] = [
                     'value' => $value,
                     'params' => $propertyParams,
                 ];
+
+
             }
         }
 
