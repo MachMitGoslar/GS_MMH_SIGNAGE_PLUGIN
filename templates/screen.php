@@ -67,6 +67,8 @@ if ($isPreview) {
                 contentRevision: null,
                 currentSlideIndex: 0,
                 activeAnimation: null,
+                treeCursor: {},
+                treeLastPoints: {},
                 slideTimeout: null,
                 syncIntervalId: null,
                 redirectTimeoutId: null,
@@ -252,6 +254,7 @@ if ($isPreview) {
                     slideEl.dataset.transition = slide.transition || 'fade';
                     slideEl.dataset.duration = slide.duration;
                     slideEl.dataset.contentPosition = contentPosition;
+                    slideEl.dataset.slideId = slide.id || String(index);
                     slideEl.style.transitionDuration = `${slide.transition_duration || 1}s`;
 
                     // Apply background
@@ -262,8 +265,13 @@ if ($isPreview) {
                     const contentWrapper = document.createElement('div');
                     contentWrapper.className = slide.type === 'template'
                         ? 'slide-content slide-content--template'
-                        : 'slide-content';
+                        : slide.type === 'christmas_tree'
+                            ? 'slide-content slide-content--tree'
+                            : 'slide-content';
                     contentWrapper.innerHTML = this.renderSlideContent(slide);
+                    if (slide.type === 'christmas_tree') {
+                        slideEl.treeData = slide.christmas_tree || null;
+                    }
                     
                     slideEl.appendChild(contentWrapper);
                     player.appendChild(slideEl);
@@ -276,6 +284,10 @@ if ($isPreview) {
 
                 if (slideBackground && slideBackground.type && slideBackground.type !== 'none') {
                     return slideBackground;
+                }
+
+                if (slide?.type === 'christmas_tree') {
+                    return { type: 'color', color: '#0b1430', overlay: { enabled: false } };
                 }
 
                 if (slide?.type === 'template' && slide.template?.image?.url) {
@@ -457,6 +469,8 @@ if ($isPreview) {
                   return this.renderCalendarSlide(slide.calendar);
                 case 'canva':
                   return this.renderCanvaSlide(slide.canva);
+                case 'christmas_tree':
+                  return this.renderChristmasTreeSlide(slide.christmas_tree);
                 default:
                   return '<p>Unknown slide type</p>';
               }
@@ -773,6 +787,252 @@ if ($isPreview) {
                         return '';
                 }
             },
+            /**
+             * Christmas tree slide: approved greetings hang as baubles.
+             * Hang points are in SVG viewBox coordinates (0 0 600 800); each round
+             * picks random free points, so the baubles "move" between rounds.
+             */
+            treeHangPoints: [
+                { x: 300, y: 205 }, { x: 250, y: 252 }, { x: 352, y: 258 }, { x: 212, y: 282 }, { x: 392, y: 284 },
+                { x: 245, y: 330 }, { x: 358, y: 322 }, { x: 300, y: 372 },
+                { x: 192, y: 428 }, { x: 262, y: 410 }, { x: 338, y: 418 }, { x: 410, y: 432 },
+                { x: 185, y: 515 }, { x: 265, y: 500 }, { x: 345, y: 520 }, { x: 420, y: 512 },
+                { x: 130, y: 600 }, { x: 210, y: 590 }, { x: 295, y: 605 }, { x: 380, y: 592 }, { x: 465, y: 600 },
+            ],
+
+            treeBallColors: ['#ec665c', '#fcce4c', '#738de0', '#bb7abc', '#f1f1f1', '#e5df16'],
+
+            treeLights: [
+                [262, 170], [330, 182], [228, 238], [372, 232], [300, 268],
+                [214, 362], [286, 350], [380, 368], [160, 452], [300, 452], [446, 455],
+                [140, 560], [228, 552], [318, 566], [404, 558], [470, 572],
+                [92, 640], [196, 650], [300, 662], [404, 652], [508, 642],
+            ],
+
+            renderChristmasTreeSlide(tree) {
+                const title = this.escapeHtml(tree?.title || 'Frohe Weihnachten!');
+                const subtitle = this.escapeHtml(tree?.subtitle || '');
+                const count = (tree?.greetings || []).length;
+                const lights = this.treeLights
+                    .map(([x, y], index) => `<circle class="tree-slide__light" cx="${x}" cy="${y}" r="5" style="animation-delay:${(index % 7) * 0.37}s"></circle>`)
+                    .join('');
+
+                return `
+                    <div class="tree-slide${count === 0 ? ' tree-slide--empty' : ''}">
+                        <div class="tree-slide__snow" aria-hidden="true"></div>
+                        <div class="tree-slide__stage">
+                            <svg class="tree-slide__svg" viewBox="0 0 600 800" role="img" aria-label="Weihnachtsbaum mit ${count} Grüßen">
+                                <defs>
+                                    <radialGradient id="tree-ball-shine" cx="35%" cy="30%" r="65%">
+                                        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85"></stop>
+                                        <stop offset="35%" stop-color="#ffffff" stop-opacity="0.15"></stop>
+                                        <stop offset="100%" stop-color="#000000" stop-opacity="0.25"></stop>
+                                    </radialGradient>
+                                </defs>
+                                <rect class="tree-slide__trunk" x="272" y="655" width="56" height="100" rx="6"></rect>
+                                <path class="tree-slide__layer tree-slide__layer--3" d="M300 320 Q190 500 60 660 Q300 705 540 660 Q410 500 300 320 Z"></path>
+                                <path class="tree-slide__layer tree-slide__layer--2" d="M300 185 Q220 340 125 465 Q300 500 475 465 Q380 340 300 185 Z"></path>
+                                <path class="tree-slide__layer tree-slide__layer--1" d="M300 95 Q250 200 185 290 Q300 315 415 290 Q350 200 300 95 Z"></path>
+                                <g class="tree-slide__lights">${lights}</g>
+                                <polygon class="tree-slide__star" points="300,38 311,70 345,70 318,90 328,122 300,103 272,122 282,90 255,70 289,70"></polygon>
+                                <g class="tree-slide__balls"></g>
+                            </svg>
+                        </div>
+                        <div class="tree-slide__aside">
+                            <h1 class="tree-slide__title">${title}</h1>
+                            ${subtitle ? `<p class="tree-slide__subtitle">${subtitle}</p>` : ''}
+                            <figure class="tree-card" aria-live="polite">
+                                <blockquote class="tree-card__text"></blockquote>
+                                <figcaption class="tree-card__name"></figcaption>
+                            </figure>
+                            ${count === 0
+                                ? '<p class="tree-slide__hint">Noch hängen hier keine Grüße – schick uns deinen!</p>'
+                                : `<p class="tree-slide__count">${count} ${count === 1 ? 'Gruß hängt' : 'Grüße hängen'} am Baum</p>`}
+                        </div>
+                    </div>
+                `;
+            },
+
+            treeBallMarkup(greeting, point, color, index) {
+                const stringLength = 24 + (index % 3) * 8;
+                const radius = 25;
+                const centerY = stringLength + radius;
+                const initial = this.escapeHtml((greeting.name || '?').trim().charAt(0).toUpperCase());
+
+                return `
+                    <g class="tree-ball" transform="translate(${point.x} ${point.y})" data-index="${index}">
+                        <g class="tree-ball__drop">
+                            <g class="tree-ball__swing" style="animation-delay:-${(index * 0.7).toFixed(1)}s">
+                                <line class="tree-ball__string" x1="0" y1="0" x2="0" y2="${stringLength}"></line>
+                                <g class="tree-ball__orb" style="transform-origin:0px ${centerY}px">
+                                    <rect class="tree-ball__cap" x="-6" y="${stringLength - 4}" width="12" height="8" rx="2"></rect>
+                                    <circle cx="0" cy="${centerY}" r="${radius}" fill="${color}"></circle>
+                                    <circle cx="0" cy="${centerY}" r="${radius}" fill="url(#tree-ball-shine)"></circle>
+                                    <text class="tree-ball__initial" x="0" y="${centerY}" dy="0.35em">${initial}</text>
+                                </g>
+                            </g>
+                        </g>
+                    </g>
+                `;
+            },
+
+            /**
+             * Runs one round on the tree: baubles swing in at random points,
+             * each greeting is shown in turn, then the baubles are taken off again
+             * so the next round can hang the next greetings elsewhere.
+             * Returns a handle with cancel() (stored in state.activeAnimation).
+             */
+            startChristmasTree(slideEl, configuredDuration) {
+                const tree = slideEl.treeData || {};
+                const greetings = tree.greetings || [];
+                const layer = slideEl.querySelector('.tree-slide__balls');
+                const card = slideEl.querySelector('.tree-card');
+                const timers = [];
+                const animations = [];
+                const handle = {
+                    cancel() {
+                        timers.forEach((timer) => clearTimeout(timer));
+                        animations.forEach((animation) => animation.cancel());
+                    },
+                };
+
+                if (!layer || !card) {
+                    return handle;
+                }
+
+                layer.innerHTML = '';
+                card.classList.remove('is-visible');
+
+                if (greetings.length === 0) {
+                    return handle;
+                }
+
+                const slideId = slideEl.dataset.slideId;
+                const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                const count = Math.min(Math.max(1, tree.visible_balls || 6), greetings.length, this.treeHangPoints.length);
+                const cursor = (this.state.treeCursor[slideId] || 0) % greetings.length;
+                const batch = Array.from({ length: count }, (_, i) => greetings[(cursor + i) % greetings.length]);
+                this.state.treeCursor[slideId] = (cursor + count) % greetings.length;
+
+                const points = this.pickTreePoints(count, this.state.treeLastPoints[slideId] || []);
+                this.state.treeLastPoints[slideId] = points;
+
+                layer.innerHTML = batch
+                    .map((greeting, i) => this.treeBallMarkup(
+                        greeting,
+                        this.treeHangPoints[points[i]],
+                        this.treeBallColors[(cursor + i) % this.treeBallColors.length],
+                        i
+                    ))
+                    .join('');
+
+                const balls = Array.from(layer.querySelectorAll('.tree-ball'));
+                const animate = (el, frames, options) => {
+                    const animation = el.animate(frames, options);
+                    animations.push(animation);
+                    return animation;
+                };
+
+                // 1) swing in
+                const introMs = reducedMotion ? 600 : 1400;
+                balls.forEach((ball, i) => {
+                    const drop = ball.querySelector('.tree-ball__drop');
+                    animate(drop, reducedMotion
+                        ? [{ opacity: 0 }, { opacity: 1 }]
+                        : [
+                            { transform: 'translateY(-260px)', opacity: 0 },
+                            { transform: 'translateY(14px)', opacity: 1, offset: 0.7 },
+                            { transform: 'translateY(0)', opacity: 1 },
+                        ], {
+                        duration: introMs - 300,
+                        delay: i * 60,
+                        easing: 'cubic-bezier(.25,.8,.35,1)',
+                        fill: 'backwards',
+                    });
+                });
+
+                // 2) show greetings one after another
+                const outroMs = reducedMotion ? 500 : 1100;
+                const available = Math.max(configuredDuration - introMs - outroMs, count * 2500);
+                const perGreeting = Math.min((tree.seconds_per_greeting || 6) * 1000, available / count);
+                const textEl = card.querySelector('.tree-card__text');
+                const nameEl = card.querySelector('.tree-card__name');
+
+                batch.forEach((greeting, i) => {
+                    timers.push(setTimeout(() => {
+                        balls.forEach((ball) => ball.classList.toggle('is-active', ball === balls[i]));
+                        card.classList.remove('is-visible');
+                        timers.push(setTimeout(() => {
+                            textEl.innerHTML = this.escapeHtml(greeting.text).replace(/\n/g, '<br>');
+                            nameEl.textContent = greeting.name ? `– ${greeting.name}` : '';
+                            card.style.setProperty('--tree-card-accent', this.treeBallColors[(cursor + i) % this.treeBallColors.length]);
+                            card.classList.add('is-visible');
+                        }, 250));
+                    }, introMs + i * perGreeting));
+                });
+
+                // 3) take the baubles off again (re-hang in the next round)
+                timers.push(setTimeout(() => {
+                    card.classList.remove('is-visible');
+                    balls.forEach((ball, i) => {
+                        ball.classList.remove('is-active');
+                        animate(ball.querySelector('.tree-ball__drop'), reducedMotion
+                            ? [{ opacity: 1 }, { opacity: 0 }]
+                            : [
+                                { transform: 'translateY(0)', opacity: 1 },
+                                { transform: 'translateY(8px)', opacity: 1, offset: 0.25 },
+                                { transform: 'translateY(-220px)', opacity: 0 },
+                            ], {
+                            duration: outroMs - 150,
+                            delay: i * 40,
+                            easing: 'ease-in',
+                            fill: 'forwards',
+                        });
+                    });
+                }, Math.max(introMs, configuredDuration - outroMs)));
+
+                return handle;
+            },
+
+            /**
+             * Random, distinct hang points that keep the baubles apart;
+             * prefers points not used in the last round.
+             */
+            pickTreePoints(count, lastPoints, minDistance = 95) {
+                const shuffle = (list) => {
+                    const copy = [...list];
+                    for (let i = copy.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [copy[i], copy[j]] = [copy[j], copy[i]];
+                    }
+                    return copy;
+                };
+                const all = this.treeHangPoints.map((_, index) => index);
+                const fresh = shuffle(all.filter((index) => !lastPoints.includes(index)));
+                const used = shuffle(all.filter((index) => lastPoints.includes(index)));
+
+                const candidates = [...fresh, ...used];
+                const picked = [];
+                const farEnough = (index) => picked.every((other) => {
+                    const a = this.treeHangPoints[index];
+                    const b = this.treeHangPoints[other];
+                    return Math.hypot(a.x - b.x, a.y - b.y) >= minDistance;
+                });
+
+                candidates.forEach((index) => {
+                    if (picked.length < count && farEnough(index)) {
+                        picked.push(index);
+                    }
+                });
+                candidates.forEach((index) => {
+                    if (picked.length < count && !picked.includes(index)) {
+                        picked.push(index);
+                    }
+                });
+
+                return picked;
+            },
+
           /**
            * Render Canva slide
            */
@@ -1036,6 +1296,11 @@ if ($isPreview) {
                 if (this.state.activeAnimation) {
                     this.state.activeAnimation.cancel();
                     this.state.activeAnimation = null;
+                }
+
+                if (slideEl.treeData) {
+                    this.state.activeAnimation = this.startChristmasTree(slideEl, configuredDuration);
+                    return configuredDuration;
                 }
 
                 const carouselTrack = slideEl.querySelector('.agenda-carousel-track');

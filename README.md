@@ -255,6 +255,33 @@ Uses your existing Kirby block system:
 - Meeting room calendars
 - Upcoming activities
 
+### 4. Christmas Tree (Weihnachtsbaum)
+
+Visitors send greetings through a DreamForm form; after moderation they hang
+as baubles on a digital tree (inline SVG with ~20 hang points).
+
+**Flow:**
+1. Create a slide with type **Weihnachtsbaum (Grüße)** and add it to a channel.
+2. In the DreamForm form, add a text field `name` (max. 40 characters), a
+   textarea `gruss` (max. 140 characters) and the action
+   **Weihnachtsbaum: Gruß zur Freigabe** pointing to that slide.
+3. Each submission creates a **draft** child page (`signage-greeting`) under
+   the slide. Nothing is shown on the screen yet.
+4. The team reviews the greeting in the slide's list *Wartet auf Freigabe* and
+   sets its status to **Am Baum** (listed). Screens reload within ~1 second.
+
+**On screen:** up to *Kugeln gleichzeitig* (default 6) baubles swing in at
+random, well-spaced points; one greeting after the other is shown on a card
+(*Sekunden pro Gruß*, default 6). At the end of a pass the baubles are taken
+off, and the next pass hangs the next greetings at other points.
+
+**Limits:** name 40, greeting 140 characters and 3 lines – checked again in
+the action (`ChristmasTree::sanitize()`), all text is escaped in the player.
+
+**Auto duration:** greetings per pass × seconds per greeting + 4 s.
+
+The DreamForm action is only registered when DreamForm is installed.
+
 ## Frontend Player
 
 The player runs client-side JavaScript with:

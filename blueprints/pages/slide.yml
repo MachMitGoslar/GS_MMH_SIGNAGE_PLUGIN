@@ -34,6 +34,7 @@ tabs:
                   canva: Canva-Design
                   video: Vollbild-Video
                   calendar: Kalender / Termine
+                  christmas_tree: Weihnachtsbaum (Grüße)
                 default: blocks
                 required: true
                 help: Wählen Sie den Inhaltstyp für diese Folie
@@ -329,6 +330,66 @@ tabs:
                 width: 1/3
             when:
               slide_type: calendar
+
+          tree_content:
+            type: fields
+            fields:
+              tree_title:
+                label: Überschrift
+                type: text
+                placeholder: Frohe Weihnachten!
+                maxlength: 40
+                width: 1/2
+              tree_subtitle:
+                label: Unterzeile
+                type: text
+                placeholder: z.B. Schick uns deinen Gruß – mmh.goslar.de/weihnachten
+                maxlength: 80
+                width: 1/2
+              tree_visible_balls:
+                label: Kugeln gleichzeitig
+                type: number
+                default: 6
+                min: 1
+                max: 12
+                width: 1/2
+                help: So viele Grüße hängen gleichzeitig am Baum. Gibt es mehr, werden die Kugeln umgehängt.
+              tree_seconds_per_greeting:
+                label: Sekunden pro Gruß
+                type: number
+                default: 6
+                min: 3
+                max: 20
+                after: Sek.
+                width: 1/2
+            when:
+              slide_type: christmas_tree
+
+          tree_pending:
+            label: Wartet auf Freigabe
+            type: pages
+            status: draft
+            template: signage-greeting
+            create: false
+            sortBy: submitted_at desc
+            info: "{{ page.greeting_text.excerpt(80) }}"
+            empty: Keine neuen Grüße.
+            help: Gruß öffnen, prüfen und den Status auf „Am Baum“ setzen. Ablehnen = löschen.
+            when:
+              slide_type: christmas_tree
+
+          tree_approved:
+            label: Am Baum
+            type: pages
+            status: listed
+            template: signage-greeting
+            create: false
+            sortBy: submitted_at desc
+            info: "{{ page.greeting_text.excerpt(80) }}"
+            empty: Noch keine freigegebenen Grüße.
+            limit: 20
+            when:
+              slide_type: christmas_tree
 
       - width: 1/3
         sections:

@@ -1211,3 +1211,277 @@ body[data-orientation='vertical'] .calendar-agenda .agenda-event {
 body[data-orientation='vertical'] .calendar-agenda .agenda-event-time {
   justify-content: flex-start;
 }
+
+/* ==========================================================================
+   Christmas tree slide (slide_type: christmas_tree)
+   Approved greetings hang as baubles; one greeting at a time is shown
+   in the card next to the tree.
+   ========================================================================== */
+
+.slide-content--tree {
+  position: absolute;
+  inset: 0;
+  max-width: 100%;
+  max-height: 100%;
+  height: 100%;
+  padding: 0 !important;
+}
+
+.tree-slide {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  align-items: center;
+  gap: clamp(1.5rem, 4vw, 5rem);
+  width: 100%;
+  height: 100%;
+  padding: clamp(1.5rem, 4vh, 4rem) clamp(2rem, 5vw, 6rem);
+  overflow: hidden;
+  color: #ffffff;
+  background: radial-gradient(
+    ellipse at 30% 110%,
+    rgb(44 60 112 / 70%),
+    rgb(11 20 48 / 0%) 65%
+  );
+}
+
+/* Snow */
+.tree-slide__snow {
+  position: absolute;
+  inset: -100% 0 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(2px 2px at 20px 30px, #ffffffcc 50%, transparent 51%),
+    radial-gradient(3px 3px at 120px 80px, #ffffffaa 50%, transparent 51%),
+    radial-gradient(2px 2px at 200px 160px, #ffffffbb 50%, transparent 51%),
+    radial-gradient(4px 4px at 60px 220px, #ffffff88 50%, transparent 51%),
+    radial-gradient(2px 2px at 260px 260px, #ffffffaa 50%, transparent 51%);
+  background-size: 300px 300px;
+  animation: tree-snow 24s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes tree-snow {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(50%);
+  }
+}
+
+/* Tree */
+.tree-slide__stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 0;
+}
+
+.tree-slide__svg {
+  width: auto;
+  height: 100%;
+  max-height: 92vh;
+  max-width: 100%;
+  overflow: visible;
+}
+
+.tree-slide__layer {
+  stroke: rgb(0 0 0 / 18%);
+  stroke-width: 2;
+}
+
+.tree-slide__layer--1 {
+  fill: var(--color-pastel-green-900, #4a804a);
+}
+
+.tree-slide__layer--2 {
+  fill: var(--color-pastel-green-1000, #3e6b3e);
+}
+
+.tree-slide__layer--3 {
+  fill: var(--color-pastel-green-1100, #335833);
+}
+
+.tree-slide__trunk {
+  fill: #5b3a1e;
+}
+
+.tree-slide__star {
+  fill: var(--color-ripe-mango-700, #fcce4c);
+  filter: drop-shadow(0 0 14px rgb(252 206 76 / 80%));
+}
+
+.tree-slide__light {
+  fill: var(--color-ripe-mango-400, #fde7a5);
+  animation: tree-twinkle 2.6s ease-in-out infinite alternate;
+}
+
+@keyframes tree-twinkle {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Baubles */
+.tree-ball__swing {
+  transform-origin: 0 0;
+  animation: tree-swing 4.2s ease-in-out infinite alternate;
+}
+
+@keyframes tree-swing {
+  from {
+    transform: rotate(-4deg);
+  }
+  to {
+    transform: rotate(4deg);
+  }
+}
+
+.tree-ball__string {
+  stroke: rgb(255 255 255 / 70%);
+  stroke-width: 1.5;
+}
+
+.tree-ball__cap {
+  fill: var(--color-dead-pixel-500, #b4b4b4);
+}
+
+.tree-ball__orb {
+  transition:
+    transform 0.6s cubic-bezier(0.3, 1.5, 0.5, 1),
+    filter 0.6s ease;
+}
+
+.tree-ball__initial {
+  fill: rgb(16 16 15 / 70%);
+  font-size: 22px;
+  font-weight: 700;
+  text-anchor: middle;
+  font-family: var(--font-family-sans, Inter, sans-serif);
+}
+
+.tree-ball.is-active .tree-ball__orb {
+  transform: scale(1.45);
+  filter: drop-shadow(0 0 12px rgb(255 255 255 / 85%));
+}
+
+/* Text column */
+.tree-slide__aside {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(1rem, 2.4vh, 2rem);
+  min-width: 0;
+}
+
+.tree-slide__title {
+  font-size: clamp(3rem, 5vw, 6.4rem);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-ripe-mango-700, #fcce4c);
+}
+
+.tree-slide__subtitle,
+.tree-slide__count,
+.tree-slide__hint {
+  font-size: clamp(1.2rem, 1.6vw, 2rem);
+  color: rgb(255 255 255 / 80%);
+}
+
+.tree-card {
+  --tree-card-accent: var(--color-ripe-mango-700, #fcce4c);
+
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 7.5em;
+  padding: clamp(1.4rem, 2.6vw, 3rem);
+  font-size: clamp(1.6rem, 2.3vw, 3rem);
+  color: #10100f;
+  background: #fffdf6;
+  border-left: 0.6rem solid var(--tree-card-accent);
+  border-radius: 0.6rem;
+  box-shadow: 0 30px 80px rgb(0 0 0 / 35%);
+  opacity: 0;
+  transform: translateY(1.2rem) scale(0.98);
+  transition:
+    opacity 0.45s ease,
+    transform 0.45s ease;
+}
+
+.tree-card.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+.tree-slide--empty .tree-card {
+  display: none;
+}
+
+.tree-card__text {
+  font-size: 1em;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.tree-card__name {
+  font-size: 0.7em;
+  font-weight: 500;
+  color: #4e4e4d;
+}
+
+/* Portrait screens: tree on top, card below */
+body[data-orientation='vertical'] .tree-slide {
+  grid-template-columns: 1fr;
+  grid-template-rows: minmax(0, 1.25fr) auto;
+  padding: 3vh 6vw 5vh;
+}
+
+body[data-orientation='vertical'] .tree-slide__svg {
+  max-height: 58vh;
+}
+
+body[data-orientation='vertical'] .tree-slide__aside {
+  text-align: center;
+}
+
+body[data-orientation='vertical'] .tree-slide__title {
+  font-size: clamp(3rem, 8vw, 7rem);
+}
+
+body[data-orientation='vertical'] .tree-slide__subtitle,
+body[data-orientation='vertical'] .tree-slide__count,
+body[data-orientation='vertical'] .tree-slide__hint {
+  font-size: clamp(1.3rem, 3vw, 2.4rem);
+}
+
+body[data-orientation='vertical'] .tree-card {
+  min-height: 7.5em;
+  font-size: clamp(1.6rem, 4.2vw, 3rem);
+  text-align: left;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tree-slide__snow,
+  .tree-ball__swing,
+  .tree-slide__light {
+    animation: none;
+  }
+
+  .tree-ball__orb,
+  .tree-card {
+    transition-duration: 0.01s;
+  }
+}

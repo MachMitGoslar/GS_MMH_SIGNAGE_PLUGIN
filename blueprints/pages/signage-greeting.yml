@@ -1,0 +1,60 @@
+title: Weihnachtsgruß
+icon: heart
+num: zero
+
+options:
+  changeTemplate: false
+  duplicate: false
+  preview: false
+
+status:
+  draft:
+    label: Wartet auf Freigabe
+    text: Der Gruß ist noch nicht auf dem Bildschirm zu sehen.
+  unlisted: false
+  listed:
+    label: Am Baum
+    text: Der Gruß hängt als Kugel am Weihnachtsbaum.
+
+columns:
+  - width: 2/3
+    sections:
+      greeting:
+        type: fields
+        fields:
+          info_moderation:
+            type: info
+            theme: notice
+            text: >-
+              Bitte vor der Freigabe prüfen: Ist der Gruß freundlich, ohne Werbung, ohne
+              persönliche Daten Dritter? Zum Freigeben oben den Status auf **Am Baum** setzen.
+              Ablehnen = Gruß löschen.
+          greeting_name:
+            label: Name
+            type: text
+            required: true
+            maxlength: 40
+          greeting_text:
+            label: Gruß
+            type: textarea
+            buttons: false
+            required: true
+            maxlength: 140
+            size: small
+            help: Höchstens 140 Zeichen und 3 Zeilen, damit die Kugel-Karte lesbar bleibt.
+  - width: 1/3
+    sections:
+      meta:
+        type: fields
+        fields:
+          submitted_at:
+            label: Eingegangen am
+            type: date
+            time: true
+            display: DD.MM.YYYY
+            disabled: true
+          submission_ref:
+            label: DreamForm-Eingang
+            type: text
+            disabled: true
+            help: Referenz auf den Formular-Eingang (falls vorhanden).
