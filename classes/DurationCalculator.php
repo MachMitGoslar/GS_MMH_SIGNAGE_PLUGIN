@@ -51,6 +51,7 @@ class DurationCalculator
             'template' => self::calculateTemplateDuration($slide),
             'video' => self::calculateVideoDuration($slide),
             'calendar' => self::calculateCalendarDuration($slide),
+            'christmas_tree' => self::calculateChristmasTreeDuration($slide),
             default => 10
         };
 
@@ -77,6 +78,7 @@ class DurationCalculator
             'template' => self::getTemplateCalculationDetails($slide),
             'video' => self::getVideoCalculationDetails($slide),
             'calendar' => self::getCalendarCalculationDetails($slide),
+            'christmas_tree' => self::getChristmasTreeCalculationDetails($slide),
             default => 'Default: 10 seconds'
         };
     }
@@ -376,5 +378,42 @@ class DurationCalculator
         }
 
         return 'Calendar base duration: ' . self::BASE_DURATION_CALENDAR . ' seconds';
+    }
+
+    /**
+     * Christmas tree: one round shows up to "visible balls" greetings, each for
+     * "seconds per greeting", plus a short intro/re-hanging phase.
+     * Without approved greetings the empty tree is shown briefly.
+     *
+     * @param \Kirby\Cms\Page $slide
+     * @return int Duration in seconds
+     */
+    public static function calculateChristmasTreeDuration($slide): int
+    {
+        $count = ChristmasTree::greetingsPerRound($slide);
+
+        if ($count === 0) {
+            return 8;
+        }
+
+        return $count * ChristmasTree::secondsPerGreeting($slide) + ChristmasTree::INTRO_SECONDS;
+    }
+
+    private static function getChristmasTreeCalculationDetails($slide): string
+    {
+        $count = ChristmasTree::greetingsPerRound($slide);
+        $total = ChristmasTree::approvedGreetings($slide)->count();
+        $duration = max(
+            self::MIN_DURATION,
+            min(self::calculateChristmasTreeDuration($slide), self::MAX_DURATION),
+        );
+
+        if ($count === 0) {
+            return "Weihnachtsbaum ohne freigegebene Grüße: {$duration} seconds";
+        }
+
+        return "Weihnachtsbaum: {$count} von {$total} Grüßen pro Durchgang × "
+            . ChristmasTree::secondsPerGreeting($slide) . ' s + '
+            . ChristmasTree::INTRO_SECONDS . " s = {$duration} seconds";
     }
 }

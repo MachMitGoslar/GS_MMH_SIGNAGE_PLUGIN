@@ -1211,3 +1211,531 @@ body[data-orientation='vertical'] .calendar-agenda .agenda-event {
 body[data-orientation='vertical'] .calendar-agenda .agenda-event-time {
   justify-content: flex-start;
 }
+
+/* ==========================================================================
+   Christmas tree slide (slide_type: christmas_tree)
+   Approved greetings hang as baubles; one greeting at a time is shown
+   on a glass card next to the tree, with a QR code to the form.
+   ========================================================================== */
+
+.slide-content--tree {
+  container: tree-slide / size;
+  position: absolute;
+  inset: 0;
+  max-width: 100%;
+  max-height: 100%;
+  height: 100%;
+  padding: 0 !important;
+}
+
+.tree-slide {
+  --tree-gold: var(--color-ripe-mango-700, #fcce4c);
+  --tree-gold-deep: var(--color-ripe-mango-1000, #c99b19);
+  --tree-ink: #f7f4ec;
+  --tree-muted: rgb(247 244 236 / 68%);
+
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(2rem, 5vw, 7rem);
+  width: 100%;
+  height: 100%;
+  padding: clamp(2rem, 5vh, 5rem) clamp(2.5rem, 6vw, 8rem);
+  overflow: hidden;
+  color: var(--tree-ink);
+  font-family: var(--font-family-sans, Inter, system-ui, sans-serif);
+  background:
+    radial-gradient(
+      ellipse 60% 70% at 26% 62%,
+      rgb(252 206 76 / 14%),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse at 80% -10%,
+      rgb(115 141 224 / 22%),
+      transparent 55%
+    ),
+    linear-gradient(160deg, #0d1736 0%, #070c1f 60%, #05081a 100%);
+}
+
+.tree-slide--photo {
+  background:
+    radial-gradient(
+      ellipse 60% 70% at 26% 62%,
+      rgb(252 206 76 / 12%),
+      transparent 70%
+    ),
+    linear-gradient(
+      160deg,
+      rgb(13 23 54 / 78%) 0%,
+      rgb(7 12 31 / 84%) 60%,
+      rgb(5 8 26 / 90%) 100%
+    );
+  backdrop-filter: blur(4px) saturate(0.85);
+}
+
+/* Soft bokeh glow */
+.tree-slide__glow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 12% 18%,
+      rgb(236 102 92 / 16%) 0 3vw,
+      transparent 3.2vw
+    ),
+    radial-gradient(
+      circle at 88% 82%,
+      rgb(252 206 76 / 12%) 0 4vw,
+      transparent 4.2vw
+    ),
+    radial-gradient(
+      circle at 62% 12%,
+      rgb(187 122 188 / 12%) 0 2.2vw,
+      transparent 2.4vw
+    );
+  filter: blur(18px);
+}
+
+/* Fine snow */
+.tree-slide__snow {
+  position: absolute;
+  inset: -100% 0 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1.5px 1.5px at 20px 30px, #ffffffb3 50%, transparent 51%),
+    radial-gradient(2px 2px at 140px 90px, #ffffff80 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 230px 170px, #ffffff99 50%, transparent 51%),
+    radial-gradient(2.5px 2.5px at 70px 230px, #ffffff59 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 280px 270px, #ffffff80 50%, transparent 51%);
+  background-size: 320px 320px;
+  animation: tree-snow 40s linear infinite;
+  opacity: 0.55;
+}
+
+@keyframes tree-snow {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(50%);
+  }
+}
+
+/* Tree */
+.tree-slide__stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 0;
+}
+
+.tree-slide__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.tree-tier polygon {
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+}
+
+.tree-slide__trunk--light {
+  fill: #7a5232;
+}
+
+.tree-slide__trunk--dark {
+  fill: #573820;
+}
+
+.tree-slide__ground {
+  fill: rgb(0 0 0 / 35%);
+}
+
+.tree-garland {
+  fill: none;
+  stroke: rgb(252 206 76 / 35%);
+  stroke-width: 1.5;
+}
+
+.tree-light {
+  fill: #ffe9a8;
+  animation: tree-twinkle 2.8s ease-in-out infinite alternate;
+}
+
+@keyframes tree-twinkle {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.tree-slide__star polygon {
+  stroke-width: 0.6;
+}
+
+/* Baubles */
+.tree-ball__swing {
+  transform-origin: 0 0;
+  animation: tree-swing 4.6s ease-in-out infinite alternate;
+}
+
+@keyframes tree-swing {
+  from {
+    transform: rotate(-3.5deg);
+  }
+  to {
+    transform: rotate(3.5deg);
+  }
+}
+
+.tree-ball__string {
+  stroke: rgb(252 206 76 / 75%);
+  stroke-width: 1.2;
+}
+
+.tree-ball__cap {
+  fill: var(--tree-gold-deep);
+}
+
+.tree-ball__body {
+  stroke: rgb(255 255 255 / 35%);
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+
+.tree-ball__halo {
+  fill: none;
+  stroke: var(--ball-color);
+  stroke-width: 2;
+  opacity: 0;
+}
+
+.tree-ball__orb {
+  transition:
+    transform 0.7s cubic-bezier(0.3, 1.5, 0.5, 1),
+    filter 0.7s ease;
+}
+
+.tree-ball__initial {
+  fill: rgb(16 16 15 / 62%);
+  font-size: 20px;
+  font-weight: 700;
+  text-anchor: middle;
+  font-family: var(--font-family-sans, Inter, sans-serif);
+}
+
+.tree-ball.is-active .tree-ball__orb {
+  transform: scale(1.4);
+  filter: drop-shadow(0 0 14px var(--ball-color));
+}
+
+.tree-ball.is-active .tree-ball__halo {
+  animation: tree-halo 1.8s ease-out infinite;
+}
+
+@keyframes tree-halo {
+  from {
+    opacity: 0.8;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+.tree-ball__halo {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Text column */
+.tree-slide__aside {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(1.4rem, 3.5vh, 3rem);
+  min-width: 0;
+  max-height: 100%;
+}
+
+.tree-slide__header {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.tree-slide__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-size: clamp(0.9rem, 1vw, 1.25rem);
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--tree-gold);
+}
+
+.tree-slide__eyebrow::before {
+  content: '';
+  width: 2.5rem;
+  height: 2px;
+  background: currentColor;
+}
+
+.tree-slide__title {
+  font-size: clamp(3rem, 5.2vw, 7rem);
+  font-weight: 800;
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+  color: var(--tree-gold);
+}
+
+.tree-slide__subtitle {
+  font-size: clamp(1.15rem, 1.5vw, 1.9rem);
+  font-weight: 400;
+  color: var(--tree-muted);
+}
+
+/* Glass card */
+.tree-card {
+  --tree-card-accent: var(--tree-gold);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.8rem, 1.6vh, 1.4rem);
+  min-height: 6.5em;
+  padding: clamp(1.8rem, 3vw, 3.4rem) clamp(1.8rem, 3vw, 3.4rem)
+    clamp(1.4rem, 2.4vw, 2.6rem);
+  font-size: clamp(1.7rem, 2.4vw, 3.2rem);
+  color: var(--tree-ink);
+  background: linear-gradient(
+    145deg,
+    rgb(255 255 255 / 12%),
+    rgb(255 255 255 / 4%)
+  );
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 1.6rem;
+  box-shadow:
+    0 40px 90px rgb(0 0 0 / 40%),
+    inset 0 1px 0 rgb(255 255 255 / 12%);
+  backdrop-filter: blur(16px);
+  opacity: 0;
+  transform: translateY(1.2rem);
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
+}
+
+.tree-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0.35rem;
+  margin-block: 1.6rem;
+  border-radius: 0 0.4rem 0.4rem 0;
+  background: var(--tree-card-accent);
+  box-shadow: 0 0 18px var(--tree-card-accent);
+}
+
+.tree-card.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+.tree-slide--empty .tree-card {
+  display: none;
+}
+
+.tree-card__mark {
+  position: absolute;
+  top: -0.15em;
+  right: 0.35em;
+  font-size: 4.2em;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--tree-card-accent);
+  opacity: 0.22;
+}
+
+.tree-card__text {
+  position: relative;
+  font-size: 1em;
+  font-weight: 600;
+  line-height: 1.22;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.tree-card--long .tree-card__text {
+  font-size: 0.82em;
+}
+
+.tree-card__name {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.6em;
+  font-weight: 500;
+  color: var(--tree-muted);
+}
+
+.tree-card__name::before {
+  content: '';
+  flex: none;
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 50%;
+  background: var(--tree-card-accent);
+}
+
+.tree-progress {
+  --tree-progress-accent: var(--tree-gold);
+
+  display: flex;
+  gap: 0.5rem;
+  margin-top: calc(-1 * clamp(0.4rem, 1.5vh, 1.4rem));
+}
+
+.tree-slide--empty .tree-progress {
+  display: none;
+}
+
+.tree-progress span {
+  flex: 1;
+  max-width: 6rem;
+  height: 0.4rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 16%);
+}
+
+.tree-progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--tree-progress-accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+.tree-progress span.is-done i {
+  background: rgb(255 255 255 / 60%);
+  transform: scaleX(1);
+}
+
+/* Footer: QR code + call to action */
+.tree-slide__footer {
+  display: flex;
+  align-items: center;
+  gap: clamp(1rem, 1.8vw, 2rem);
+}
+
+.tree-qr {
+  flex: none;
+  width: clamp(7rem, 9vw, 11rem);
+  padding: 0.6rem;
+  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
+}
+
+.tree-qr svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.tree-slide__cta {
+  display: grid;
+  gap: 0.45rem;
+  line-height: 1.3;
+}
+
+.tree-slide__cta-title {
+  font-size: clamp(1.4rem, 1.9vw, 2.4rem);
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--tree-ink);
+}
+
+.tree-slide__cta-text,
+.tree-slide__count {
+  font-size: clamp(1rem, 1.25vw, 1.6rem);
+  color: var(--tree-muted);
+}
+
+.tree-slide__count {
+  margin-top: 0.3rem;
+  color: var(--tree-gold);
+}
+
+/* Portrait or narrow screens: tree on top, card below */
+@container tree-slide (max-aspect-ratio: 5/4) {
+  .tree-slide {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(45cqh, 1fr) auto;
+    gap: 2cqh;
+    padding: 4cqh 7cqw 4cqh;
+  }
+
+  .tree-slide__stage {
+    height: 100%;
+  }
+
+  .tree-slide__title {
+    font-size: clamp(2rem, 9cqw, 8rem);
+  }
+
+  .tree-slide__eyebrow {
+    font-size: clamp(0.8rem, 2.4cqw, 1.8rem);
+  }
+
+  .tree-slide__subtitle,
+  .tree-slide__cta-text,
+  .tree-slide__count {
+    font-size: clamp(0.9rem, 2.8cqw, 2.2rem);
+  }
+
+  .tree-slide__cta-title {
+    font-size: clamp(1.1rem, 4cqw, 3rem);
+  }
+
+  .tree-card {
+    min-height: 5.5em;
+    font-size: clamp(1.2rem, 4.6cqw, 3.4rem);
+  }
+
+  .tree-qr {
+    width: clamp(5.5rem, 20cqw, 15rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tree-slide__snow,
+  .tree-ball__swing,
+  .tree-light,
+  .tree-ball.is-active .tree-ball__halo {
+    animation: none;
+  }
+
+  .tree-ball__orb,
+  .tree-card {
+    transition-duration: 0.01s;
+  }
+}

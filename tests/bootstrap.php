@@ -29,3 +29,4 @@ new Kirby\Cms\App([
 
 require_once dirname(__DIR__) . '/classes/DurationCalculator.php';
 require_once dirname(__DIR__) . '/classes/ICalParser.php';
+require_once dirname(__DIR__) . '/classes/ChristmasTree.php';

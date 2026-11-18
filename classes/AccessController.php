@@ -1465,6 +1465,11 @@ class AccessController
                 $baseData['calendar'] = self::getCalendarData($slide);
 
                 break;
+
+            case ChristmasTree::SLIDE_TYPE:
+                $baseData['christmas_tree'] = ChristmasTree::data($slide);
+
+                break;
         }
 
         return $baseData;
@@ -1604,7 +1609,8 @@ class AccessController
         if (!empty($preview['slide'])) {
             $previewSlide = kirby()->page(SlideLibrary::POOL_ID . '/' . $preview['slide']);
             if ($previewSlide) {
-                $parts[] = 'slide:' . $previewSlide->id() . ':' . $previewSlide->modified('U');
+                $parts[] = 'slide:' . $previewSlide->id() . ':' . $previewSlide->modified('U')
+                    . ':' . ChristmasTree::revision($previewSlide);
             }
         }
 
@@ -1617,7 +1623,8 @@ class AccessController
             $parts[] = 'channel:' . $channel->id() . ':' . $channel->modified('U');
 
             foreach (SlideLibrary::slidesOf($channel) as $slide) {
-                $parts[] = 'slide:' . $slide->id() . ':' . $slide->modified('U');
+                $parts[] = 'slide:' . $slide->id() . ':' . $slide->modified('U')
+                    . ':' . ChristmasTree::revision($slide);
             }
         }
 
