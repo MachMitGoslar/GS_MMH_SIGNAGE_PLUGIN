@@ -58,7 +58,7 @@ class SlideLibrary
     public static function activeSlidesOf(Page $channel): Pages
     {
         return self::slidesOf($channel)->filter(
-            fn (Page $slide) => $slide->status() === 'unlisted'
+            fn (Page $slide) => $slide->status() === 'unlisted',
         );
     }
 
@@ -68,7 +68,7 @@ class SlideLibrary
     public static function channelsUsing(Page $slide): Pages
     {
         return self::channels()->filter(
-            fn (Page $channel) => self::slidesOf($channel)->has($slide->id())
+            fn (Page $channel) => self::slidesOf($channel)->has($slide->id()),
         );
     }
 
@@ -141,7 +141,7 @@ class SlideLibrary
 
         foreach (self::channels() as $channel) {
             $legacy = $channel->childrenAndDrafts()->filter(
-                fn (Page $child) => $child->intendedTemplate()->name() === 'slide'
+                fn (Page $child) => $child->intendedTemplate()->name() === 'slide',
             );
             if ($legacy->count() === 0) {
                 continue;

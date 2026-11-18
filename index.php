@@ -19,6 +19,7 @@ require_once __DIR__ . '/classes/DurationCalculator.php';
 require_once __DIR__ . '/classes/ICalParser.php';
 require_once __DIR__ . '/classes/SlideLibrary.php';
 require_once __DIR__ . '/classes/AccessController.php';
+require_once __DIR__ . '/classes/ChristmasTree.php';
 
 Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
     /**
@@ -83,6 +84,7 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
         'pages/channel' => __DIR__ . '/blueprints/pages/channel.yml',
         'pages/slides' => __DIR__ . '/blueprints/pages/slides.yml',
         'pages/slide' => __DIR__ . '/blueprints/pages/slide.yml',
+        'pages/signage-greeting' => __DIR__ . '/blueprints/pages/signage-greeting.yml',
         'blocks/signage-heading' => __DIR__ . '/blueprints/blocks/signage-heading.yml',
         'blocks/signage-text' => __DIR__ . '/blueprints/blocks/signage-text.yml',
     ],
@@ -496,6 +498,14 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
      * Validate channel schedule to prevent overlaps
      */
     'hooks' => [
+        // DreamForm action for the christmas tree (greetings → moderation → tree).
+        // DreamForm is optional: the signage plugin works without it.
+        'system.loadPlugins:after' => function () {
+            if (class_exists(\tobimori\DreamForm\DreamForm::class)) {
+                require_once __DIR__ . '/classes/ChristmasTreeAction.php';
+                \tobimori\DreamForm\DreamForm::register(ChristmasTreeAction::class);
+            }
+        },
         'page.update:before' => function ($page, $values, $strings) {
             if ($page->intendedTemplate()->name() === 'screen') {
                 // Validate channel schedule for overlaps
