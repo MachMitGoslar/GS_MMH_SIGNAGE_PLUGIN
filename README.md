@@ -278,6 +278,11 @@ off, and the next pass hangs the next greetings at other points.
 **QR code:** set *Link zum Gruß-Formular* on the slide; a QR code (generated
 server-side with Kirby's `QrCode`) is shown next to the greeting card.
 
+**Look:** low-poly SVG tree with faceted baubles. A photo or video set in the
+slide's *Hintergrund* tab (e.g. the MMH interior) shows through a tinted,
+slightly blurred layer; without one a midnight-blue background is used. On
+portrait or narrow screens (aspect ratio ≤ 5:4) the card moves below the tree.
+
 **Limits:** name 40, greeting 140 characters and 3 lines – checked again in
 the action (`ChristmasTree::sanitize()`), all text is escaped in the player.
 

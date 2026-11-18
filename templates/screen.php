@@ -271,6 +271,11 @@ if ($isPreview) {
                     contentWrapper.innerHTML = this.renderSlideContent(slide);
                     if (slide.type === 'christmas_tree') {
                         slideEl.treeData = slide.christmas_tree || null;
+                        // a photo/video background (e.g. the MMH interior) shows through a tinted glass layer
+                        contentWrapper.querySelector('.tree-slide')?.classList.toggle(
+                            'tree-slide--photo',
+                            ['image', 'video'].includes(effectiveBackground?.type)
+                        );
                     }
                     
                     slideEl.appendChild(contentWrapper);
@@ -812,17 +817,107 @@ if ($isPreview) {
             ],
 
             /**
-             * Two-tone tier (light left half, dark right half) – flat, modern look
+             * Deterministic pseudo random number in [0, 1) – keeps the low-poly facets stable
              */
-            treeTierMarkup(apexY, baseY, halfWidth, index) {
-                const left = 300 - halfWidth;
-                const right = 300 + halfWidth;
-                const dip = baseY + 16;
+            treeNoise(seed) {
+                const value = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+                return value - Math.floor(value);
+            },
 
-                return `
-                    <path class="tree-tier tree-tier--light tree-tier--${index}" d="M300 ${apexY} L${left} ${baseY} Q${300 - halfWidth / 2} ${dip} 300 ${dip} Z"></path>
-                    <path class="tree-tier tree-tier--dark tree-tier--${index}" d="M300 ${apexY} L${right} ${baseY} Q${300 + halfWidth / 2} ${dip} 300 ${dip} Z"></path>
-                `;
+            treeGreens: ['#6aae74', '#57a065', '#489158', '#3c814c', '#317142', '#276237', '#1e522d', '#16431f'],
+
+            /**
+             * Low-poly tier: the tier triangle is split into a jittered triangle grid,
+             * each facet gets a green by its position (light from top left) plus noise.
+             */
+            treeTierMarkup(apexY, baseY, halfWidth, tier) {
+                const rows = tier === 1 ? 3 : 4;
+                const points = [];
+
+                for (let row = 0; row <= rows; row++) {
+                    const y = apexY + ((baseY - apexY) * row) / rows;
+                    const rowHalf = (halfWidth * row) / rows;
+                    const line = [];
+
+                    for (let i = 0; i <= row; i++) {
+                        let x = row === 0 ? 300 : 300 - rowHalf + (2 * rowHalf * i) / row;
+                        let py = y;
+                        const isEdge = i === 0 || i === row;
+                        if (!isEdge) {
+                            x += (this.treeNoise(tier * 97 + row * 13 + i) - 0.5) * (rowHalf / row) * 0.7;
+                        }
+                        if (row > 0 && row < rows && !isEdge) {
+                            py += (this.treeNoise(tier * 53 + row * 7 + i * 3) - 0.5) * ((baseY - apexY) / rows) * 0.45;
+                        }
+                        line.push([x, py]);
+                    }
+                    points.push(line);
+                }
+
+                const facets = [];
+                const facet = (a, b, c, seed) => {
+                    const cx = (a[0] + b[0] + c[0]) / 3;
+                    const cy = (a[1] + b[1] + c[1]) / 3;
+                    const side = (cx - 300) / halfWidth; // -1 (left, lit) … 1 (right, shade)
+                    const depth = (cy - apexY) / (baseY - apexY);
+                    const shade = 2.4 + side * 2.8 + depth * 0.9 + (this.treeNoise(seed) - 0.5) * 3.2;
+                    const color = this.treeGreens[Math.max(0, Math.min(this.treeGreens.length - 1, Math.round(shade)))];
+                    const pts = [a, b, c].map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+                    facets.push(`<polygon points="${pts}" fill="${color}" stroke="${color}"></polygon>`);
+                };
+
+                for (let row = 0; row < rows; row++) {
+                    for (let i = 0; i <= row; i++) {
+                        facet(points[row][i], points[row + 1][i], points[row + 1][i + 1], tier * 31 + row * 11 + i);
+                        if (i < row) {
+                            facet(points[row][i], points[row][i + 1], points[row + 1][i + 1], tier * 41 + row * 17 + i);
+                        }
+                    }
+                }
+
+                return `<g class="tree-tier">${facets.join('')}</g>`;
+            },
+
+            /**
+             * Low-poly star: triangles from the centre, alternating light and dark gold
+             */
+            treeStarMarkup(cx, cy, outer, inner) {
+                const corners = Array.from({ length: 10 }, (_, k) => {
+                    const angle = -Math.PI / 2 + (k * Math.PI) / 5;
+                    const radius = k % 2 === 0 ? outer : inner;
+                    return [cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius];
+                });
+
+                return corners.map((point, k) => {
+                    const next = corners[(k + 1) % 10];
+                    const color = k % 2 === 0 ? '#fde7a5' : '#eab51d';
+                    return `<polygon points="${cx},${cy} ${point[0].toFixed(1)},${point[1].toFixed(1)} ${next[0].toFixed(1)},${next[1].toFixed(1)}" fill="${color}" stroke="${color}"></polygon>`;
+                }).join('');
+            },
+
+            /**
+             * Faceted bauble (octagon "gem"); facets are lit from the top left
+             */
+            treeBaubleFacets(centerY, radius) {
+                const sides = 8;
+                const core = [-radius * 0.28, centerY - radius * 0.3];
+                const corners = Array.from({ length: sides }, (_, k) => {
+                    const angle = (k * 2 * Math.PI) / sides + Math.PI / sides;
+                    return [Math.cos(angle) * radius, centerY + Math.sin(angle) * radius];
+                });
+                const light = Math.atan2(-0.75, -0.65);
+
+                const outline = corners.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+                const facets = corners.map((point, k) => {
+                    const next = corners[(k + 1) % sides];
+                    const mid = Math.atan2((point[1] + next[1]) / 2 - centerY, (point[0] + next[0]) / 2);
+                    const lit = Math.cos(mid - light);
+                    const fill = lit >= 0 ? '#ffffff' : '#000000';
+                    const opacity = lit >= 0 ? lit * 0.42 : -lit * 0.34;
+                    return `<polygon points="${core[0].toFixed(1)},${core[1].toFixed(1)} ${point[0].toFixed(1)},${point[1].toFixed(1)} ${next[0].toFixed(1)},${next[1].toFixed(1)}" fill="${fill}" fill-opacity="${opacity.toFixed(2)}"></polygon>`;
+                }).join('');
+
+                return { outline, facets };
             },
 
             treeGarlandMarkup() {
@@ -857,24 +952,20 @@ if ($isPreview) {
                         <div class="tree-slide__stage">
                             <svg class="tree-slide__svg" viewBox="0 0 600 800" role="img" aria-label="Weihnachtsbaum mit ${count} Grüßen">
                                 <defs>
-                                    <radialGradient id="tree-ball-shine" cx="32%" cy="28%" r="70%">
-                                        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"></stop>
-                                        <stop offset="28%" stop-color="#ffffff" stop-opacity="0.18"></stop>
-                                        <stop offset="100%" stop-color="#000000" stop-opacity="0.32"></stop>
-                                    </radialGradient>
                                     <filter id="tree-glow" x="-200%" y="-200%" width="500%" height="500%">
                                         <feGaussianBlur stdDeviation="5" result="blur"></feGaussianBlur>
                                         <feMerge><feMergeNode in="blur"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge>
                                     </filter>
                                 </defs>
                                 <ellipse class="tree-slide__ground" cx="300" cy="752" rx="230" ry="18"></ellipse>
-                                <rect class="tree-slide__trunk" x="282" y="676" width="36" height="76" rx="4"></rect>
+                                <polygon class="tree-slide__trunk tree-slide__trunk--light" points="300,672 282,676 284,752 300,752"></polygon>
+                                <polygon class="tree-slide__trunk tree-slide__trunk--dark" points="300,672 318,676 316,752 300,752"></polygon>
                                 ${this.treeTierMarkup(410, 670, 255, 4)}
                                 ${this.treeTierMarkup(300, 530, 210, 3)}
                                 ${this.treeTierMarkup(200, 400, 160, 2)}
                                 ${this.treeTierMarkup(110, 270, 105, 1)}
                                 <g class="tree-slide__lights" filter="url(#tree-glow)">${this.treeGarlandMarkup()}</g>
-                                <polygon class="tree-slide__star" filter="url(#tree-glow)" points="300,58 309,84 337,85 315,102 323,129 300,113 277,129 285,102 263,85 291,84"></polygon>
+                                <g class="tree-slide__star" filter="url(#tree-glow)">${this.treeStarMarkup(300, 94, 38, 16)}</g>
                                 <g class="tree-slide__balls"></g>
                             </svg>
                         </div>
@@ -888,8 +979,8 @@ if ($isPreview) {
                                 <span class="tree-card__mark" aria-hidden="true">“</span>
                                 <blockquote class="tree-card__text"></blockquote>
                                 <figcaption class="tree-card__name"></figcaption>
-                                <div class="tree-card__progress" aria-hidden="true"></div>
                             </figure>
+                            <div class="tree-progress" aria-hidden="true"></div>
                             <footer class="tree-slide__footer">
                                 ${qr ? `<div class="tree-qr">${qr}</div>` : ''}
                                 <div class="tree-slide__cta">
@@ -904,8 +995,9 @@ if ($isPreview) {
 
             treeBallMarkup(greeting, point, color, index) {
                 const stringLength = 22 + (index % 3) * 9;
-                const radius = 24;
+                const radius = 25;
                 const centerY = stringLength + radius;
+                const gem = this.treeBaubleFacets(centerY, radius);
                 const initial = this.escapeHtml((greeting.name || '?').trim().charAt(0).toUpperCase());
 
                 return `
@@ -916,8 +1008,8 @@ if ($isPreview) {
                                 <g class="tree-ball__orb" style="transform-origin:0px ${centerY}px">
                                     <circle class="tree-ball__halo" cx="0" cy="${centerY}" r="${radius + 10}"></circle>
                                     <rect class="tree-ball__cap" x="-6" y="${stringLength - 4}" width="12" height="8" rx="2"></rect>
-                                    <circle class="tree-ball__body" cx="0" cy="${centerY}" r="${radius}" fill="${color}"></circle>
-                                    <circle cx="0" cy="${centerY}" r="${radius}" fill="url(#tree-ball-shine)"></circle>
+                                    <polygon class="tree-ball__body" points="${gem.outline}" fill="${color}"></polygon>
+                                    ${gem.facets}
                                     <text class="tree-ball__initial" x="0" y="${centerY}" dy="0.35em">${initial}</text>
                                 </g>
                             </g>
@@ -937,7 +1029,7 @@ if ($isPreview) {
                 const greetings = tree.greetings || [];
                 const layer = slideEl.querySelector('.tree-slide__balls');
                 const card = slideEl.querySelector('.tree-card');
-                const progress = slideEl.querySelector('.tree-card__progress');
+                const progress = slideEl.querySelector('.tree-progress');
                 const timers = [];
                 const animations = [];
                 const handle = {
@@ -973,7 +1065,7 @@ if ($isPreview) {
                     .map((greeting, i) => this.treeBallMarkup(greeting, this.treeHangPoints[points[i]], colorOf(i), i))
                     .join('');
                 if (progress) {
-                    progress.innerHTML = batch.map(() => '<span></span>').join('');
+                    progress.innerHTML = batch.map(() => '<span><i></i></span>').join('');
                 }
 
                 const balls = Array.from(layer.querySelectorAll('.tree-ball'));
@@ -1012,10 +1104,15 @@ if ($isPreview) {
                 batch.forEach((greeting, i) => {
                     timers.push(setTimeout(() => {
                         balls.forEach((ball) => ball.classList.toggle('is-active', ball === balls[i]));
-                        dots.forEach((dot, d) => {
-                            dot.classList.toggle('is-active', d === i);
-                            dot.classList.toggle('is-done', d < i);
-                        });
+                        dots.forEach((dot, d) => dot.classList.toggle('is-done', d < i));
+                        if (dots[i]) {
+                            progress.style.setProperty('--tree-progress-accent', colorOf(i));
+                            animate(dots[i].firstElementChild, [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], {
+                                duration: perGreeting,
+                                easing: 'linear',
+                                fill: 'forwards',
+                            });
+                        }
                         card.classList.remove('is-visible');
                         timers.push(setTimeout(() => {
                             textEl.innerHTML = this.escapeHtml(greeting.text).replace(/\n/g, '<br>');
