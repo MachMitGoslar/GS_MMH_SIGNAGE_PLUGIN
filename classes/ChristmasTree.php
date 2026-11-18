@@ -1,5 +1,7 @@
 <?php
 
+use Kirby\Image\QrCode;
+
 /**
  * Christmas Tree
  *
@@ -87,10 +89,27 @@ class ChristmasTree
         return [
             'title' => $slide->tree_title()->or('Frohe Weihnachten!')->value(),
             'subtitle' => $slide->tree_subtitle()->value(),
+            'qr' => self::qrCode($slide),
+            'qr_label' => $slide->tree_qr_label()->or('Schick uns deinen Gruß!')->value(),
             'visible_balls' => self::visibleBalls($slide),
             'seconds_per_greeting' => self::secondsPerGreeting($slide),
             'greetings' => $greetings,
         ];
+    }
+
+    /**
+     * QR code (SVG markup) for the greeting form, or null without a link.
+     * Generated server-side from the panel link, so the player can insert it as-is.
+     */
+    public static function qrCode($slide): ?string
+    {
+        $url = $slide->tree_form_link()->toUrl();
+
+        if (empty($url)) {
+            return null;
+        }
+
+        return (new QrCode($url))->toSvg(null, '#10100f', '#ffffff', 1);
     }
 
     /**

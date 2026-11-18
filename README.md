@@ -275,6 +275,9 @@ random, well-spaced points; one greeting after the other is shown on a card
 (*Sekunden pro Gruß*, default 6). At the end of a pass the baubles are taken
 off, and the next pass hangs the next greetings at other points.
 
+**QR code:** set *Link zum Gruß-Formular* on the slide; a QR code (generated
+server-side with Kirby's `QrCode`) is shown next to the greeting card.
+
 **Limits:** name 40, greeting 140 characters and 3 lines – checked again in
 the action (`ChristmasTree::sanitize()`), all text is escaped in the player.
 

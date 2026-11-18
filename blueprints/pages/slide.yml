@@ -343,8 +343,22 @@ tabs:
               tree_subtitle:
                 label: Unterzeile
                 type: text
-                placeholder: z.B. Schick uns deinen Gruß – mmh.goslar.de/weihnachten
+                placeholder: z.B. Grüße aus dem MachMit!Haus
                 maxlength: 80
+                width: 1/2
+              tree_form_link:
+                label: Link zum Gruß-Formular
+                type: link
+                options:
+                  - page
+                  - url
+                width: 1/2
+                help: Wird als QR-Code auf der Folie gezeigt.
+              tree_qr_label:
+                label: Text neben dem QR-Code
+                type: text
+                placeholder: Schick uns deinen Gruß!
+                maxlength: 40
                 width: 1/2
               tree_visible_balls:
                 label: Kugeln gleichzeitig

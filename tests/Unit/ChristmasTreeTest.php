@@ -85,4 +85,14 @@ class ChristmasTreeTest extends TestCase
     {
         $this->assertSame(8, DurationCalculator::calculate($this->tree(['duration_mode' => 'auto'])));
     }
+
+    public function testQrCodeIsRenderedForTheFormLink(): void
+    {
+        $withLink = ChristmasTree::data($this->tree(['tree_form_link' => 'https://mmh.goslar.de/weihnachten']));
+        $withoutLink = ChristmasTree::data($this->tree());
+
+        $this->assertStringStartsWith('<svg', $withLink['qr']);
+        $this->assertNull($withoutLink['qr']);
+        $this->assertSame('Schick uns deinen Gruß!', $withoutLink['qr_label']);
+    }
 }

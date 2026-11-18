@@ -793,80 +793,130 @@ if ($isPreview) {
              * picks random free points, so the baubles "move" between rounds.
              */
             treeHangPoints: [
-                { x: 300, y: 205 }, { x: 250, y: 252 }, { x: 352, y: 258 }, { x: 212, y: 282 }, { x: 392, y: 284 },
-                { x: 245, y: 330 }, { x: 358, y: 322 }, { x: 300, y: 372 },
-                { x: 192, y: 428 }, { x: 262, y: 410 }, { x: 338, y: 418 }, { x: 410, y: 432 },
-                { x: 185, y: 515 }, { x: 265, y: 500 }, { x: 345, y: 520 }, { x: 420, y: 512 },
-                { x: 130, y: 600 }, { x: 210, y: 590 }, { x: 295, y: 605 }, { x: 380, y: 592 }, { x: 465, y: 600 },
+                { x: 240, y: 250 }, { x: 300, y: 238 }, { x: 360, y: 250 },
+                { x: 250, y: 312 }, { x: 350, y: 312 },
+                { x: 185, y: 382 }, { x: 260, y: 372 }, { x: 340, y: 372 }, { x: 415, y: 382 },
+                { x: 215, y: 440 }, { x: 300, y: 450 }, { x: 385, y: 440 },
+                { x: 135, y: 508 }, { x: 215, y: 498 }, { x: 300, y: 505 }, { x: 385, y: 498 }, { x: 465, y: 508 },
+                { x: 150, y: 590 }, { x: 235, y: 580 }, { x: 320, y: 592 }, { x: 405, y: 582 }, { x: 455, y: 598 },
             ],
 
-            treeBallColors: ['#ec665c', '#fcce4c', '#738de0', '#bb7abc', '#f1f1f1', '#e5df16'],
+            treeBallColors: ['#ec665c', '#fcce4c', '#738de0', '#bb7abc', '#f1f1f1', '#ef8a5b'],
 
-            treeLights: [
-                [262, 170], [330, 182], [228, 238], [372, 232], [300, 268],
-                [214, 362], [286, 350], [380, 368], [160, 452], [300, 452], [446, 455],
-                [140, 560], [228, 552], [318, 566], [404, 558], [470, 572],
-                [92, 640], [196, 650], [300, 662], [404, 652], [508, 642],
+            // Light garlands as quadratic curves [start, control, end]
+            treeGarlands: [
+                [[232, 205], [300, 238], [368, 200]],
+                [[196, 330], [300, 372], [408, 322]],
+                [[150, 465], [300, 520], [452, 455]],
+                [[104, 612], [300, 680], [500, 600]],
             ],
+
+            /**
+             * Two-tone tier (light left half, dark right half) – flat, modern look
+             */
+            treeTierMarkup(apexY, baseY, halfWidth, index) {
+                const left = 300 - halfWidth;
+                const right = 300 + halfWidth;
+                const dip = baseY + 16;
+
+                return `
+                    <path class="tree-tier tree-tier--light tree-tier--${index}" d="M300 ${apexY} L${left} ${baseY} Q${300 - halfWidth / 2} ${dip} 300 ${dip} Z"></path>
+                    <path class="tree-tier tree-tier--dark tree-tier--${index}" d="M300 ${apexY} L${right} ${baseY} Q${300 + halfWidth / 2} ${dip} 300 ${dip} Z"></path>
+                `;
+            },
+
+            treeGarlandMarkup() {
+                return this.treeGarlands.map(([[x0, y0], [cx, cy], [x1, y1]], row) => {
+                    const lights = [];
+                    for (let step = 0; step <= 8; step++) {
+                        const t = step / 8;
+                        const x = (1 - t) ** 2 * x0 + 2 * (1 - t) * t * cx + t ** 2 * x1;
+                        const y = (1 - t) ** 2 * y0 + 2 * (1 - t) * t * cy + t ** 2 * y1;
+                        lights.push(`<circle class="tree-light" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.5" style="animation-delay:${((step * 3 + row) % 7) * 0.4}s"></circle>`);
+                    }
+
+                    return `<path class="tree-garland" d="M${x0} ${y0} Q${cx} ${cy} ${x1} ${y1}"></path>${lights.join('')}`;
+                }).join('');
+            },
 
             renderChristmasTreeSlide(tree) {
                 const title = this.escapeHtml(tree?.title || 'Frohe Weihnachten!');
                 const subtitle = this.escapeHtml(tree?.subtitle || '');
+                const qrLabel = this.escapeHtml(tree?.qr_label || 'Schick uns deinen Gruß!');
                 const count = (tree?.greetings || []).length;
-                const lights = this.treeLights
-                    .map(([x, y], index) => `<circle class="tree-slide__light" cx="${x}" cy="${y}" r="5" style="animation-delay:${(index % 7) * 0.37}s"></circle>`)
-                    .join('');
+                const countText = count === 0
+                    ? 'Noch hängt hier kein Gruß – sei die erste Kugel am Baum!'
+                    : `${count} ${count === 1 ? 'Gruß hängt' : 'Grüße hängen'} schon am Baum`;
+                // QR code SVG is generated server-side by Kirby from the panel link
+                const qr = typeof tree?.qr === 'string' && tree.qr.startsWith('<svg') ? tree.qr : '';
 
                 return `
                     <div class="tree-slide${count === 0 ? ' tree-slide--empty' : ''}">
+                        <div class="tree-slide__glow" aria-hidden="true"></div>
                         <div class="tree-slide__snow" aria-hidden="true"></div>
                         <div class="tree-slide__stage">
                             <svg class="tree-slide__svg" viewBox="0 0 600 800" role="img" aria-label="Weihnachtsbaum mit ${count} Grüßen">
                                 <defs>
-                                    <radialGradient id="tree-ball-shine" cx="35%" cy="30%" r="65%">
-                                        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85"></stop>
-                                        <stop offset="35%" stop-color="#ffffff" stop-opacity="0.15"></stop>
-                                        <stop offset="100%" stop-color="#000000" stop-opacity="0.25"></stop>
+                                    <radialGradient id="tree-ball-shine" cx="32%" cy="28%" r="70%">
+                                        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"></stop>
+                                        <stop offset="28%" stop-color="#ffffff" stop-opacity="0.18"></stop>
+                                        <stop offset="100%" stop-color="#000000" stop-opacity="0.32"></stop>
                                     </radialGradient>
+                                    <filter id="tree-glow" x="-200%" y="-200%" width="500%" height="500%">
+                                        <feGaussianBlur stdDeviation="5" result="blur"></feGaussianBlur>
+                                        <feMerge><feMergeNode in="blur"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge>
+                                    </filter>
                                 </defs>
-                                <rect class="tree-slide__trunk" x="272" y="655" width="56" height="100" rx="6"></rect>
-                                <path class="tree-slide__layer tree-slide__layer--3" d="M300 320 Q190 500 60 660 Q300 705 540 660 Q410 500 300 320 Z"></path>
-                                <path class="tree-slide__layer tree-slide__layer--2" d="M300 185 Q220 340 125 465 Q300 500 475 465 Q380 340 300 185 Z"></path>
-                                <path class="tree-slide__layer tree-slide__layer--1" d="M300 95 Q250 200 185 290 Q300 315 415 290 Q350 200 300 95 Z"></path>
-                                <g class="tree-slide__lights">${lights}</g>
-                                <polygon class="tree-slide__star" points="300,38 311,70 345,70 318,90 328,122 300,103 272,122 282,90 255,70 289,70"></polygon>
+                                <ellipse class="tree-slide__ground" cx="300" cy="752" rx="230" ry="18"></ellipse>
+                                <rect class="tree-slide__trunk" x="282" y="676" width="36" height="76" rx="4"></rect>
+                                ${this.treeTierMarkup(410, 670, 255, 4)}
+                                ${this.treeTierMarkup(300, 530, 210, 3)}
+                                ${this.treeTierMarkup(200, 400, 160, 2)}
+                                ${this.treeTierMarkup(110, 270, 105, 1)}
+                                <g class="tree-slide__lights" filter="url(#tree-glow)">${this.treeGarlandMarkup()}</g>
+                                <polygon class="tree-slide__star" filter="url(#tree-glow)" points="300,58 309,84 337,85 315,102 323,129 300,113 277,129 285,102 263,85 291,84"></polygon>
                                 <g class="tree-slide__balls"></g>
                             </svg>
                         </div>
                         <div class="tree-slide__aside">
-                            <h1 class="tree-slide__title">${title}</h1>
-                            ${subtitle ? `<p class="tree-slide__subtitle">${subtitle}</p>` : ''}
+                            <header class="tree-slide__header">
+                                <p class="tree-slide__eyebrow">Weihnachtsgrüße</p>
+                                <h1 class="tree-slide__title">${title}</h1>
+                                ${subtitle ? `<p class="tree-slide__subtitle">${subtitle}</p>` : ''}
+                            </header>
                             <figure class="tree-card" aria-live="polite">
+                                <span class="tree-card__mark" aria-hidden="true">“</span>
                                 <blockquote class="tree-card__text"></blockquote>
                                 <figcaption class="tree-card__name"></figcaption>
+                                <div class="tree-card__progress" aria-hidden="true"></div>
                             </figure>
-                            ${count === 0
-                                ? '<p class="tree-slide__hint">Noch hängen hier keine Grüße – schick uns deinen!</p>'
-                                : `<p class="tree-slide__count">${count} ${count === 1 ? 'Gruß hängt' : 'Grüße hängen'} am Baum</p>`}
+                            <footer class="tree-slide__footer">
+                                ${qr ? `<div class="tree-qr">${qr}</div>` : ''}
+                                <div class="tree-slide__cta">
+                                    ${qr ? `<p class="tree-slide__cta-title">${qrLabel}</p><p class="tree-slide__cta-text">Code scannen und mitmachen</p>` : ''}
+                                    <p class="tree-slide__count">${countText}</p>
+                                </div>
+                            </footer>
                         </div>
                     </div>
                 `;
             },
 
             treeBallMarkup(greeting, point, color, index) {
-                const stringLength = 24 + (index % 3) * 8;
-                const radius = 25;
+                const stringLength = 22 + (index % 3) * 9;
+                const radius = 24;
                 const centerY = stringLength + radius;
                 const initial = this.escapeHtml((greeting.name || '?').trim().charAt(0).toUpperCase());
 
                 return `
-                    <g class="tree-ball" transform="translate(${point.x} ${point.y})" data-index="${index}">
+                    <g class="tree-ball" transform="translate(${point.x} ${point.y})" data-index="${index}" style="--ball-color:${color}">
                         <g class="tree-ball__drop">
                             <g class="tree-ball__swing" style="animation-delay:-${(index * 0.7).toFixed(1)}s">
                                 <line class="tree-ball__string" x1="0" y1="0" x2="0" y2="${stringLength}"></line>
                                 <g class="tree-ball__orb" style="transform-origin:0px ${centerY}px">
+                                    <circle class="tree-ball__halo" cx="0" cy="${centerY}" r="${radius + 10}"></circle>
                                     <rect class="tree-ball__cap" x="-6" y="${stringLength - 4}" width="12" height="8" rx="2"></rect>
-                                    <circle cx="0" cy="${centerY}" r="${radius}" fill="${color}"></circle>
+                                    <circle class="tree-ball__body" cx="0" cy="${centerY}" r="${radius}" fill="${color}"></circle>
                                     <circle cx="0" cy="${centerY}" r="${radius}" fill="url(#tree-ball-shine)"></circle>
                                     <text class="tree-ball__initial" x="0" y="${centerY}" dy="0.35em">${initial}</text>
                                 </g>
@@ -887,6 +937,7 @@ if ($isPreview) {
                 const greetings = tree.greetings || [];
                 const layer = slideEl.querySelector('.tree-slide__balls');
                 const card = slideEl.querySelector('.tree-card');
+                const progress = slideEl.querySelector('.tree-card__progress');
                 const timers = [];
                 const animations = [];
                 const handle = {
@@ -912,21 +963,21 @@ if ($isPreview) {
                 const count = Math.min(Math.max(1, tree.visible_balls || 6), greetings.length, this.treeHangPoints.length);
                 const cursor = (this.state.treeCursor[slideId] || 0) % greetings.length;
                 const batch = Array.from({ length: count }, (_, i) => greetings[(cursor + i) % greetings.length]);
+                const colorOf = (i) => this.treeBallColors[(cursor + i) % this.treeBallColors.length];
                 this.state.treeCursor[slideId] = (cursor + count) % greetings.length;
 
                 const points = this.pickTreePoints(count, this.state.treeLastPoints[slideId] || []);
                 this.state.treeLastPoints[slideId] = points;
 
                 layer.innerHTML = batch
-                    .map((greeting, i) => this.treeBallMarkup(
-                        greeting,
-                        this.treeHangPoints[points[i]],
-                        this.treeBallColors[(cursor + i) % this.treeBallColors.length],
-                        i
-                    ))
+                    .map((greeting, i) => this.treeBallMarkup(greeting, this.treeHangPoints[points[i]], colorOf(i), i))
                     .join('');
+                if (progress) {
+                    progress.innerHTML = batch.map(() => '<span></span>').join('');
+                }
 
                 const balls = Array.from(layer.querySelectorAll('.tree-ball'));
+                const dots = progress ? Array.from(progress.children) : [];
                 const animate = (el, frames, options) => {
                     const animation = el.animate(frames, options);
                     animations.push(animation);
@@ -941,11 +992,11 @@ if ($isPreview) {
                         ? [{ opacity: 0 }, { opacity: 1 }]
                         : [
                             { transform: 'translateY(-260px)', opacity: 0 },
-                            { transform: 'translateY(14px)', opacity: 1, offset: 0.7 },
+                            { transform: 'translateY(12px)', opacity: 1, offset: 0.7 },
                             { transform: 'translateY(0)', opacity: 1 },
                         ], {
                         duration: introMs - 300,
-                        delay: i * 60,
+                        delay: i * 70,
                         easing: 'cubic-bezier(.25,.8,.35,1)',
                         fill: 'backwards',
                     });
@@ -961,11 +1012,16 @@ if ($isPreview) {
                 batch.forEach((greeting, i) => {
                     timers.push(setTimeout(() => {
                         balls.forEach((ball) => ball.classList.toggle('is-active', ball === balls[i]));
+                        dots.forEach((dot, d) => {
+                            dot.classList.toggle('is-active', d === i);
+                            dot.classList.toggle('is-done', d < i);
+                        });
                         card.classList.remove('is-visible');
                         timers.push(setTimeout(() => {
                             textEl.innerHTML = this.escapeHtml(greeting.text).replace(/\n/g, '<br>');
-                            nameEl.textContent = greeting.name ? `– ${greeting.name}` : '';
-                            card.style.setProperty('--tree-card-accent', this.treeBallColors[(cursor + i) % this.treeBallColors.length]);
+                            nameEl.textContent = greeting.name || '';
+                            card.style.setProperty('--tree-card-accent', colorOf(i));
+                            card.classList.toggle('tree-card--long', (greeting.text || '').length > 90);
                             card.classList.add('is-visible');
                         }, 250));
                     }, introMs + i * perGreeting));
