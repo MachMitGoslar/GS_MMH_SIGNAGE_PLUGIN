@@ -140,10 +140,20 @@ tabs:
                 when:
                   template_preset: event_focus
 
+              template_recurrence:
+                label: Wiederholung
+                type: text
+                maxlength: 60
+                width: 1/2
+                placeholder: z.B. jeden Donnerstag
+                help: Wird statt des Datums als „Wann“ gezeigt. Ein gesetztes Datum erscheint dann als „ab …“.
+                when:
+                  template_preset: event_focus
+
               template_date:
                 label: Datum
                 type: date
-                width: 1/4
+                width: 1/2
                 display: DD.MM.YYYY
                 when:
                   template_preset: event_focus
@@ -514,6 +524,13 @@ tabs:
                   bg_type: video
                 help: Video wird lautlos im Hintergrund wiederholt
 
+              bg_color:
+                label: Hintergrundfarbe
+                type: color
+                default: "#000000"
+                when:
+                  bg_type: color
+
               bg_position:
                 label: Position
                 type: select
@@ -553,12 +570,16 @@ tabs:
                 type: info
                 label: Farbüberlagerung
                 theme: info
-                text: Fügen Sie eine Farbüberlagerung über Bild- oder Video-Hintergründe hinzu, um die Textlesbarkeit zu verbessern
+                text: Fügen Sie eine Farbüberlagerung über Bild- oder Video-Hintergründe hinzu, um die Textlesbarkeit zu verbessern. Nur bei eigenem Bild oder Video – sonst gelten die Kanal-Einstellungen bzw. die gewählte Volltonfarbe.
 
               overlay_enabled:
                 label: Overlay aktivieren
                 type: toggle
                 default: true
+                when:
+                  bg_type:
+                    - image
+                    - video
 
               overlay_color:
                 label: Overlay-Farbe
@@ -566,6 +587,9 @@ tabs:
                 default: "#000000"
                 when:
                   overlay_enabled: true
+                  bg_type:
+                    - image
+                    - video
 
               overlay_opacity:
                 label: Deckkraft
@@ -577,6 +601,9 @@ tabs:
                 after: "%"
                 when:
                   overlay_enabled: true
+                  bg_type:
+                    - image
+                    - video
                 help: 0% = transparent, 100% = vollständig deckend
 
               overlay_gradient:
@@ -584,15 +611,33 @@ tabs:
                 type: select
                 options:
                   none: Kein Verlauf (Einfarbig)
-                  to-top: Nach oben verblassen
-                  to-bottom: Nach unten verblassen
-                  to-left: Nach links verblassen
-                  to-right: Nach rechts verblassen
-                  radial: Radial (von Mitte)
+                  to-top: Nach oben verblassen (Farbe unten)
+                  to-bottom: Nach unten verblassen (Farbe oben)
+                  to-left: Nach links verblassen (Farbe rechts)
+                  to-right: Nach rechts verblassen (Farbe links)
+                  radial: Radial (Mitte frei, Farbe am Rand)
                 default: none
                 when:
                   overlay_enabled: true
+                  bg_type:
+                    - image
+                    - video
                 help: Erzeugt einen Verlaufs-Overlay-Effekt
+
+              overlay_strength:
+                label: Verlaufsstärke
+                type: range
+                min: 10
+                max: 100
+                step: 5
+                default: 60
+                after: "%"
+                when:
+                  overlay_enabled: true
+                  bg_type:
+                    - image
+                    - video
+                help: Wie weit die Farbe ins Bild reicht, bevor sie ganz ausläuft. 100% = über die ganze Fläche.
 
   usage:
     label: Verwendung
