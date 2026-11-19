@@ -508,6 +508,14 @@ body[data-orientation='vertical'] .template-slide__compact {
   overflow-wrap: break-word;
 }
 
+.template-slide__date-note {
+  display: block;
+  margin-top: 0.3em;
+  font-size: 0.55em;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
 .template-slide__body {
   align-self: end;
   display: grid;

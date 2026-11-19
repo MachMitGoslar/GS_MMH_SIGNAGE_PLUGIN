@@ -85,6 +85,30 @@ columns:
             after: "%"
             help: 0% = kein Overlay, 100% = Volltonfarbe
 
+          default_overlay_gradient:
+            label: Standard-Verlauf
+            type: select
+            width: 1/2
+            options:
+              none: Kein Verlauf (Einfarbig)
+              to-top: Nach oben verblassen (Farbe unten)
+              to-bottom: Nach unten verblassen (Farbe oben)
+              to-left: Nach links verblassen (Farbe rechts)
+              to-right: Nach rechts verblassen (Farbe links)
+              radial: Radial (Mitte frei, Farbe am Rand)
+            default: none
+
+          default_overlay_strength:
+            label: Standard-Verlaufsstärke
+            type: range
+            width: 1/2
+            min: 10
+            max: 100
+            step: 5
+            default: 60
+            after: "%"
+            help: Wie weit die Farbe ins Bild reicht
+
       slides:
         type: fields
         fields:

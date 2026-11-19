@@ -73,8 +73,16 @@ columns:
             empty: Keine Kanäle vorhanden - erstellen Sie zuerst einen
 
           channel_schedule:
-            label: Zeitbasierter Kanalplan
+            label: Kanalplan
             type: structure
+            columns:
+              channel: true
+              mode: true
+              days: true
+              date_start: true
+              date_end: true
+              time_start: true
+              time_end: true
             fields:
               channel:
                 label: Kanal
@@ -84,20 +92,52 @@ columns:
                 text: "{{ page.title }}"
                 width: 1/2
                 required: true
+              mode:
+                label: Modus
+                type: select
+                options:
+                  replace: Ersetzt Primärkanal
+                  add: Ergänzt (Folien anhängen)
+                default: replace
+                required: true
+                width: 1/2
+              days:
+                label: Wochentage
+                type: checkboxes
+                columns: 7
+                options:
+                  mon: Mo
+                  tue: Di
+                  wed: Mi
+                  thu: Do
+                  fri: Fr
+                  sat: Sa
+                  sun: So
+                help: Leer = jeden Tag
+              date_start:
+                label: Ab Datum
+                type: date
+                display: DD.MM.YYYY
+                width: 1/4
+              date_end:
+                label: Bis Datum
+                type: date
+                display: DD.MM.YYYY
+                width: 1/4
               time_start:
-                label: Startzeit
+                label: Von
                 type: time
                 width: 1/4
-                required: true
                 step: 15
               time_end:
-                label: Endzeit
+                label: Bis
                 type: time
                 width: 1/4
-                required: true
                 step: 15
-            help: Automatischer Kanalwechsel zu bestimmten Zeiten (z.B. Morgen- vs. Nachmittagsinhalte). Zeiten dürfen sich nicht überschneiden.
-            max: 10
+            help: |
+              Leere Felder schränken nicht ein: ohne Wochentage = jeden Tag, ohne Datum = immer, ohne Uhrzeit = ganztägig. Für einen einzelnen Tag beide Datumsfelder gleich setzen.
+              Die Reihenfolge ist die Priorität: Der erste passende „Ersetzt“-Eintrag ersetzt den Primärkanal, alle passenden „Ergänzt“-Einträge hängen ihre Folien hinten an.
+            max: 20
 
           active_times:
             label: Aktive Zeiten
