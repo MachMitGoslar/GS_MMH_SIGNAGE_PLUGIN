@@ -306,7 +306,7 @@ if ($isPreview) {
                         type: 'image',
                         image: {
                             url: slide.template.image.url,
-                            position: 'center',
+                            position: slide.template.image.position || 'center',
                             size: 'cover',
                         },
                         overlay: {

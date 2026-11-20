@@ -56,11 +56,17 @@ tabs:
                   - "1/4, 3/4"
                   - "3/4, 1/4"
                 fieldsets:
-                  - signage-text
-                  - image
-                  - list
-                  - quote
-                  - line
+                  signage-text: true
+                  # Kirbys Bild-Block, Bild aus der Mediathek (Feld aus mmh-site)
+                  image:
+                    extends: blocks/image
+                    fields:
+                      image:
+                        extends: fields/mediathek-image
+                        label: Bild
+                  list: true
+                  quote: true
+                  line: true
                 settings:
                   fields:
                     vertical_align:
@@ -221,18 +227,15 @@ tabs:
                     - compact_info
 
               template_image:
+                extends: fields/mediathek-image
                 label: Hintergrundbild
-                type: files
-                max: 1
-                layout: cards
-                size: large
-                uploads:
-                  template: blocks/image
-                accepts:
-                  - image/jpeg
-                  - image/png
-                  - image/webp
                 help: Wird für Template-Folien bevorzugt. Falls leer, greift der allgemeine Folien- oder Kanal-Hintergrund.
+
+              template_focus:
+                label: Bildausschnitt
+                type: image-focus
+                image: template_image
+                help: Leer = Fokuspunkt aus der Mediathek.
             when:
               slide_type: template
 
@@ -501,15 +504,16 @@ tabs:
                 default: none
 
               bg_image:
+                extends: fields/mediathek-image
                 label: Hintergrundbild
-                type: files
-                max: 1
-                layout: cards
-                size: large
-                accepts:
-                  - image/jpeg
-                  - image/png
-                  - image/webp
+                when:
+                  bg_type: image
+
+              bg_focus:
+                label: Bildausschnitt für diese Folie
+                type: image-focus
+                image: bg_image
+                help: Leer = Fokuspunkt aus der Mediathek. Greift bei Position „Fokuspunkt“.
                 when:
                   bg_type: image
 
@@ -535,7 +539,7 @@ tabs:
                 label: Position
                 type: select
                 options:
-                  focus: Bild-Fokuspunkt verwenden
+                  focus: Fokuspunkt (Folie bzw. Mediathek)
                   center: Mitte
                   top: Oben
                   bottom: Unten
