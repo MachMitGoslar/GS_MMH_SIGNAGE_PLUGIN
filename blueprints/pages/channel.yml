@@ -45,14 +45,17 @@ columns:
             text: Dieser Hintergrund wird für Folien verwendet, die keine eigenen Hintergrundmedien haben.
 
           default_bg_image:
+            extends: fields/mediathek-image
             label: Standard-Hintergrundbild
-            type: files
-            max: 1
-            layout: cards
             width: 1/2
-            uploads:
-              template: blocks/image
             help: Fallback-Hintergrund für Folien ohne eigene Medien
+
+          default_bg_focus:
+            label: Bildausschnitt
+            type: image-focus
+            image: default_bg_image
+            width: 1/2
+            help: Leer = Fokuspunkt aus der Mediathek.
 
           default_bg_video:
             label: Standard-Hintergrundvideo

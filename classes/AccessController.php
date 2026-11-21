@@ -1515,7 +1515,7 @@ class AccessController
             if ($bgImage) {
                 $backgroundData['image'] = [
                     'url' => $bgImage->url(),
-                    'position' => self::backgroundPosition($bgImage, $slide->bg_position()->value()),
+                    'position' => self::backgroundPosition($bgImage, $slide->bg_position()->value(), $slide->bg_focus()->value()),
                     'size' => $slide->bg_size()->value() ?? 'cover',
                 ];
             }
@@ -1587,7 +1587,7 @@ class AccessController
             $background['overlay']['enabled'] = $overlayOpacity > 0;
             $background['image'] = [
                 'url' => $bgImage->url(),
-                'position' => self::backgroundPosition($bgImage),
+                'position' => self::backgroundPosition($bgImage, null, $channel->default_bg_focus()->value()),
                 'size' => 'cover',
             ];
         }
@@ -1605,10 +1605,20 @@ class AccessController
         return $background;
     }
 
-    private static function backgroundPosition($image, ?string $position = null): string
+    /**
+     * CSS background-position of an image. The focus point of this usage
+     * (`image-focus` field) wins over the focus stored on the file in the
+     * Mediathek; explicit positions (top, left …) win over both.
+     */
+    public static function backgroundPosition($image, ?string $position = null, ?string $focusOverride = null): string
     {
         $position = trim((string) $position);
-        $focus = $image->focus()->isNotEmpty() ? (string) $image->focus() : null;
+        $override = trim((string) $focusOverride);
+        $focus = match (true) {
+            preg_match('/^\d{1,3}(\.\d+)?% \d{1,3}(\.\d+)?%$/', $override) === 1 => $override,
+            $image->focus()->isNotEmpty() => (string) $image->focus(),
+            default => null,
+        };
 
         if ($focus !== null && ($position === '' || $position === 'center' || $position === 'focus')) {
             return $focus;
@@ -1734,7 +1744,7 @@ class AccessController
                             $image = $block->image()->toFile();
                             if ($image) {
                                 $blockData['src'] = $image->url();
-                                $blockData['alt'] = $block->alt()->value();
+                                $blockData['alt'] = $block->alt()->value() ?: $image->alt()->value();
                                 $blockData['caption'] = $block->caption()->value();
                             }
 
@@ -1792,6 +1802,7 @@ class AccessController
             'image' => $image ? [
                 'url' => $image->url(),
                 'alt' => $image->alt()->value() ?: $slide->template_title()->value(),
+                'position' => self::backgroundPosition($image, null, $slide->template_focus()->value()),
             ] : null,
         ];
     }
