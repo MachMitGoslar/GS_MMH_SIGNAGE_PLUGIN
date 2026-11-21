@@ -1371,11 +1371,25 @@ class AccessController
             ];
         }
 
-        // Get active channel
-        $channel = !empty($preview['channel'])
-            ? kirby()->page(self::PREVIEW_CHANNEL_ROOT . $preview['channel'])
-            : $screen->activeChannel();
-        if (!$channel) {
+        // Active channels: the base channel first, then every channel a
+        // matching "add" schedule entry combines with it.
+        $previewSlide = !empty($preview['slide'])
+            ? kirby()->page(SlideLibrary::POOL_ID . '/' . $preview['slide'])
+            : null;
+
+        if (!empty($preview['channel'])) {
+            $previewChannel = kirby()->page(self::PREVIEW_CHANNEL_ROOT . $preview['channel']);
+            $channels = $previewChannel ? [$previewChannel] : [];
+        } elseif ($previewSlide) {
+            // A single slide is previewed with the background of a channel it
+            // belongs to – independent of the host screen's channel setup.
+            $channels = array_slice(SlideLibrary::channelsUsing($previewSlide)->values(), 0, 1);
+        } else {
+            $channels = ChannelSchedule::resolve($screen);
+        }
+
+        $channel = $channels[0] ?? null;
+        if (!$channel && !$previewSlide) {
             return [
                 'status' => 'error',
                 'message' => 'No channel assigned',
@@ -1383,16 +1397,24 @@ class AccessController
         }
 
         // Get slides from channel
-        if (!empty($preview['slide'])) {
-            $previewSlide = kirby()->page(SlideLibrary::POOL_ID . '/' . $preview['slide']);
-            $slides = $previewSlide ? [$previewSlide] : [];
-        } else {
-            $slides = SlideLibrary::activeSlidesOf($channel);
-        }
         $slidesData = [];
 
-        foreach ($slides as $slide) {
-            $slidesData[] = self::getSlideData($slide);
+        if ($previewSlide) {
+            $slidesData[] = self::getSlideData($previewSlide);
+        } else {
+            $seen = [];
+            foreach ($channels as $index => $slideChannel) {
+                foreach (SlideLibrary::activeSlidesOf($slideChannel) as $slide) {
+                    if (isset($seen[$slide->id()])) {
+                        continue;
+                    }
+                    $seen[$slide->id()] = true;
+
+                    // Slides from combined channels keep their own channel's
+                    // default background.
+                    $slidesData[] = self::getSlideData($slide, $index > 0 ? $slideChannel : null);
+                }
+            }
         }
 
         return [
@@ -1403,9 +1425,10 @@ class AccessController
                 'orientation' => $screen->orientation()->value(),
             ],
             'channel' => [
-                'title' => $channel->title()->value(),
+                'title' => $channel ? $channel->title()->value() : '',
+                'combined' => array_map(fn ($c) => $c->title()->value(), array_slice($channels, 1)),
                 'slides_count' => count($slidesData),
-                'background' => self::getChannelBackgroundData($channel),
+                'background' => $channel ? self::getChannelBackgroundData($channel) : self::emptyChannelBackground(),
             ],
             'slides' => $slidesData,
         ];
@@ -1425,7 +1448,7 @@ class AccessController
      * @param \Kirby\Cms\Page $slide
      * @return array Slide data
      */
-    private static function getSlideData($slide): array
+    private static function getSlideData($slide, $channel = null): array
     {
         $slideType = $slide->slide_type()->value();
 
@@ -1436,6 +1459,7 @@ class AccessController
             'transition' => $slide->transition()->value() ?? 'fade',
             'transition_duration' => (float) ($slide->transition_duration()->value() ?? 1),
             'background' => self::getBackgroundData($slide),
+            'channel_background' => $channel ? self::getChannelBackgroundData($channel) : null,
             'content_position' => $slide->content_position()->value() ?? 'center',
         ];
 
@@ -1491,7 +1515,7 @@ class AccessController
             if ($bgImage) {
                 $backgroundData['image'] = [
                     'url' => $bgImage->url(),
-                    'position' => self::backgroundPosition($bgImage, $slide->bg_position()->value()),
+                    'position' => self::backgroundPosition($bgImage, $slide->bg_position()->value(), $slide->bg_focus()->value()),
                     'size' => $slide->bg_size()->value() ?? 'cover',
                 ];
             }
@@ -1504,7 +1528,10 @@ class AccessController
                 ];
             }
         } elseif ($bgType === 'color') {
-            $backgroundData['color'] = $slide->overlay_color()->value() ?? '#000000';
+            // Own field since the overlay split; older slides stored the solid
+            // color in overlay_color.
+            $backgroundData['color'] = $slide->bg_color()->value()
+                ?: ($slide->overlay_color()->value() ?: '#000000');
         }
 
         // Overlay settings only apply to media backgrounds. A solid color should
@@ -1515,13 +1542,27 @@ class AccessController
                 'enabled' => true,
                 'color' => $slide->overlay_color()->value() ?? '#000000',
                 'opacity' => self::overlayOpacity($slide->overlay_opacity()->value(), 40),
-                'gradient' => $slide->overlay_gradient()->value() ?? 'none',
+                'gradient' => $slide->overlay_gradient()->value() ?: 'none',
+                'strength' => self::overlayStrength($slide->overlay_strength()->value()),
             ];
         } else {
             $backgroundData['overlay'] = ['enabled' => false];
         }
 
         return $backgroundData;
+    }
+
+    /**
+     * Neutral background when no channel is available (slide preview of a
+     * slide that is not used in any channel yet).
+     */
+    private static function emptyChannelBackground(): array
+    {
+        return [
+            'type' => 'color',
+            'background_color' => '#000000',
+            'overlay' => ['enabled' => false],
+        ];
     }
 
     private static function getChannelBackgroundData($channel): array
@@ -1535,7 +1576,8 @@ class AccessController
                 'enabled' => false,
                 'color' => $channel->default_overlay_color()->value() ?: '#000000',
                 'opacity' => $overlayOpacity,
-                'gradient' => 'none',
+                'gradient' => $channel->default_overlay_gradient()->value() ?: 'none',
+                'strength' => self::overlayStrength($channel->default_overlay_strength()->value()),
             ],
         ];
 
@@ -1545,7 +1587,7 @@ class AccessController
             $background['overlay']['enabled'] = $overlayOpacity > 0;
             $background['image'] = [
                 'url' => $bgImage->url(),
-                'position' => self::backgroundPosition($bgImage),
+                'position' => self::backgroundPosition($bgImage, null, $channel->default_bg_focus()->value()),
                 'size' => 'cover',
             ];
         }
@@ -1563,10 +1605,20 @@ class AccessController
         return $background;
     }
 
-    private static function backgroundPosition($image, ?string $position = null): string
+    /**
+     * CSS background-position of an image. The focus point of this usage
+     * (`image-focus` field) wins over the focus stored on the file in the
+     * Mediathek; explicit positions (top, left …) win over both.
+     */
+    public static function backgroundPosition($image, ?string $position = null, ?string $focusOverride = null): string
     {
         $position = trim((string) $position);
-        $focus = $image->focus()->isNotEmpty() ? (string) $image->focus() : null;
+        $override = trim((string) $focusOverride);
+        $focus = match (true) {
+            preg_match('/^\d{1,3}(\.\d+)?% \d{1,3}(\.\d+)?%$/', $override) === 1 => $override,
+            $image->focus()->isNotEmpty() => (string) $image->focus(),
+            default => null,
+        };
 
         if ($focus !== null && ($position === '' || $position === 'center' || $position === 'focus')) {
             return $focus;
@@ -1577,6 +1629,18 @@ class AccessController
         }
 
         return '50% 50%';
+    }
+
+    /**
+     * How far a gradient overlay reaches into the image (10–100 %).
+     */
+    private static function overlayStrength($value, int $fallback = 60): int
+    {
+        if ($value === null || $value === '') {
+            return $fallback;
+        }
+
+        return max(10, min(100, (int) $value));
     }
 
     private static function overlayOpacity($value, int $fallback): int
@@ -1594,14 +1658,18 @@ class AccessController
             'screen:' . $screen->modified('U'),
             'assigned:' . $screen->assigned_channel()->value(),
             'schedule:' . sha1($screen->channel_schedule()->value()),
+            // Changes whenever the schedule switches channels, so the player
+            // reloads at that moment even if no content was edited.
+            'active:' . (empty($preview['channel']) && empty($preview['slide']) ? implode(',', ChannelSchedule::resolveIds(
+                (string) $screen->assigned_channel()->value(),
+                ChannelSchedule::entries($screen),
+                ChannelSchedule::now(),
+            )) : ''),
             'times:' . sha1($screen->active_times()->value()),
             'standby:' . sha1($screen->standby_mode()->value() . '|' . $screen->standby_message()->value() . '|' . $screen->standby_image()->value()),
         ];
 
-        $channelIds = [$screen->assigned_channel()->value()];
-        foreach ($screen->channel_schedule()->toStructure() as $entry) {
-            $channelIds[] = $entry->channel()->value();
-        }
+        $channelIds = ChannelSchedule::referencedIds($screen);
 
         if (!empty($preview['channel'])) {
             $channelIds[] = self::PREVIEW_CHANNEL_ROOT . $preview['channel'];
@@ -1676,7 +1744,7 @@ class AccessController
                             $image = $block->image()->toFile();
                             if ($image) {
                                 $blockData['src'] = $image->url();
-                                $blockData['alt'] = $block->alt()->value();
+                                $blockData['alt'] = $block->alt()->value() ?: $image->alt()->value();
                                 $blockData['caption'] = $block->caption()->value();
                             }
 
@@ -1727,12 +1795,14 @@ class AccessController
             'highlight' => $slide->template_highlight()->value(),
             'footer' => $slide->template_footer()->value(),
             'date' => $slide->template_date()->value(),
+            'recurrence' => trim((string) $slide->template_recurrence()->value()),
             'time' => $slide->template_time()->value(),
             'end_time' => $slide->template_end_time()->value(),
             'location' => $slide->template_location()->value(),
             'image' => $image ? [
                 'url' => $image->url(),
                 'alt' => $image->alt()->value() ?: $slide->template_title()->value(),
+                'position' => self::backgroundPosition($image, null, $slide->template_focus()->value()),
             ] : null,
         ];
     }

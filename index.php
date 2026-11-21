@@ -20,6 +20,7 @@ require_once __DIR__ . '/classes/ICalParser.php';
 require_once __DIR__ . '/classes/SlideLibrary.php';
 require_once __DIR__ . '/classes/AccessController.php';
 require_once __DIR__ . '/classes/ChristmasTree.php';
+require_once __DIR__ . '/classes/ChannelSchedule.php';
 
 Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
     /**
@@ -414,88 +415,33 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
                 return false;
             }
 
-            $timezone = new DateTimeZone(kirby()->option('date.timezone', 'Europe/Berlin'));
-            $now = new DateTime('now', $timezone);
-            $currentDay = strtolower($now->format('D')); // mon, tue, wed, etc.
-            $activeTimes = $this->active_times()->toStructure();
-
-            foreach ($activeTimes as $timeRange) {
-                // Check if current day is in the allowed days list
-                $daysValue = $timeRange->days()->value();
-                if ($daysValue) {
-                    $allowedDays = array_map('trim', explode(',', strtolower($daysValue)));
-                    if (!in_array($currentDay, $allowedDays)) {
-                        continue; // Skip this time range if today is not an allowed day
-                    }
-                }
-
-                // Parse time values (handle both H:i and H:i:s formats)
-                $startValue = $timeRange->start()->value();
-                $endValue = $timeRange->end()->value();
-
-                $start = DateTime::createFromFormat('H:i:s', $startValue, $timezone);
-                if (!$start) {
-                    $start = DateTime::createFromFormat('H:i', $startValue, $timezone);
-                }
-
-                $end = DateTime::createFromFormat('H:i:s', $endValue, $timezone);
-                if (!$end) {
-                    $end = DateTime::createFromFormat('H:i', $endValue, $timezone);
-                }
-
-                if (!$start || !$end) {
-                    continue;
-                }
-
-                // Set the same date for comparison
-                $start->setDate($now->format('Y'), $now->format('m'), $now->format('d'));
-                $end->setDate($now->format('Y'), $now->format('m'), $now->format('d'));
-
-                if ($now >= $start && $now <= $end) {
-                    return true;
-                }
-            }
-
-            return false;
+            return ChannelSchedule::isWithinActiveTimes(
+                $this->active_times()->yaml(),
+                ChannelSchedule::now(),
+            );
         },
+        // Base channel the screen plays right now (first matching "replace"
+        // schedule entry, otherwise the primary channel).
         'activeChannel' => function () {
-            if ($this->intendedTemplate()->name() === 'screen') {
-                // Check for time-based channel schedule
-                $schedule = $this->channel_schedule()->toStructure();
-                $timezone = new DateTimeZone(kirby()->option('date.timezone', 'Europe/Berlin'));
-                $now = new DateTime('now', $timezone);
-
-                foreach ($schedule as $entry) {
-                    $start = DateTime::createFromFormat('H:i', $entry->time_start()->value(), $timezone);
-                    $end = DateTime::createFromFormat('H:i', $entry->time_end()->value(), $timezone);
-
-                    if (!$start || !$end) {
-                        continue;
-                    }
-
-                    $start->setDate($now->format('Y'), $now->format('m'), $now->format('d'));
-                    $end->setDate($now->format('Y'), $now->format('m'), $now->format('d'));
-
-                    if ($now >= $start && $now <= $end) {
-                        $channelSlug = $entry->channel()->value();
-
-                        return kirby()->page('signage/channels/' . $channelSlug);
-                    }
-                }
-
-                // Fallback to assigned channel
-                $channelId = $this->assigned_channel()->value();
-
-                return kirby()->page($channelId);
+            if ($this->intendedTemplate()->name() !== 'screen') {
+                return null;
             }
 
-            return null;
+            return ChannelSchedule::resolve($this)[0] ?? null;
+        },
+        // All channels played right now: base channel plus every matching
+        // "add" schedule entry.
+        'activeChannels' => function () {
+            if ($this->intendedTemplate()->name() !== 'screen') {
+                return [];
+            }
+
+            return ChannelSchedule::resolve($this);
         },
     ],
 
     /**
      * Hooks
-     * Validate channel schedule to prevent overlaps
      */
     'hooks' => [
         // DreamForm action for the christmas tree (greetings → moderation → tree).
@@ -504,35 +450,6 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
             if (class_exists(\tobimori\DreamForm\DreamForm::class)) {
                 require_once __DIR__ . '/classes/ChristmasTreeAction.php';
                 \tobimori\DreamForm\DreamForm::register(ChristmasTreeAction::class);
-            }
-        },
-        'page.update:before' => function ($page, $values, $strings) {
-            if ($page->intendedTemplate()->name() === 'screen') {
-                // Validate channel schedule for overlaps
-                if (isset($values['channel_schedule'])) {
-                    $schedule = $values['channel_schedule'];
-
-                    if (is_string($schedule)) {
-                        $schedule = \Kirby\Data\Yaml::decode($schedule);
-                    }
-
-                    if (is_array($schedule) && count($schedule) > 1) {
-                        // Check for overlaps
-                        for ($i = 0; $i < count($schedule); $i++) {
-                            for ($j = $i + 1; $j < count($schedule); $j++) {
-                                $start1 = DateTime::createFromFormat('H:i', $schedule[$i]['time_start'] ?? '00:00');
-                                $end1 = DateTime::createFromFormat('H:i', $schedule[$i]['time_end'] ?? '00:00');
-                                $start2 = DateTime::createFromFormat('H:i', $schedule[$j]['time_start'] ?? '00:00');
-                                $end2 = DateTime::createFromFormat('H:i', $schedule[$j]['time_end'] ?? '00:00');
-
-                                // Check for overlap
-                                if ($start1 < $end2 && $end1 > $start2) {
-                                    throw new Exception('Channel schedule times cannot overlap. Please adjust the time ranges.');
-                                }
-                            }
-                        }
-                    }
-                }
             }
         },
         'page.delete:before' => function ($page) {

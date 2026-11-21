@@ -23,7 +23,7 @@ if ($isPreview) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -306,7 +306,7 @@ if ($isPreview) {
                         type: 'image',
                         image: {
                             url: slide.template.image.url,
-                            position: 'center',
+                            position: slide.template.image.position || 'center',
                             size: 'cover',
                         },
                         overlay: {
@@ -318,7 +318,11 @@ if ($isPreview) {
                     };
                 }
 
-                return this.state.contentData?.channel?.background || slideBackground;
+                // Slides from a combined ("add") channel bring that channel's
+                // default background along.
+                return slide?.channel_background
+                    || this.state.contentData?.channel?.background
+                    || slideBackground;
             },
 
             applyTextTheme(slideEl, background) {
@@ -429,24 +433,52 @@ if ($isPreview) {
                 if (background.overlay && background.overlay.enabled) {
                     const overlay = document.createElement('div');
                     overlay.className = 'slide-overlay';
-                    
-                    const opacity = Math.max(0, Math.min(1, Number(background.overlay.opacity || 0) / 100));
-                    const color = this.normalizeHexColor(background.overlay.color) || '#000000';
-                    const gradient = background.overlay.gradient || 'none';
-                    
-                    if (gradient === 'radial') {
-                        const transparentColor = this.hexToRgba(color, 0);
-                        const opaqueColor = this.hexToRgba(color, opacity);
-                        overlay.style.background = `radial-gradient(circle at center, ${transparentColor}, ${opaqueColor})`;
-                    } else if (gradient !== 'none') {
-                        const transparentColor = this.hexToRgba(color, 0);
-                        const opaqueColor = this.hexToRgba(color, opacity);
-                        overlay.style.background = `linear-gradient(${gradient}, ${transparentColor}, ${opaqueColor})`;
-                    } else {
-                        overlay.style.backgroundColor = this.hexToRgba(color, opacity);
-                    }
+                    overlay.style.background = this.buildOverlayBackground(background.overlay);
                     slideEl.appendChild(overlay);
                 }
+            },
+
+            /**
+             * CSS background for a slide overlay.
+             *
+             * Linear directions follow the panel labels: "to-top" („Nach oben
+             * verblassen") keeps the full color at the bottom and fades out
+             * towards the top. `strength` (10–100) is how far the color reaches
+             * into the image before it is fully transparent.
+             */
+            buildOverlayBackground(overlay) {
+                const opacity = Math.max(0, Math.min(1, Number(overlay.opacity || 0) / 100));
+                const color = this.normalizeHexColor(overlay.color) || '#000000';
+                const gradient = overlay.gradient || 'none';
+                const rawStrength = Number(overlay.strength);
+                const strength = Number.isFinite(rawStrength) && rawStrength > 0
+                    ? Math.max(10, Math.min(100, rawStrength))
+                    : 100;
+
+                const full = this.hexToRgba(color, opacity);
+                const half = this.hexToRgba(color, opacity * 0.5);
+                const clear = this.hexToRgba(color, 0);
+
+                if (gradient === 'radial') {
+                    // Transparent centre, the edge reaches `strength` % inwards.
+                    const inner = 100 - strength;
+                    const middle = 100 - strength / 2;
+
+                    return `radial-gradient(ellipse farthest-corner at center, ${clear} ${inner}%, ${half} ${middle}%, ${full} 100%)`;
+                }
+
+                const directions = {
+                    'to-top': 'to top',
+                    'to-bottom': 'to bottom',
+                    'to-left': 'to left',
+                    'to-right': 'to right',
+                };
+
+                if (directions[gradient]) {
+                    return `linear-gradient(${directions[gradient]}, ${full} 0%, ${half} ${strength / 2}%, ${clear} ${strength}%)`;
+                }
+
+                return full;
             },
 
             /**
@@ -529,11 +561,16 @@ if ($isPreview) {
                 const time = this.escapeHtml(template?.time || '');
                 const timeLabel = this.formatTemplateTimeRange(template?.time || '', template?.end_time || '');
                 const location = this.escapeHtml(template?.location || '');
+                const recurrence = this.escapeHtml(template?.recurrence || '');
                 const hasMeta = Boolean(date || time || location);
 
                 if (preset === 'event_focus') {
                     const eventDate = shortDate || date;
                     const eventTime = timeLabel || time;
+                    const whenLabel = recurrence ? 'Wann' : 'Datum';
+                    const whenValue = recurrence
+                        ? `${recurrence}${eventDate ? `<small class="template-slide__date-note">ab ${eventDate}</small>` : ''}`
+                        : eventDate;
 
                     return `
                         <article class="template-slide template-slide--event_focus template-slide--${theme}">
@@ -541,12 +578,12 @@ if ($isPreview) {
                                 ${title ? `<h1 class="template-slide__title">${title}</h1>` : ''}
                                 ${subtitle ? `<p class="template-slide__subtitle">${subtitle}</p>` : ''}
                             </div>
-                            ${eventDate || eventTime || location ? `
+                            ${whenValue || eventTime || location ? `
                                 <dl class="template-slide__date-card">
-                                    ${eventDate ? `
+                                    ${whenValue ? `
                                         <div class="template-slide__date-item">
-                                            <dt>Datum</dt>
-                                            <dd>${eventDate}</dd>
+                                            <dt>${whenLabel}</dt>
+                                            <dd>${whenValue}</dd>
                                         </div>
                                     ` : ''}
                                     ${eventTime ? `
