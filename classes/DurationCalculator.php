@@ -4,7 +4,9 @@
  * Duration Calculator
  *
  * Calculates optimal display duration for different slide types based on content.
- * Used for automatic duration calculation when duration_mode is set to 'auto'.
+ * The channel decides how long a slide runs (a slide can be used in several
+ * channels): a duration set in the channel's slide row wins, otherwise the
+ * duration is calculated from the content.
  *
  * @package GS\MMH\Signage
  */
@@ -30,6 +32,30 @@ class DurationCalculator
     private const MAX_DURATION = 120;
 
     /**
+     * Limits for a duration set by hand in a channel (seconds)
+     */
+    public const MIN_CHANNEL_DURATION = 3;
+    public const MAX_CHANNEL_DURATION = 300;
+
+    /**
+     * Duration of a slide within a channel: the channel's value, else the
+     * calculated one.
+     *
+     * @param \Kirby\Cms\Page $slide
+     * @param \Kirby\Cms\Page|null $channel
+     */
+    public static function forChannel($slide, $channel = null): int
+    {
+        $set = $channel ? SlideLibrary::durationIn($channel, $slide) : null;
+
+        if ($set === null) {
+            return self::calculate($slide);
+        }
+
+        return max(self::MIN_CHANNEL_DURATION, min($set, self::MAX_CHANNEL_DURATION));
+    }
+
+    /**
      * Calculate total duration for a slide
      *
      * @param \Kirby\Cms\Page $slide The slide page object
@@ -37,13 +63,6 @@ class DurationCalculator
      */
     public static function calculate($slide): int
     {
-        // Check for manual override
-        if ($slide->duration_mode()->value() === 'manual') {
-            $override = (int) $slide->duration_override()->value();
-
-            return max(self::MIN_DURATION, min($override, 300)); // Allow up to 5 minutes for manual
-        }
-
         $slideType = $slide->slide_type()->value();
 
         $duration = match ($slideType) {
@@ -67,10 +86,6 @@ class DurationCalculator
      */
     public static function getCalculationDetails($slide): string
     {
-        if ($slide->duration_mode()->value() === 'manual') {
-            return 'Manual override: ' . $slide->duration_override()->value() . ' seconds';
-        }
-
         $slideType = $slide->slide_type()->value();
 
         return match ($slideType) {

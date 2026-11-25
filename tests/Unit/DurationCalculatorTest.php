@@ -10,20 +10,12 @@ class DurationCalculatorTest extends TestCase
         return new Page(['slug' => 'slide', 'content' => $content]);
     }
 
-    public function testManualOverrideIsUsed(): void
+    public function testSlideNoLongerHasItsOwnManualDuration(): void
     {
-        $slide = $this->slide(['duration_mode' => 'manual', 'duration_override' => '42']);
+        // the duration is set per channel now; old slide fields are ignored
+        $slide = $this->slide(['duration_mode' => 'manual', 'duration_override' => '42', 'slide_type' => 'something-else']);
 
-        $this->assertSame(42, DurationCalculator::calculate($slide));
-    }
-
-    public function testManualOverrideHasAFloorAndACeiling(): void
-    {
-        $short = $this->slide(['duration_mode' => 'manual', 'duration_override' => '1']);
-        $long = $this->slide(['duration_mode' => 'manual', 'duration_override' => '9999']);
-
-        $this->assertSame(5, DurationCalculator::calculate($short));
-        $this->assertSame(300, DurationCalculator::calculate($long));
+        $this->assertSame(10, DurationCalculator::calculate($slide));
     }
 
     public function testUnknownSlideTypeDefaultsToTenSeconds(): void

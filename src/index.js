@@ -16,5 +16,7 @@ panel.plugin('gs-mmh/mmh-signage-plugin', {
     onboarding_requests: OnboardingRequests,
     signage_preview: SignagePreview,
     slide_migration: SlideMigration,
+    // channel slide rows (PHP side reads old plain reference lists)
+    signage_slides: { extends: 'k-structure-field' },
   },
 });

@@ -117,17 +117,42 @@ columns:
         fields:
           slides:
             label: Inhaltsfolien
-            type: pages
-            multiple: true
+            type: signage_slides
             sortable: true
-            query: site.find('signage/slides').childrenAndDrafts
-            image:
-              icon: image
-            info: "{{ page.slide_type.or('blocks') }} — {{ page.calculatedDuration }} Sek. — {{ page.status }}"
             empty: Noch keine Folien zugeordnet. Wählen Sie Folien aus der Bibliothek aus.
             help: |
               Folien stammen aus der gemeinsamen Folien-Bibliothek und können in mehreren Kanälen verwendet werden.
+              Die Anzeigedauer gilt nur in diesem Kanal; leer = automatisch aus dem Inhalt berechnet.
               Ziehen zum Neuanordnen. Neue Folien legen Sie unter Signage → Folien an.
+            columns:
+              slide:
+                width: 3/4
+                mobile: true
+              duration:
+                width: 1/4
+                after: Sek.
+                # narrow tables only show "mobile" columns
+                mobile: true
+            fields:
+              slide:
+                label: Folie
+                type: pages
+                multiple: false
+                required: true
+                query: site.find('signage/slides').childrenAndDrafts
+                image:
+                  icon: image
+                info: "{{ page.slide_type.or('blocks') }} — automatisch {{ page.calculatedDuration }} Sek. — {{ page.statusLabel }}"
+                width: 3/4
+              duration:
+                label: Anzeigedauer
+                type: number
+                min: 3
+                max: 300
+                after: Sek.
+                placeholder: automatisch
+                help: Leer = automatisch berechnet
+                width: 1/4
 
   - width: 1/3
     sections:
@@ -140,7 +165,9 @@ columns:
             theme: info
             text: |
               **Anzahl Folien:** {{ page.slideCount }}
-              **Gesamtdauer:** {{ page.slidesTotalDuration }} Sekunden
+              **Gesamtdauer (aktive Folien):** {{ page.slidesTotalDuration }} Sekunden
+
+              {{ page.slidesDurationSummary }}
 
       preview:
         type: fields

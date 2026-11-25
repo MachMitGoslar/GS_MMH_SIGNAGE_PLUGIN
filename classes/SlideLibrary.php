@@ -8,7 +8,10 @@ use Kirby\Data\Yaml;
  * Slide library
  *
  * Slides live in a central pool (signage/slides) and are referenced by
- * channels through the `slides` pages field. This class resolves those
+ * channels through the `slides` structure field: one row per slide with the
+ * display duration this channel gives it (empty = calculated automatically).
+ * Older channels store a plain list of page references; both shapes are
+ * read, writes always use rows. This class resolves those
  * references, tells where a slide is used and migrates legacy slides
  * (stored as children of a channel) into the pool.
  */
@@ -73,19 +76,111 @@ class SlideLibrary
     }
 
     /**
+     * Display duration the channel sets for the slide, null = automatic.
+     */
+    public static function durationIn(Page $channel, Page $slide): ?int
+    {
+        foreach (self::entries($channel) as $entry) {
+            $page = kirby()->page($entry['slide']);
+            if ($page && $page->id() === $slide->id()) {
+                return $entry['duration'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Rows of the channel's slides field: reference + duration (null = auto).
+     * Reads the structure rows and the older plain list of references.
+     *
+     * @return array<int, array{slide:string, duration:?int}>
+     */
+    public static function entries(Page $channel): array
+    {
+        $rows = self::decode($channel->content()->get('slides')->value());
+        $entries = [];
+
+        foreach ($rows as $row) {
+            $reference = null;
+            $duration = null;
+
+            if (is_string($row)) {
+                $reference = $row;
+            } elseif (is_array($row)) {
+                $slide = $row['slide'] ?? null;
+                $reference = is_array($slide) ? ($slide[0] ?? null) : $slide;
+                // a pages field stores "- page://x"; tolerate "page://x" too
+                if (is_string($reference)) {
+                    $reference = ltrim(trim($reference), '- ');
+                }
+                $seconds = trim((string) ($row['duration'] ?? ''));
+                $duration = is_numeric($seconds) && (int) $seconds > 0 ? (int) $seconds : null;
+            }
+
+            if (is_string($reference) && trim($reference) !== '') {
+                $entries[] = ['slide' => trim($reference), 'duration' => $duration];
+            }
+        }
+
+        return $entries;
+    }
+
+    /**
+     * Rows for the panel field (`signage_slides`): the stored rows, or the
+     * older plain reference list turned into rows without a duration.
+     *
+     * @param mixed $value
+     * @return array<int, array{slide:string[], duration:int|string}>
+     */
+    public static function rows($value): array
+    {
+        $entries = [];
+        foreach (self::decode($value) as $row) {
+            if (is_string($row) && trim($row) !== '') {
+                $entries[] = ['slide' => [trim($row)], 'duration' => ''];
+            } elseif (is_array($row)) {
+                $entries[] = $row;
+            }
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @param mixed $value
+     * @return array<int, mixed>
+     */
+    private static function decode($value): array
+    {
+        if (is_string($value)) {
+            $value = trim($value) === '' ? [] : Yaml::decode($value);
+        }
+
+        return array_values((array) $value);
+    }
+
+    /**
      * Raw references stored in the channel's slides field.
      *
      * @return string[]
      */
     private static function references(Page $channel): array
     {
-        $value = $channel->content()->get('slides')->value();
-        $entries = is_string($value) ? Yaml::decode($value) : (array) $value;
+        return array_column(self::entries($channel), 'slide');
+    }
 
-        return array_values(array_filter(array_map(
-            fn ($entry) => is_string($entry) ? trim($entry) : null,
-            $entries,
-        )));
+    /**
+     * Encodes rows for the slides structure field.
+     *
+     * @param array<int, array{slide:string, duration:?int}> $entries
+     */
+    public static function encode(array $entries): string
+    {
+        return Yaml::encode(array_map(fn (array $entry) => [
+            'slide' => [$entry['slide']],
+            'duration' => $entry['duration'] ?? '',
+        ], array_values($entries)));
     }
 
     /**
@@ -93,17 +188,13 @@ class SlideLibrary
      */
     public static function detach(Page $channel, Page $slide): void
     {
-        $remaining = [];
+        $remaining = array_filter(self::entries($channel), function (array $entry) use ($slide) {
+            $page = kirby()->page($entry['slide']);
 
-        foreach (self::references($channel) as $reference) {
-            $page = kirby()->page($reference);
-            if ($page && $page->id() === $slide->id()) {
-                continue;
-            }
-            $remaining[] = $reference;
-        }
+            return !($page && $page->id() === $slide->id());
+        });
 
-        $channel->update(['slides' => Yaml::encode($remaining)]);
+        $channel->update(['slides' => self::encode($remaining)]);
     }
 
     /**
@@ -153,7 +244,8 @@ class SlideLibrary
                 $legacy->filterBy('isDraft', true)->values(),
             );
 
-            $references = self::references($channel);
+            $entries = self::entries($channel);
+            $known = array_column($entries, 'slide');
 
             foreach ($ordered as $slide) {
                 $slug = $slide->slug();
@@ -169,11 +261,15 @@ class SlideLibrary
 
                 $moved = $slide->move($pool);
                 $moved->uuid()?->populate();
-                $references[] = $moved->uuid()?->toString() ?? $moved->id();
+                $reference = $moved->uuid()?->toString() ?? $moved->id();
+                if (!in_array($reference, $known, true)) {
+                    $entries[] = ['slide' => $reference, 'duration' => null];
+                    $known[] = $reference;
+                }
                 $result['moved']++;
             }
 
-            $channel->update(['slides' => Yaml::encode(array_values(array_unique($references)))]);
+            $channel->update(['slides' => self::encode($entries)]);
             $result['channels']++;
         }
 

@@ -31,6 +31,7 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
         'onboarding_requests' => require __DIR__ . '/fields/onboarding_requests/index.php',
         'signage_preview' => require __DIR__ . '/fields/signage_preview/index.php',
         'slide_migration' => require __DIR__ . '/fields/slide_migration/index.php',
+        'signage_slides' => require __DIR__ . '/fields/signage_slides/index.php',
     ],
 
     /**
@@ -388,7 +389,34 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
             return $this->channelSlides()->count();
         },
         'slidesTotalDuration' => function () {
-            return array_sum($this->channelSlides()->toArray(fn ($slide) => $slide->calculatedDuration()));
+            // what the player runs: active slides with this channel's durations
+            return array_sum(SlideLibrary::activeSlidesOf($this)->toArray(
+                fn ($slide) => DurationCalculator::forChannel($slide, $this),
+            ));
+        },
+        'slidesDurationSummary' => function () {
+            if ($this->intendedTemplate()->name() !== 'channel') {
+                return '';
+            }
+
+            $lines = [];
+            foreach ($this->channelSlides() as $slide) {
+                $set = SlideLibrary::durationIn($this, $slide);
+                $duration = DurationCalculator::forChannel($slide, $this);
+                $lines[] = '- ' . $slide->title()->value() . ': '
+                    . ($set === null ? 'automatisch ' . $duration . ' Sek.' : $duration . ' Sek.')
+                    . ' · ' . $slide->statusLabel();
+            }
+
+            return $lines === [] ? '' : implode("\n", $lines);
+        },
+        'statusLabel' => function () {
+            // the label from the blueprint ("Aktiv"), not the raw status ("unlisted")
+            $status = $this->status();
+            $options = $this->blueprint()->status();
+            $label = $options[$status]['label'] ?? $status;
+
+            return is_array($label) ? (string) (reset($label) ?: $status) : (string) $label;
         },
         'usedInChannels' => function () {
             if ($this->intendedTemplate()->name() !== 'slide') {
@@ -404,7 +432,12 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
                 return 'Keinem Kanal zugeordnet – kann gelöscht werden.';
             }
 
-            $titles = implode(', ', array_map(fn ($c) => $c->title()->value(), $channels->values()));
+            $slide = $this;
+            $titles = implode(', ', array_map(function ($c) use ($slide) {
+                $set = SlideLibrary::durationIn($c, $slide);
+
+                return $c->title()->value() . ' (' . ($set === null ? 'automatisch' : $set . ' Sek.') . ')';
+            }, $channels->values()));
 
             return $channels->count() === 1
                 ? 'Verwendet in: ' . $titles . ' – kann gelöscht werden (wird dort entfernt).'
@@ -569,10 +602,6 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
             'signage.slide.field.slide_type.video' => 'Full-Screen Video',
             'signage.slide.field.slide_type.calendar' => 'Calendar / Events',
             'signage.slide.field.content_layout' => 'Content Layout',
-            'signage.slide.field.duration_mode' => 'Duration',
-            'signage.slide.field.duration_mode.auto' => 'Auto-Calculate',
-            'signage.slide.field.duration_mode.manual' => 'Manual Override',
-            'signage.slide.field.duration_override' => 'Duration (seconds)',
             'signage.slide.field.transition' => 'Transition Effect',
             'signage.slide.field.transition.fade' => 'Fade',
             'signage.slide.field.transition.slide' => 'Slide',
@@ -657,10 +686,6 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
             'signage.slide.field.slide_type.video' => 'Vollbild-Video',
             'signage.slide.field.slide_type.calendar' => 'Kalender / Termine',
             'signage.slide.field.content_layout' => 'Inhalts-Layout',
-            'signage.slide.field.duration_mode' => 'Anzeigedauer',
-            'signage.slide.field.duration_mode.auto' => 'Automatisch berechnen',
-            'signage.slide.field.duration_mode.manual' => 'Manuell festlegen',
-            'signage.slide.field.duration_override' => 'Dauer (Sekunden)',
             'signage.slide.field.transition' => 'Übergangseffekt',
             'signage.slide.field.transition.fade' => 'Überblenden',
             'signage.slide.field.transition.slide' => 'Schieben',
