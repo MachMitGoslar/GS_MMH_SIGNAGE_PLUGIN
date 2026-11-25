@@ -5,9 +5,6 @@ status:
   draft:
     label: Entwurf
     text: Bildschirm ist nicht aktiv
-  unlisted:
-    label: Versteckt
-    text: Bildschirm ist gespeichert, aber nicht in der Liste sichtbar
   listed:
     label: Aktiv
     text: Bildschirm ist aktiv und für den Zugriff freigegeben
@@ -44,23 +41,14 @@ columns:
             width: 1/2
             help: Beeinflusst Inhaltslayout und Übergänge
 
-          status:
-            label: Bildschirmstatus
-            type: toggle
-            text:
-              - Inaktiv
-              - Aktiv
-            default: true
-            width: 1/2
-
       schedule:
         type: fields
         fields:
           info_schedule:
             type: info
-            label: Kanal & Zeitplan
+            label: Programm
             theme: positive
-            text: Konfigurieren Sie, welcher Inhaltskanal angezeigt wird und wann der Bildschirm aktiv ist
+            text: Welcher Kanal läuft. Der Primärkanal läuft immer, außer ein Eintrag im Programm ersetzt oder ergänzt ihn. Wann der Bildschirm überhaupt an ist, regeln die Betriebszeiten weiter unten.
 
           assigned_channel:
             label: Primärer Kanal
@@ -73,7 +61,7 @@ columns:
             empty: Keine Kanäle vorhanden - erstellen Sie zuerst einen
 
           channel_schedule:
-            label: Kanalplan
+            label: Programm (Kanal nach Tag und Uhrzeit)
             type: structure
             columns:
               channel: true
@@ -139,8 +127,17 @@ columns:
               Die Reihenfolge ist die Priorität: Der erste passende „Ersetzt“-Eintrag ersetzt den Primärkanal, alle passenden „Ergänzt“-Einträge hängen ihre Folien hinten an.
             max: 20
 
+      standby:
+        type: fields
+        fields:
+          info_standby:
+            type: info
+            label: Betriebszeiten & Standby
+            theme: info
+            text: Wann der Bildschirm Inhalte zeigt und was er außerhalb dieser Zeiten anzeigt
+
           active_times:
-            label: Aktive Zeiten
+            label: Betriebszeiten (Bildschirm an)
             type: structure
             fields:
               start:
@@ -176,17 +173,8 @@ columns:
                   - wed
                   - thu
                   - fri
-            help: Bildschirm zeigt Inhalte nur während dieser Zeiten. Außerhalb wird der Standby-Modus angezeigt.
+            help: Nur in diesen Zeiten zeigt der Bildschirm das Programm. Außerhalb läuft die Standby-Anzeige. Ohne Eintrag bleibt der Bildschirm im Standby.
             max: 5
-
-      standby:
-        type: fields
-        fields:
-          info_standby:
-            type: info
-            label: Standby-Modus
-            theme: info
-            text: Konfigurieren Sie, was außerhalb der aktiven Zeiten angezeigt wird
 
           standby_mode:
             label: Standby-Anzeige
@@ -247,8 +235,8 @@ columns:
               **Bildschirm-URL:**
               /signage/{{ page.slug }}
 
-              **Status:** {{ page.status.toBool ? '🟢 Aktiv' : '🔴 Inaktiv' }}
-              **Ausrichtung:** {{ page.orientation.or('horizontal') }}
+              **Status:** {{ page.statusLabel }}
+              **Ausrichtung:** {{ page.optionLabel('orientation') }}
 
           preview_button:
             type: info
@@ -298,7 +286,7 @@ columns:
             theme: info
             text: |
               **Schnellstart:**
-              1. Ausrichtung & aktive Zeiten festlegen
+              1. Ausrichtung & Betriebszeiten festlegen
               2. Inhaltskanal zuweisen
               3. Zugriffskontrolle konfigurieren
               4. Bildschirm-URL öffnen
@@ -306,4 +294,4 @@ columns:
               **Problemlösung:**
               - Kein Inhalt? Prüfen Sie, ob der Kanal Folien hat
               - Zugriff verweigert? Whitelist-Einstellungen prüfen
-              - Falsches Timing? Aktive Zeiten überprüfen
+              - Bildschirm bleibt im Standby? Betriebszeiten prüfen

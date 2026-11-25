@@ -1463,7 +1463,6 @@ class AccessController
             'transition_duration' => (float) ($slide->transition_duration()->value() ?? 1),
             'background' => self::getBackgroundData($slide),
             'channel_background' => $channel ? self::getChannelBackgroundData($channel) : null,
-            'content_position' => $slide->content_position()->value() ?? 'center',
         ];
 
         // Add type-specific data
@@ -1732,12 +1731,6 @@ class AccessController
                     ];
 
                     switch ($block->type()) {
-                        case 'signage-heading':
-                            $blockData['text'] = $block->text()->toWriterHTML();
-                            $blockData['level'] = $block->level()->value() ?? 'h2';
-
-                            break;
-
                         case 'signage-text':
                             $blockData['text'] = $block->text()->toWriterHTML();
 

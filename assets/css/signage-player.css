@@ -121,42 +121,6 @@ body[data-orientation='horizontal'] .signage-slide {
   height: 100%;
 }
 
-/* Content Positioning */
-/* Center (default) */
-.signage-slide.content-position-center {
-  justify-content: center;
-  align-items: center;
-}
-
-/* Top Position */
-.signage-slide.content-position-top {
-  justify-content: center;
-  align-items: flex-start;
-}
-
-.signage-slide.content-position-top .slide-content {
-  padding-top: 4rem;
-}
-
-/* Bottom Position */
-.signage-slide.content-position-bottom {
-  justify-content: center;
-  align-items: flex-end;
-}
-
-.signage-slide.content-position-bottom .slide-content {
-  padding-bottom: 4rem;
-}
-
-body[data-orientation='vertical']
-  .signage-slide.content-position-top
-  .slide-content,
-body[data-orientation='vertical']
-  .signage-slide.content-position-bottom
-  .slide-content {
-  max-width: 90%;
-}
-
 /* Layout System */
 .layout-row {
   display: flex;
@@ -249,10 +213,6 @@ body[data-orientation='vertical'] .template-slide__title {
 body[data-orientation='vertical'] .template-slide__subtitle {
   max-width: min(100%, 17em);
   font-size: clamp(1.6rem, 4vw, 2.7rem);
-}
-
-body[data-orientation='vertical'] .template-slide__meta {
-  grid-template-columns: 1fr;
 }
 
 body[data-orientation='vertical'] .template-slide--event_focus {
@@ -590,36 +550,6 @@ body[data-orientation='vertical'] .template-slide__compact {
   font-weight: 800;
   line-height: 1.18;
   white-space: pre-line;
-}
-
-.template-slide__meta {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
-  margin: 0;
-}
-
-.template-slide__meta-item {
-  min-width: 0;
-  padding-top: 0.9rem;
-  border-top: 0.25rem solid #ffffff;
-}
-
-.template-slide__meta dt {
-  margin-bottom: 0.45rem;
-  color: var(--template-muted);
-  font-size: clamp(0.78rem, 0.9vw, 0.95rem);
-  font-weight: 800;
-  line-height: 1;
-  text-transform: uppercase;
-}
-
-.template-slide__meta dd {
-  margin: 0;
-  font-size: clamp(1.2rem, 1.65vw, 1.8rem);
-  font-weight: 800;
-  line-height: 1.1;
-  overflow-wrap: break-word;
 }
 
 .template-slide--announcement {

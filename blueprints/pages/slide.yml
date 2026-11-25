@@ -255,7 +255,7 @@ tabs:
               template_image:
                 extends: fields/mediathek-image
                 label: Hintergrundbild
-                help: Wird für Template-Folien bevorzugt. Falls leer, greift der allgemeine Folien- oder Kanal-Hintergrund.
+                help: Gilt nur, wenn im Tab „Hintergrund“ „Kanal-Standard verwenden“ gewählt ist – ein eigener Folien-Hintergrund geht vor. Leer = Kanal-Hintergrund.
 
               template_focus:
                 label: Bildausschnitt
@@ -659,9 +659,9 @@ tabs:
                 label: Folieninfo
                 theme: notice
                 text: |
-                  **Folientyp:** {{ page.slide_type.or('blocks') }}
+                  **Folientyp:** {{ page.optionLabel('slide_type') }}
                   **Dauer (automatisch):** {{ page.calculatedDuration }} Sekunden
-                  **Übergang:** {{ page.transition.or('fade') }}
+                  **Übergang:** {{ page.optionLabel('transition') }}
 
               slide_preview:
                 label: Vorschau

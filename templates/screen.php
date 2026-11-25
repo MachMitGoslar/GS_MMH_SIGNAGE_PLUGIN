@@ -248,12 +248,10 @@ if ($isPreview) {
                 player.style.backgroundColor = this.state.contentData.channel.background.background_color || '#000000';
                 slides.forEach((slide, index) => {
                     const slideEl = document.createElement('div');
-                    const contentPosition = slide.content_position || 'center';
                     const effectiveBackground = this.getEffectiveBackground(slide);
-                    slideEl.className = `signage-slide content-position-${contentPosition}`;
+                    slideEl.className = 'signage-slide';
                     slideEl.dataset.transition = slide.transition || 'fade';
                     slideEl.dataset.duration = slide.duration;
-                    slideEl.dataset.contentPosition = contentPosition;
                     slideEl.dataset.slideId = slide.id || String(index);
                     slideEl.style.transitionDuration = `${slide.transition_duration || 1}s`;
 
@@ -562,9 +560,9 @@ if ($isPreview) {
                 const timeLabel = this.formatTemplateTimeRange(template?.time || '', template?.end_time || '');
                 const location = this.escapeHtml(template?.location || '');
                 const recurrence = this.escapeHtml(template?.recurrence || '');
-                const hasMeta = Boolean(date || time || location);
 
-                if (preset === 'event_focus') {
+                // "Veranstaltung" is also the layout for unknown/empty presets
+                if (!['announcement', 'compact_info', 'list'].includes(preset)) {
                     const eventDate = shortDate || date;
                     const eventTime = timeLabel || time;
                     const whenLabel = recurrence ? 'Wann' : 'Datum';
@@ -661,37 +659,6 @@ if ($isPreview) {
                         </article>
                     `;
                 }
-
-                return `
-                    <article class="template-slide template-slide--${preset} template-slide--${theme}">
-                        <div class="template-slide__body">
-                            ${title ? `<h1 class="template-slide__title">${title}</h1>` : ''}
-                            ${subtitle ? `<p class="template-slide__subtitle">${subtitle}</p>` : ''}
-                        </div>
-                        ${hasMeta ? `
-                            <dl class="template-slide__meta">
-                                ${date ? `
-                                    <div class="template-slide__meta-item">
-                                        <dt>Datum</dt>
-                                        <dd>${date}</dd>
-                                    </div>
-                                ` : ''}
-                                ${time ? `
-                                    <div class="template-slide__meta-item">
-                                        <dt>Uhrzeit</dt>
-                                        <dd>${time}</dd>
-                                    </div>
-                                ` : ''}
-                                ${location ? `
-                                    <div class="template-slide__meta-item">
-                                        <dt>Ort</dt>
-                                        <dd>${location}</dd>
-                                    </div>
-                                ` : ''}
-                            </dl>
-                        ` : ''}
-                    </article>
-                `;
             },
 
             getBlockText(block) {
@@ -827,9 +794,6 @@ if ($isPreview) {
              */
             renderBlock(block) {
                 switch (block.type) {
-                    case 'signage-heading':
-                        return `<${block.level || 'h2'}>${this.getBlockText(block)}</${block.level || 'h2'}>`;
-                    
                     case 'signage-text':
                         return `<div class="text-block">${this.getBlockText(block)}</div>`;
                     

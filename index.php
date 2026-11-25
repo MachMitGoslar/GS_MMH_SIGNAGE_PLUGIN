@@ -87,7 +87,6 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
         'pages/slides' => __DIR__ . '/blueprints/pages/slides.yml',
         'pages/slide' => __DIR__ . '/blueprints/pages/slide.yml',
         'pages/signage-greeting' => __DIR__ . '/blueprints/pages/signage-greeting.yml',
-        'blocks/signage-heading' => __DIR__ . '/blueprints/blocks/signage-heading.yml',
         'blocks/signage-text' => __DIR__ . '/blueprints/blocks/signage-text.yml',
     ],
 
@@ -104,7 +103,6 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
      */
     'snippets' => [
         'blocks/signage-text' => __DIR__ . '/snippets/blocks/signage-text.php',
-        'blocks/signage-heading' => __DIR__ . '/snippets/blocks/signage-heading.php',
     ],
 
     /**
@@ -422,6 +420,23 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
                 ? ''
                 : 'Früher an der Folie festgelegt: ' . $legacy . ' Sek. – gilt weiter, bis der Kanal eine eigene Dauer setzt.';
         },
+        'optionLabel' => function (string $field) {
+            // label of a select value from the blueprint ("Überblenden" instead of "fade")
+            $value = (string) $this->content()->get($field)->value();
+            $definition = $this->blueprint()->field($field) ?? [];
+            $value = $value !== '' ? $value : (string) ($definition['default'] ?? '');
+
+            foreach ((array) ($definition['options'] ?? []) as $key => $option) {
+                $optionValue = is_array($option) ? (string) ($option['value'] ?? '') : (string) $key;
+                if ($optionValue === $value) {
+                    $text = is_array($option) ? ($option['text'] ?? $value) : $option;
+
+                    return is_array($text) ? (string) (reset($text) ?: $value) : (string) $text;
+                }
+            }
+
+            return $value;
+        },
         'statusLabel' => function () {
             // the label from the blueprint ("Aktiv"), not the raw status ("unlisted")
             $status = $this->status();
@@ -645,7 +660,6 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
 
             // Blocks
             'signage.block.signage-text' => 'Signage Text',
-            'signage.block.signage-heading' => 'Signage Heading',
         ],
 
         'de' => [
@@ -729,7 +743,6 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
 
             // Blöcke
             'signage.block.signage-text' => 'Signage-Text',
-            'signage.block.signage-heading' => 'Signage-Überschrift',
         ],
     ],
 ]);
