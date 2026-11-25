@@ -40,15 +40,14 @@ columns:
         fields:
           info_background:
             type: info
-            label: Standard-Hintergrund
+            label: Standard-Look
             theme: notice
-            text: Dieser Hintergrund wird für Folien verwendet, die keine eigenen Hintergrundmedien haben.
+            text: Gilt für alle Folien dieses Kanals, deren Hintergrund bzw. Farbschema auf „Wie im Kanal“ steht.
 
           default_bg_image:
             extends: fields/mediathek-image
-            label: Standard-Hintergrundbild
+            label: Hintergrundbild
             width: 1/2
-            help: Fallback-Hintergrund für Folien ohne eigene Medien
 
           default_bg_focus:
             label: Bildausschnitt
@@ -58,7 +57,7 @@ columns:
             help: Leer = Fokuspunkt aus der Mediathek.
 
           default_bg_video:
-            label: Standard-Hintergrundvideo
+            label: Hintergrundvideo
             type: files
             max: 1
             layout: cards
@@ -68,17 +67,49 @@ columns:
             accepts:
               - video/mp4
               - video/webm
-            help: Optionales Endlosvideo-Hintergrund (überschreibt Bild)
+            help: Endlosvideo, stumm. Geht vor dem Bild.
 
-          default_overlay_color:
-            label: Standard-Overlay-Farbe
+          default_bg_color:
+            label: Vollton
             type: color
             width: 1/2
             default: "#000000"
-            help: Farbüberlagerung auf Hintergrundmedien
+            help: Ohne Bild und Video.
+
+          default_color_scheme:
+            label: Farbschema
+            type: select
+            options:
+              light: Hell – dunkle Schrift
+              dark: Dunkel – helle Schrift
+            default: dark
+            required: true
+            width: 1/2
+
+          default_overlay_preset:
+            label: Lesbarkeit (Overlay)
+            type: select
+            options:
+              none: Kein Overlay
+              soft: Leicht abtönen
+              strong: Kräftig abtönen
+              fade_bottom: Verlauf von unten
+              fade_left: Verlauf von links
+              custom: Benutzerdefiniert
+            default: soft
+            width: 1/2
+            help: Über Bild oder Video, Farbe aus dem Farbschema.
+
+          default_overlay_color:
+            label: Overlay-Farbe
+            type: color
+            width: 1/2
+            default: "#000000"
+            when:
+              default_overlay_preset: custom
 
           default_overlay_opacity:
-            label: Standard-Overlay-Deckkraft
+            label: Deckkraft
             type: range
             width: 1/2
             min: 0
@@ -86,23 +117,26 @@ columns:
             step: 5
             default: 40
             after: "%"
-            help: 0% = kein Overlay, 100% = Volltonfarbe
+            when:
+              default_overlay_preset: custom
 
           default_overlay_gradient:
-            label: Standard-Verlauf
+            label: Verlaufsrichtung
             type: select
             width: 1/2
             options:
-              none: Kein Verlauf (Einfarbig)
-              to-top: Nach oben verblassen (Farbe unten)
-              to-bottom: Nach unten verblassen (Farbe oben)
-              to-left: Nach links verblassen (Farbe rechts)
-              to-right: Nach rechts verblassen (Farbe links)
-              radial: Radial (Mitte frei, Farbe am Rand)
+              none: Kein Verlauf (gleichmäßig)
+              to-top: Farbe unten, nach oben auslaufend
+              to-bottom: Farbe oben, nach unten auslaufend
+              to-left: Farbe rechts, nach links auslaufend
+              to-right: Farbe links, nach rechts auslaufend
+              radial: Farbe am Rand, Mitte frei
             default: none
+            when:
+              default_overlay_preset: custom
 
           default_overlay_strength:
-            label: Standard-Verlaufsstärke
+            label: Verlaufsstärke
             type: range
             width: 1/2
             min: 10
@@ -111,23 +145,50 @@ columns:
             default: 60
             after: "%"
             help: Wie weit die Farbe ins Bild reicht
+            when:
+              default_overlay_preset: custom
 
       slides:
         type: fields
         fields:
           slides:
             label: Inhaltsfolien
-            type: pages
-            multiple: true
+            type: signage_slides
             sortable: true
-            query: site.find('signage/slides').childrenAndDrafts
-            image:
-              icon: image
-            info: "{{ page.slide_type.or('blocks') }} — {{ page.calculatedDuration }} Sek. — {{ page.status }}"
             empty: Noch keine Folien zugeordnet. Wählen Sie Folien aus der Bibliothek aus.
             help: |
               Folien stammen aus der gemeinsamen Folien-Bibliothek und können in mehreren Kanälen verwendet werden.
+              Die Anzeigedauer gilt nur in diesem Kanal; leer = automatisch aus dem Inhalt berechnet.
               Ziehen zum Neuanordnen. Neue Folien legen Sie unter Signage → Folien an.
+            columns:
+              slide:
+                width: 3/4
+                mobile: true
+              duration:
+                width: 1/4
+                after: Sek.
+                # narrow tables only show "mobile" columns
+                mobile: true
+            fields:
+              slide:
+                label: Folie
+                type: pages
+                multiple: false
+                required: true
+                query: site.find('signage/slides').childrenAndDrafts
+                image:
+                  icon: image
+                info: "{{ page.optionLabel('slide_type') }} — automatisch {{ page.calculatedDuration }} Sek. — {{ page.statusLabel }}"
+                width: 3/4
+              duration:
+                label: Anzeigedauer
+                type: number
+                min: 3
+                max: 300
+                after: Sek.
+                placeholder: automatisch
+                help: Leer = automatisch berechnet
+                width: 1/4
 
   - width: 1/3
     sections:
@@ -140,7 +201,9 @@ columns:
             theme: info
             text: |
               **Anzahl Folien:** {{ page.slideCount }}
-              **Gesamtdauer:** {{ page.slidesTotalDuration }} Sekunden
+              **Gesamtdauer (aktive Folien):** {{ page.slidesTotalDuration }} Sekunden
+
+              {{ page.slidesDurationSummary }}
 
       preview:
         type: fields

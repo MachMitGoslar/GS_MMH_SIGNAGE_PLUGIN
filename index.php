@@ -18,6 +18,7 @@ use Kirby\Toolkit\Tpl;
 require_once __DIR__ . '/classes/DurationCalculator.php';
 require_once __DIR__ . '/classes/ICalParser.php';
 require_once __DIR__ . '/classes/SlideLibrary.php';
+require_once __DIR__ . '/classes/SlideLook.php';
 require_once __DIR__ . '/classes/AccessController.php';
 require_once __DIR__ . '/classes/ChristmasTree.php';
 require_once __DIR__ . '/classes/ChannelSchedule.php';
@@ -31,6 +32,7 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
         'onboarding_requests' => require __DIR__ . '/fields/onboarding_requests/index.php',
         'signage_preview' => require __DIR__ . '/fields/signage_preview/index.php',
         'slide_migration' => require __DIR__ . '/fields/slide_migration/index.php',
+        'signage_slides' => require __DIR__ . '/fields/signage_slides/index.php',
     ],
 
     /**
@@ -86,8 +88,6 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
         'pages/slides' => __DIR__ . '/blueprints/pages/slides.yml',
         'pages/slide' => __DIR__ . '/blueprints/pages/slide.yml',
         'pages/signage-greeting' => __DIR__ . '/blueprints/pages/signage-greeting.yml',
-        'blocks/signage-heading' => __DIR__ . '/blueprints/blocks/signage-heading.yml',
-        'blocks/signage-text' => __DIR__ . '/blueprints/blocks/signage-text.yml',
     ],
 
     /**
@@ -96,14 +96,6 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
     'templates' => [
         'screen' => __DIR__ . '/templates/screen.php',
         'signage-onboarding' => __DIR__ . '/templates/onboarding.php',
-    ],
-
-    /**
-     * Snippets
-     */
-    'snippets' => [
-        'blocks/signage-text' => __DIR__ . '/snippets/blocks/signage-text.php',
-        'blocks/signage-heading' => __DIR__ . '/snippets/blocks/signage-heading.php',
     ],
 
     /**
@@ -388,7 +380,63 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
             return $this->channelSlides()->count();
         },
         'slidesTotalDuration' => function () {
-            return array_sum($this->channelSlides()->toArray(fn ($slide) => $slide->calculatedDuration()));
+            // what the player runs: active slides with this channel's durations
+            return array_sum(SlideLibrary::activeSlidesOf($this)->toArray(
+                fn ($slide) => DurationCalculator::forChannel($slide, $this),
+            ));
+        },
+        'slidesDurationSummary' => function () {
+            if ($this->intendedTemplate()->name() !== 'channel') {
+                return '';
+            }
+
+            $lines = [];
+            foreach ($this->channelSlides() as $slide) {
+                $set = SlideLibrary::durationIn($this, $slide);
+                $legacy = DurationCalculator::legacyDuration($slide);
+                $duration = DurationCalculator::forChannel($slide, $this);
+                $source = match (true) {
+                    $set !== null => '',
+                    $legacy !== null => ' (alte Folien-Einstellung)',
+                    default => ' (automatisch)',
+                };
+                $lines[] = '- ' . $slide->title()->value() . ': ' . $duration . ' Sek.' . $source
+                    . ' · ' . $slide->statusLabel();
+            }
+
+            return $lines === [] ? '' : implode("\n", $lines);
+        },
+        'legacyDurationInfo' => function () {
+            $legacy = DurationCalculator::legacyDuration($this);
+
+            return $legacy === null
+                ? ''
+                : 'Früher an der Folie festgelegt: ' . $legacy . ' Sek. – gilt weiter, bis der Kanal eine eigene Dauer setzt.';
+        },
+        'optionLabel' => function (string $field) {
+            // label of a select value from the blueprint ("Überblenden" instead of "fade")
+            $value = (string) $this->content()->get($field)->value();
+            $definition = $this->blueprint()->field($field) ?? [];
+            $value = $value !== '' ? $value : (string) ($definition['default'] ?? '');
+
+            foreach ((array) ($definition['options'] ?? []) as $key => $option) {
+                $optionValue = is_array($option) ? (string) ($option['value'] ?? '') : (string) $key;
+                if ($optionValue === $value) {
+                    $text = is_array($option) ? ($option['text'] ?? $value) : $option;
+
+                    return is_array($text) ? (string) (reset($text) ?: $value) : (string) $text;
+                }
+            }
+
+            return $value;
+        },
+        'statusLabel' => function () {
+            // the label from the blueprint ("Aktiv"), not the raw status ("unlisted")
+            $status = $this->status();
+            $options = $this->blueprint()->status();
+            $label = $options[$status]['label'] ?? $status;
+
+            return is_array($label) ? (string) (reset($label) ?: $status) : (string) $label;
         },
         'usedInChannels' => function () {
             if ($this->intendedTemplate()->name() !== 'slide') {
@@ -404,7 +452,12 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
                 return 'Keinem Kanal zugeordnet – kann gelöscht werden.';
             }
 
-            $titles = implode(', ', array_map(fn ($c) => $c->title()->value(), $channels->values()));
+            $slide = $this;
+            $titles = implode(', ', array_map(function ($c) use ($slide) {
+                $seconds = DurationCalculator::forChannel($slide, $c);
+
+                return $c->title()->value() . ' (' . $seconds . ' Sek.)';
+            }, $channels->values()));
 
             return $channels->count() === 1
                 ? 'Verwendet in: ' . $titles . ' – kann gelöscht werden (wird dort entfernt).'
@@ -565,14 +618,8 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
             'signage.slide.tab.background' => 'Background',
             'signage.slide.tab.preview' => 'Preview',
             'signage.slide.field.slide_type' => 'Slide Type',
-            'signage.slide.field.slide_type.blocks' => 'Content Blocks',
             'signage.slide.field.slide_type.video' => 'Full-Screen Video',
             'signage.slide.field.slide_type.calendar' => 'Calendar / Events',
-            'signage.slide.field.content_layout' => 'Content Layout',
-            'signage.slide.field.duration_mode' => 'Duration',
-            'signage.slide.field.duration_mode.auto' => 'Auto-Calculate',
-            'signage.slide.field.duration_mode.manual' => 'Manual Override',
-            'signage.slide.field.duration_override' => 'Duration (seconds)',
             'signage.slide.field.transition' => 'Transition Effect',
             'signage.slide.field.transition.fade' => 'Fade',
             'signage.slide.field.transition.slide' => 'Slide',
@@ -602,9 +649,6 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
             'signage.slide.field.calendar_range.month' => 'This Month',
             'signage.slide.field.calendar_max_events' => 'Max Events',
 
-            // Blocks
-            'signage.block.signage-text' => 'Signage Text',
-            'signage.block.signage-heading' => 'Signage Heading',
         ],
 
         'de' => [
@@ -653,14 +697,8 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
             'signage.slide.tab.background' => 'Hintergrund',
             'signage.slide.tab.preview' => 'Vorschau',
             'signage.slide.field.slide_type' => 'Folientyp',
-            'signage.slide.field.slide_type.blocks' => 'Inhaltsblöcke',
             'signage.slide.field.slide_type.video' => 'Vollbild-Video',
             'signage.slide.field.slide_type.calendar' => 'Kalender / Termine',
-            'signage.slide.field.content_layout' => 'Inhalts-Layout',
-            'signage.slide.field.duration_mode' => 'Anzeigedauer',
-            'signage.slide.field.duration_mode.auto' => 'Automatisch berechnen',
-            'signage.slide.field.duration_mode.manual' => 'Manuell festlegen',
-            'signage.slide.field.duration_override' => 'Dauer (Sekunden)',
             'signage.slide.field.transition' => 'Übergangseffekt',
             'signage.slide.field.transition.fade' => 'Überblenden',
             'signage.slide.field.transition.slide' => 'Schieben',
@@ -691,8 +729,6 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
             'signage.slide.field.calendar_max_events' => 'Max. Termine',
 
             // Blöcke
-            'signage.block.signage-text' => 'Signage-Text',
-            'signage.block.signage-heading' => 'Signage-Überschrift',
         ],
     ],
 ]);

@@ -29,68 +29,14 @@ tabs:
                 label: Folientyp
                 type: select
                 options:
-                  blocks: Inhaltsblöcke
                   template: Template-Folie
                   canva: Canva-Design
                   video: Vollbild-Video
                   calendar: Kalender / Termine
                   christmas_tree: Weihnachtsbaum (Grüße)
-                default: blocks
+                default: template
                 required: true
                 help: Wählen Sie den Inhaltstyp für diese Folie
-
-          blocks_content:
-            type: fields
-            fields:
-              content_layout:
-                label: Inhalts-Layout
-                type: layout
-                layouts:
-                  - "1/1"
-                  - "1/2, 1/2"
-                  - "1/3, 1/3, 1/3"
-                  - "1/4, 1/4, 1/4, 1/4"
-                  - "2/3, 1/3"
-                  - "1/3, 2/3"
-                  - "1/4, 1/2, 1/4"
-                  - "1/4, 3/4"
-                  - "3/4, 1/4"
-                fieldsets:
-                  signage-text: true
-                  # Kirbys Bild-Block, Bild aus der Mediathek (Feld aus mmh-site)
-                  image:
-                    extends: blocks/image
-                    fields:
-                      image:
-                        extends: fields/mediathek-image
-                        label: Bild
-                  list: true
-                  quote: true
-                  line: true
-                settings:
-                  fields:
-                    vertical_align:
-                      label: Vertikale Ausrichtung
-                      type: select
-                      options:
-                        start: Oben
-                        center: Mitte
-                        end: Unten
-                      default: center
-                      width: 1/2
-                    padding:
-                      label: Abstand
-                      type: select
-                      options:
-                        none: Kein
-                        small: Klein
-                        medium: Mittel
-                        large: Groß
-                      default: medium
-                      width: 1/2
-                help: Gestalten Sie Ihren Folieninhalt mit einem flexiblen Spaltenlayout
-            when:
-              slide_type: blocks
 
           template_canva_content:
             type: fields
@@ -113,6 +59,8 @@ tabs:
                   event_focus: Veranstaltung
                   announcement: Ankündigung / Botschaft
                   compact_info: Kompakte Info / Hinweis
+                  list: Liste (Karten nacheinander)
+                  image: Bild (Hintergrund, optional Bildunterschrift)
                 default: event_focus
                 required: true
                 width: 1/2
@@ -120,19 +68,17 @@ tabs:
                 when:
                   slide_type: template
 
-              template_theme:
-                label: Farbschema
-                type: select
-                options:
-                  light: Hell
-                  dark: Dunkel
-                default: light
-                width: 1/2
+              info_template_look:
+                type: info
+                theme: info
+                text: Hintergrundbild, Overlay und Farbschema stellen Sie im Tab „Hintergrund“ ein – wie bei allen Folien.
+                when:
+                  slide_type: template
 
               template_title:
                 label: Titel
                 type: text
-                required: true
+                help: Beim Template „Bild“ optional – erscheint dann als Bildunterschrift.
                 placeholder: z.B. Kleidertauschbörse
                 when:
                   slide_type: template
@@ -191,7 +137,7 @@ tabs:
                 type: text
                 width: 1/2
                 placeholder: z.B. Hinweis, Neu im Haus, Heute
-                help: Für die Templates „Ankündigung“ und „Kompakte Info“.
+                help: Für die Templates „Ankündigung“, „Kompakte Info“ und „Liste“.
 
               template_message:
                 label: Haupttext
@@ -200,7 +146,7 @@ tabs:
                 maxlength: 260
                 width: 1/2
                 placeholder: Kurze Nachricht oder Beschreibung
-                help: Für die Templates „Ankündigung“ und „Kompakte Info“.
+                help: Für „Ankündigung“ und „Kompakte Info“; bei „Liste“ ein optionaler Einleitungssatz.
 
               template_highlight:
                 label: Hervorhebung
@@ -215,18 +161,42 @@ tabs:
                 type: text
                 width: 1/2
                 placeholder: z.B. Mehr Infos am Empfang
-                help: Für die Templates „Ankündigung“ und „Kompakte Info“.
+                help: Für die Templates „Ankündigung“, „Kompakte Info“ und „Liste“.
 
-              template_image:
-                extends: fields/mediathek-image
-                label: Hintergrundbild
-                help: Wird für Template-Folien bevorzugt. Falls leer, greift der allgemeine Folien- oder Kanal-Hintergrund.
+              template_items:
+                label: Karten
+                type: structure
+                min: 1
+                max: 6
+                help: Die Karten werden nacheinander eingeblendet und bleiben dann stehen. Höchstens 6.
+                columns:
+                  meta:
+                    width: 1/4
+                    mobile: true
+                  title:
+                    width: 3/4
+                    mobile: true
+                fields:
+                  meta:
+                    label: Oben (Zeit, Ort, Kategorie)
+                    type: text
+                    maxlength: 40
+                    placeholder: z.B. Do, 18 Uhr
+                    width: 1/2
+                  title:
+                    label: Titel
+                    type: text
+                    required: true
+                    maxlength: 60
+                    width: 1/2
+                  text:
+                    label: Text
+                    type: textarea
+                    buttons: false
+                    maxlength: 160
+                when:
+                  template_preset: list
 
-              template_focus:
-                label: Bildausschnitt
-                type: image-focus
-                image: template_image
-                help: Leer = Fokuspunkt aus der Mediathek.
             when:
               slide_type: template
 
@@ -418,26 +388,7 @@ tabs:
                 type: info
                 label: Timing & Übergänge
                 theme: info
-                text: Steuern Sie, wie lange diese Folie angezeigt wird und wie sie übergeht
-
-              duration_mode:
-                label: Anzeigedauer
-                type: select
-                options:
-                  auto: Automatisch berechnen
-                  manual: Manuell festlegen
-                default: auto
-                width: 1/2
-
-              duration_override:
-                label: Dauer (Sekunden)
-                type: number
-                default: 15
-                min: 3
-                max: 300
-                width: 1/2
-                when:
-                  duration_mode: manual
+                text: Wie lange die Folie läuft, legt der Kanal fest (Kanal → Inhaltsfolien → Anzeigedauer). Hier nur der Übergang.
 
               transition:
                 label: Übergangseffekt
@@ -465,9 +416,9 @@ tabs:
             fields:
               info_calculated:
                 type: info
-                label: Berechnete Dauer
+                label: Automatisch berechnete Dauer
                 theme: notice
-                text: "{{ page.durationCalculationDetails }}"
+                text: "{{ page.calculatedDuration }} Sekunden ({{ page.durationCalculationDetails }}) – gilt, solange der Kanal keine eigene Dauer setzt. {{ page.legacyDurationInfo }}"
 
   background:
     label: Hintergrund
@@ -478,21 +429,16 @@ tabs:
           bg_media:
             type: fields
             fields:
-              info_bg:
-                type: info
-                label: Hintergrundmedien
-                theme: notice
-                text: Legen Sie einen benutzerdefinierten Hintergrund für diese Folie fest. Wenn nicht gesetzt, wird der Kanal-Standard verwendet.
-
               bg_type:
-                label: Hintergrundtyp
+                label: Hintergrund
                 type: select
                 options:
-                  none: Kanal-Standard verwenden
-                  image: Eigenes Bild
-                  video: Eigenes Video (Endlosschleife)
-                  color: Nur Volltonfarbe
+                  none: Wie im Kanal
+                  image: Bild
+                  video: Video (Endlosschleife, stumm)
+                  color: Vollton
                 default: none
+                help: „Wie im Kanal“ übernimmt Bild, Overlay und Farbe des Kanals.
 
               bg_image:
                 extends: fields/mediathek-image
@@ -504,7 +450,19 @@ tabs:
                 label: Bildausschnitt für diese Folie
                 type: image-focus
                 image: bg_image
-                help: Leer = Fokuspunkt aus der Mediathek. Greift bei Position „Fokuspunkt“.
+                width: 1/2
+                help: Leer = Fokuspunkt aus der Mediathek.
+                when:
+                  bg_type: image
+
+              bg_size:
+                label: Bildgröße
+                type: select
+                options:
+                  cover: Ausfüllen (Ränder werden beschnitten)
+                  contain: Ganz zeigen (mit Rand)
+                default: cover
+                width: 1/2
                 when:
                   bg_type: image
 
@@ -517,63 +475,47 @@ tabs:
                   - video/webm
                 when:
                   bg_type: video
-                help: Video wird lautlos im Hintergrund wiederholt
 
               bg_color:
-                label: Hintergrundfarbe
+                label: Farbe
                 type: color
                 default: "#000000"
                 when:
                   bg_type: color
 
-              bg_position:
-                label: Position
-                type: select
-                options:
-                  focus: Fokuspunkt (Folie bzw. Mediathek)
-                  center: Mitte
-                  top: Oben
-                  bottom: Unten
-                  left: Links
-                  right: Rechts
-                default: focus
-                width: 1/2
-                when:
-                  bg_type: image
-
-              bg_size:
-                label: Größe
-                type: select
-                options:
-                  cover: Ausfüllen (Cover)
-                  contain: Einpassen (Contain)
-                default: cover
-                width: 1/2
-                when:
-                  bg_type: image
-
       - width: 1/3
         sections:
-          overlay:
+          look:
             type: fields
             fields:
-              info_overlay:
-                type: info
-                label: Farbüberlagerung
-                theme: info
-                text: Fügen Sie eine Farbüberlagerung über Bild- oder Video-Hintergründe hinzu, um die Textlesbarkeit zu verbessern. Nur bei eigenem Bild oder Video – sonst gelten die Kanal-Einstellungen bzw. die gewählte Volltonfarbe.
+              color_scheme:
+                label: Farbschema
+                type: select
+                options:
+                  light: Hell – dunkle Schrift
+                  dark: Dunkel – helle Schrift
+                placeholder: Wie im Kanal
+                help: Bestimmt Schriftfarbe und Overlay-Farbe. Leer = wie im Kanal.
 
-              overlay_enabled:
-                label: Overlay aktivieren
-                type: toggle
-                default: true
+              overlay_preset:
+                label: Lesbarkeit (Overlay)
+                type: select
+                options:
+                  none: Kein Overlay
+                  soft: Leicht abtönen
+                  strong: Kräftig abtönen
+                  fade_bottom: Verlauf von unten
+                  fade_left: Verlauf von links
+                  custom: Benutzerdefiniert
+                default: soft
+                help: Legt sich über Bild oder Video, damit die Schrift lesbar bleibt. Die Farbe kommt aus dem Farbschema. Bei Vollton ohne Wirkung.
 
               overlay_color:
                 label: Overlay-Farbe
                 type: color
                 default: "#000000"
                 when:
-                  overlay_enabled: true
+                  overlay_preset: custom
 
               overlay_opacity:
                 label: Deckkraft
@@ -584,23 +526,21 @@ tabs:
                 default: 40
                 after: "%"
                 when:
-                  overlay_enabled: true
-                help: 0% = transparent, 100% = vollständig deckend
+                  overlay_preset: custom
 
               overlay_gradient:
                 label: Verlaufsrichtung
                 type: select
                 options:
-                  none: Kein Verlauf (Einfarbig)
-                  to-top: Nach oben verblassen (Farbe unten)
-                  to-bottom: Nach unten verblassen (Farbe oben)
-                  to-left: Nach links verblassen (Farbe rechts)
-                  to-right: Nach rechts verblassen (Farbe links)
-                  radial: Radial (Mitte frei, Farbe am Rand)
+                  none: Kein Verlauf (gleichmäßig)
+                  to-top: Farbe unten, nach oben auslaufend
+                  to-bottom: Farbe oben, nach unten auslaufend
+                  to-left: Farbe rechts, nach links auslaufend
+                  to-right: Farbe links, nach rechts auslaufend
+                  radial: Farbe am Rand, Mitte frei
                 default: none
                 when:
-                  overlay_enabled: true
-                help: Erzeugt einen Verlaufs-Overlay-Effekt
+                  overlay_preset: custom
 
               overlay_strength:
                 label: Verlaufsstärke
@@ -610,9 +550,9 @@ tabs:
                 step: 5
                 default: 60
                 after: "%"
+                help: Wie weit die Farbe ins Bild reicht. 100 % = ganze Fläche.
                 when:
-                  overlay_enabled: true
-                help: Wie weit die Farbe ins Bild reicht, bevor sie ganz ausläuft. 100% = über die ganze Fläche.
+                  overlay_preset: custom
 
   usage:
     label: Verwendung
@@ -643,9 +583,9 @@ tabs:
                 label: Folieninfo
                 theme: notice
                 text: |
-                  **Folientyp:** {{ page.slide_type.or('blocks') }}
-                  **Dauer:** {{ page.calculatedDuration }} Sekunden
-                  **Übergang:** {{ page.transition.or('fade') }}
+                  **Folientyp:** {{ page.optionLabel('slide_type') }}
+                  **Dauer (automatisch):** {{ page.calculatedDuration }} Sekunden
+                  **Übergang:** {{ page.optionLabel('transition') }}
 
               slide_preview:
                 label: Vorschau

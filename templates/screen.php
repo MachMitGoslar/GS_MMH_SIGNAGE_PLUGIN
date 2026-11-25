@@ -248,18 +248,16 @@ if ($isPreview) {
                 player.style.backgroundColor = this.state.contentData.channel.background.background_color || '#000000';
                 slides.forEach((slide, index) => {
                     const slideEl = document.createElement('div');
-                    const contentPosition = slide.content_position || 'center';
                     const effectiveBackground = this.getEffectiveBackground(slide);
-                    slideEl.className = `signage-slide content-position-${contentPosition}`;
+                    slideEl.className = 'signage-slide';
                     slideEl.dataset.transition = slide.transition || 'fade';
                     slideEl.dataset.duration = slide.duration;
-                    slideEl.dataset.contentPosition = contentPosition;
                     slideEl.dataset.slideId = slide.id || String(index);
                     slideEl.style.transitionDuration = `${slide.transition_duration || 1}s`;
 
                     // Apply background
                     this.applyBackground(slideEl, effectiveBackground);
-                    this.applyTextTheme(slideEl, effectiveBackground);
+                    this.applyTextTheme(slideEl, slide.scheme || effectiveBackground?.scheme || 'dark');
 
                     // Render content
                     const contentWrapper = document.createElement('div');
@@ -295,29 +293,6 @@ if ($isPreview) {
                     return { type: 'color', color: '#0b1430', overlay: { enabled: false } };
                 }
 
-                if (slide?.type === 'template' && slide.template?.image?.url) {
-                    const themeOverlays = {
-                        light: { color: '#f4dfbd', opacity: 66 },
-                        dark: { color: '#10100f', opacity: 58 },
-                    };
-                    const overlay = themeOverlays[slide.template.theme] || themeOverlays.light;
-
-                    return {
-                        type: 'image',
-                        image: {
-                            url: slide.template.image.url,
-                            position: slide.template.image.position || 'center',
-                            size: 'cover',
-                        },
-                        overlay: {
-                            enabled: true,
-                            color: overlay.color,
-                            opacity: overlay.opacity,
-                            gradient: 'none',
-                        },
-                    };
-                }
-
                 // Slides from a combined ("add") channel bring that channel's
                 // default background along.
                 return slide?.channel_background
@@ -325,8 +300,15 @@ if ($isPreview) {
                     || slideBackground;
             },
 
-            applyTextTheme(slideEl, background) {
-                const theme = this.getTextTheme(background);
+            /**
+             * Text colours for blocks, calendar etc. The colour scheme comes
+             * from the slide (or its channel): "light" = dark text on a light
+             * look, "dark" = light text. Templates use the same scheme as
+             * their CSS modifier (template-slide--light/--dark).
+             */
+            applyTextTheme(slideEl, scheme) {
+                const theme = this.getTextTheme(scheme);
+                slideEl.dataset.scheme = scheme === 'light' ? 'light' : 'dark';
                 slideEl.style.setProperty('--signage-text-color', theme.text);
                 slideEl.style.setProperty('--signage-muted-color', theme.muted);
                 slideEl.style.setProperty('--signage-surface-color', theme.surface);
@@ -336,18 +318,20 @@ if ($isPreview) {
                 slideEl.style.setProperty('--signage-accent-surface-color', theme.accentSurface);
             },
 
-            getTextTheme(background) {
-                const lightTheme = {
-                    text: '#000000',
-                    muted: '#4e4e4d',
-                    surface: '#ffffff',
-                    surfaceStrong: '#ffffff',
-                    border: 'rgb(0 0 0 / 10%)',
-                    shadow: 'rgb(0 0 0 / 10%)',
-                    accentSurface: 'rgba(252, 206, 76, 0.18)',
-                };
+            getTextTheme(scheme) {
+                if (scheme === 'light') {
+                    return {
+                        text: '#000000',
+                        muted: '#4e4e4d',
+                        surface: '#ffffff',
+                        surfaceStrong: '#ffffff',
+                        border: 'rgb(0 0 0 / 10%)',
+                        shadow: 'rgb(0 0 0 / 10%)',
+                        accentSurface: 'rgba(252, 206, 76, 0.18)',
+                    };
+                }
 
-                const darkTheme = {
+                return {
                     text: '#ffffff',
                     muted: '#d9d9d9',
                     surface: 'rgba(255, 255, 255, 0.08)',
@@ -356,23 +340,6 @@ if ($isPreview) {
                     shadow: 'rgba(0, 0, 0, 0.18)',
                     accentSurface: 'rgba(252, 206, 76, 0.12)',
                 };
-
-                if (!background) {
-                    return lightTheme;
-                }
-
-                const color = background.color || background.background_color || background.overlay?.color || null;
-                if (!color) {
-                    return lightTheme;
-                }
-
-                const normalized = this.normalizeHexColor(color);
-                if (!normalized) {
-                    return lightTheme;
-                }
-
-                const brightness = this.getColorBrightness(normalized);
-                return brightness >= 155 ? lightTheme : darkTheme;
             },
 
             normalizeHexColor(color) {
@@ -388,13 +355,6 @@ if ($isPreview) {
                 }
 
                 return /^[0-9a-fA-F]{6}$/.test(hex) ? `#${hex}` : null;
-            },
-
-            getColorBrightness(color) {
-                const r = parseInt(color.slice(1, 3), 16);
-                const g = parseInt(color.slice(3, 5), 16);
-                const b = parseInt(color.slice(5, 7), 16);
-                return (r * 299 + g * 587 + b * 114) / 1000;
             },
 
             /**
@@ -496,10 +456,8 @@ if ($isPreview) {
              */
             renderSlideContent(slide) {
               switch (slide.type) {
-                case 'blocks':
-                  return this.renderLayoutSlide(slide.layout);
                 case 'template':
-                  return this.renderTemplateSlide(slide.template);
+                  return this.renderTemplateSlide(slide.template, slide.scheme);
                 case 'video':
                   return this.renderVideoSlide(slide.video);
                 case 'calendar':
@@ -508,48 +466,21 @@ if ($isPreview) {
                   return this.renderCanvaSlide(slide.canva);
                 case 'christmas_tree':
                   return this.renderChristmasTreeSlide(slide.christmas_tree);
+                case 'blocks':
+                  // removed slide type: until the content migration has made
+                  // it a "Bild" template only its background is shown
+                  return '';
                 default:
                   return '<p>Unknown slide type</p>';
               }
             },
 
             /**
-             * Render layout-based slide (with rows and columns)
-             */
-            renderLayoutSlide(layout) {
-                if (!layout || layout.length === 0) {
-                    return '<p>No content</p>';
-                }
-
-                return layout.map(row => {
-                    const verticalAlign = row.settings?.vertical_align || 'center';
-                    const padding = row.settings?.padding || 'medium';
-                    
-                    const columnsHtml = row.columns.map(column => {
-                        const blocksHtml = column.blocks.map(block => this.renderBlock(block)).join('');
-                        return `
-                            <div class="layout-column" data-width="${column.width}">
-                                ${blocksHtml}
-                            </div>
-                        `;
-                    }).join('');
-
-                    return `
-                        <div class="layout-row" 
-                             data-vertical-align="${verticalAlign}" 
-                             data-padding="${padding}">
-                            ${columnsHtml}
-                        </div>
-                    `;
-                }).join('');
-            },
-
-            /**
              * Render predefined template slide
              */
-            renderTemplateSlide(template) {
+            renderTemplateSlide(template, scheme) {
                 const preset = template?.preset || 'event_focus';
-                const theme = template?.theme || 'light';
+                const theme = scheme === 'light' ? 'light' : 'dark';
                 const title = this.escapeHtml(template?.title || '');
                 const subtitle = this.escapeHtml(template?.subtitle || '');
                 const label = this.escapeHtml(template?.label || '');
@@ -562,9 +493,18 @@ if ($isPreview) {
                 const timeLabel = this.formatTemplateTimeRange(template?.time || '', template?.end_time || '');
                 const location = this.escapeHtml(template?.location || '');
                 const recurrence = this.escapeHtml(template?.recurrence || '');
-                const hasMeta = Boolean(date || time || location);
 
-                if (preset === 'event_focus') {
+                // "Bild": the picture is the slide background, at most a caption
+                if (preset === 'image') {
+                    return title ? `
+                        <article class="template-slide template-slide--image template-slide--${theme}">
+                            <p class="template-slide__caption">${title}</p>
+                        </article>
+                    ` : '';
+                }
+
+                // "Veranstaltung" is also the layout for unknown/empty presets
+                if (!['announcement', 'compact_info', 'list'].includes(preset)) {
                     const eventDate = shortDate || date;
                     const eventTime = timeLabel || time;
                     const whenLabel = recurrence ? 'Wann' : 'Datum';
@@ -617,6 +557,37 @@ if ($isPreview) {
                     `;
                 }
 
+                if (preset === 'list') {
+                    const items = Array.isArray(template?.items) ? template.items : [];
+                    const cards = items.map((item, index) => {
+                        const cardMeta = this.escapeHtml(item?.meta || '');
+                        const cardTitle = this.escapeHtml(item?.title || '');
+                        const cardText = this.escapeHtml(item?.text || '');
+
+                        return `
+                            <li class="template-slide__card" style="--card-index: ${index}">
+                                ${cardMeta ? `<p class="template-slide__card-meta">${cardMeta}</p>` : ''}
+                                ${cardTitle ? `<h2 class="template-slide__card-title">${cardTitle}</h2>` : ''}
+                                ${cardText ? `<p class="template-slide__card-text">${cardText}</p>` : ''}
+                            </li>
+                        `;
+                    }).join('');
+
+                    return `
+                        <article class="template-slide template-slide--list template-slide--${theme}">
+                            <div class="template-slide__list">
+                                <header class="template-slide__list-head">
+                                    ${label ? `<p class="template-slide__label">${label}</p>` : ''}
+                                    ${title ? `<h1 class="template-slide__title">${title}</h1>` : ''}
+                                    ${message ? `<p class="template-slide__message">${message}</p>` : ''}
+                                </header>
+                                ${cards ? `<ol class="template-slide__cards" data-count="${items.length}">${cards}</ol>` : ''}
+                                ${footer ? `<p class="template-slide__footer">${footer}</p>` : ''}
+                            </div>
+                        </article>
+                    `;
+                }
+
                 if (preset === 'compact_info') {
                     return `
                         <article class="template-slide template-slide--compact_info template-slide--${theme}">
@@ -630,47 +601,6 @@ if ($isPreview) {
                         </article>
                     `;
                 }
-
-                return `
-                    <article class="template-slide template-slide--${preset} template-slide--${theme}">
-                        <div class="template-slide__body">
-                            ${title ? `<h1 class="template-slide__title">${title}</h1>` : ''}
-                            ${subtitle ? `<p class="template-slide__subtitle">${subtitle}</p>` : ''}
-                        </div>
-                        ${hasMeta ? `
-                            <dl class="template-slide__meta">
-                                ${date ? `
-                                    <div class="template-slide__meta-item">
-                                        <dt>Datum</dt>
-                                        <dd>${date}</dd>
-                                    </div>
-                                ` : ''}
-                                ${time ? `
-                                    <div class="template-slide__meta-item">
-                                        <dt>Uhrzeit</dt>
-                                        <dd>${time}</dd>
-                                    </div>
-                                ` : ''}
-                                ${location ? `
-                                    <div class="template-slide__meta-item">
-                                        <dt>Ort</dt>
-                                        <dd>${location}</dd>
-                                    </div>
-                                ` : ''}
-                            </dl>
-                        ` : ''}
-                    </article>
-                `;
-            },
-
-            getBlockText(block) {
-                if (!block || block.text == null) {
-                    return '';
-                }
-
-                return typeof block.text === 'string'
-                    ? block.text
-                    : (block.text.value || '');
             },
 
             escapeHtml(value) {
@@ -791,44 +721,6 @@ if ($isPreview) {
                 return event.end_time ? `${event.time} - ${event.end_time}` : event.time;
             },
 
-            /**
-             * Render individual block
-             */
-            renderBlock(block) {
-                switch (block.type) {
-                    case 'signage-heading':
-                        return `<${block.level || 'h2'}>${this.getBlockText(block)}</${block.level || 'h2'}>`;
-                    
-                    case 'signage-text':
-                        return `<div class="text-block">${this.getBlockText(block)}</div>`;
-                    
-                    case 'image':
-                        if (!block.src) return '';
-                        return `
-                            <figure class="image-block">
-                                <img src="${block.src}" alt="${block.alt || ''}">
-                                ${block.caption ? `<figcaption>${block.caption}</figcaption>` : ''}
-                            </figure>
-                        `;
-                    
-                    case 'list':
-                        return `<div class="list-block">${this.getBlockText(block)}</div>`;
-                    
-                    case 'quote':
-                        return `
-                            <blockquote class="quote-block">
-                                ${this.getBlockText(block)}
-                                ${block.citation ? `<cite>${block.citation}</cite>` : ''}
-                            </blockquote>
-                        `;
-                    
-                    case 'line':
-                        return '<hr class="line-block">';
-                    
-                    default:
-                        return '';
-                }
-            },
             /**
              * Christmas tree slide: approved greetings hang as baubles.
              * Hang points are in SVG viewBox coordinates (0 0 600 800); each round
@@ -1482,6 +1374,37 @@ if ($isPreview) {
                 }, configuredDuration);
             },
 
+            /**
+             * List template: the cards appear one after another within the
+             * first ~60 % of the slide and then stay, so the last card is
+             * readable as long as the others were.
+             */
+            revealListCards(cards, configuredDuration) {
+                const fadeMs = 700;
+                const leadMs = 900;
+                const revealWindow = Math.max(configuredDuration * 0.6 - leadMs, 0);
+                const stepMs = cards.length > 1
+                    ? Math.min(Math.max(revealWindow / (cards.length - 1), 400), 4000)
+                    : 0;
+
+                const animations = Array.from(cards).map((card, index) => card.animate(
+                    [
+                        { opacity: 0, transform: 'translateY(1.6rem)' },
+                        { opacity: 1, transform: 'translateY(0)' },
+                    ],
+                    {
+                        duration: fadeMs,
+                        delay: leadMs + index * stepMs,
+                        easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)',
+                        fill: 'both',
+                    }
+                ));
+
+                return {
+                    cancel: () => animations.forEach((animation) => animation.cancel()),
+                };
+            },
+
             startSlideAnimation(slideEl, configuredDuration) {
                 if (this.state.activeAnimation) {
                     this.state.activeAnimation.cancel();
@@ -1490,6 +1413,12 @@ if ($isPreview) {
 
                 if (slideEl.treeData) {
                     this.state.activeAnimation = this.startChristmasTree(slideEl, configuredDuration);
+                    return configuredDuration;
+                }
+
+                const listCards = slideEl.querySelectorAll('.template-slide__card');
+                if (listCards.length) {
+                    this.state.activeAnimation = this.revealListCards(listCards, configuredDuration);
                     return configuredDuration;
                 }
 

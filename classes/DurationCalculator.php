@@ -4,7 +4,9 @@
  * Duration Calculator
  *
  * Calculates optimal display duration for different slide types based on content.
- * Used for automatic duration calculation when duration_mode is set to 'auto'.
+ * The channel decides how long a slide runs (a slide can be used in several
+ * channels): a duration set in the channel's slide row wins, otherwise the
+ * duration is calculated from the content.
  *
  * @package GS\MMH\Signage
  */
@@ -20,7 +22,6 @@ class DurationCalculator
      * Base durations for different content types (seconds)
      */
     private const BASE_DURATION_IMAGE = 8;
-    private const BASE_DURATION_HEADING = 3;
     private const BASE_DURATION_CALENDAR = 30;
 
     /**
@@ -30,6 +31,49 @@ class DurationCalculator
     private const MAX_DURATION = 120;
 
     /**
+     * Limits for a duration set by hand in a channel (seconds)
+     */
+    public const MIN_CHANNEL_DURATION = 3;
+    public const MAX_CHANNEL_DURATION = 300;
+
+    /**
+     * Duration of a slide within a channel: the channel's value, else the
+     * calculated one.
+     *
+     * @param \Kirby\Cms\Page $slide
+     * @param \Kirby\Cms\Page|null $channel
+     */
+    public static function forChannel($slide, $channel = null): int
+    {
+        $set = $channel ? SlideLibrary::durationIn($channel, $slide) : null;
+        $set ??= self::legacyDuration($slide);
+
+        if ($set === null) {
+            return self::calculate($slide);
+        }
+
+        return max(self::MIN_CHANNEL_DURATION, min($set, self::MAX_CHANNEL_DURATION));
+    }
+
+    /**
+     * Duration set by hand on the slide itself (before channels decided).
+     * Still honoured while a channel sets none, so existing slides keep
+     * their timing; the slide panel no longer offers the field.
+     *
+     * @param \Kirby\Cms\Page $slide
+     */
+    public static function legacyDuration($slide): ?int
+    {
+        if ($slide->duration_mode()->value() !== 'manual') {
+            return null;
+        }
+
+        $seconds = (int) $slide->duration_override()->value();
+
+        return $seconds > 0 ? $seconds : null;
+    }
+
+    /**
      * Calculate total duration for a slide
      *
      * @param \Kirby\Cms\Page $slide The slide page object
@@ -37,17 +81,9 @@ class DurationCalculator
      */
     public static function calculate($slide): int
     {
-        // Check for manual override
-        if ($slide->duration_mode()->value() === 'manual') {
-            $override = (int) $slide->duration_override()->value();
-
-            return max(self::MIN_DURATION, min($override, 300)); // Allow up to 5 minutes for manual
-        }
-
         $slideType = $slide->slide_type()->value();
 
         $duration = match ($slideType) {
-            'blocks' => self::calculateBlocksDuration($slide),
             'template' => self::calculateTemplateDuration($slide),
             'video' => self::calculateVideoDuration($slide),
             'calendar' => self::calculateCalendarDuration($slide),
@@ -67,14 +103,9 @@ class DurationCalculator
      */
     public static function getCalculationDetails($slide): string
     {
-        if ($slide->duration_mode()->value() === 'manual') {
-            return 'Manual override: ' . $slide->duration_override()->value() . ' seconds';
-        }
-
         $slideType = $slide->slide_type()->value();
 
         return match ($slideType) {
-            'blocks' => self::getBlocksCalculationDetails($slide),
             'template' => self::getTemplateCalculationDetails($slide),
             'video' => self::getVideoCalculationDetails($slide),
             'calendar' => self::getCalendarCalculationDetails($slide),
@@ -84,132 +115,13 @@ class DurationCalculator
     }
 
     /**
-     * Calculate duration for block-based slides
-     *
-     * @param \Kirby\Cms\Page $slide
-     * @return int Duration in seconds
-     */
-    public static function calculateBlocksDuration($slide): int
-    {
-        $layout = $slide->content_layout()->toLayouts();
-        $totalDuration = 0;
-
-        if ($layout->count() === 0) {
-            return self::MIN_DURATION;
-        }
-
-        // Iterate through layout rows and columns
-        foreach ($layout as $layoutRow) {
-            foreach ($layoutRow->columns() as $column) {
-                foreach ($column->blocks() as $block) {
-                    $blockDuration = match ($block->type()) {
-                        'heading' => self::BASE_DURATION_HEADING,
-                        'text' => self::calculateTextDuration($block->text()->value()),
-                        'image' => self::calculateImageBlockDuration($block),
-                        'list' => self::calculateListDuration($block),
-                        'quote' => self::calculateTextDuration($block->text()->value()) + 2,
-                        'line' => 1, // Line separator - minimal duration
-                        default => 5
-                    };
-
-                    $totalDuration += $blockDuration;
-                }
-            }
-        }
-
-        return $totalDuration > 0 ? $totalDuration : self::MIN_DURATION;
-    }
-
-    /**
-     * Get calculation details for block slides
-     */
-    private static function getBlocksCalculationDetails($slide): string
-    {
-        $layout = $slide->content_layout()->toLayouts();
-
-        if ($layout->count() === 0) {
-            return 'No content: minimum ' . self::MIN_DURATION . ' seconds';
-        }
-
-        $details = [];
-        foreach ($layout as $layoutRow) {
-            foreach ($layoutRow->columns() as $column) {
-                foreach ($column->blocks() as $block) {
-                    $type = ucfirst($block->type());
-                    $duration = match ($block->type()) {
-                        'heading' => self::BASE_DURATION_HEADING,
-                        'text' => self::calculateTextDuration($block->text()->value()),
-                        'image' => self::calculateImageBlockDuration($block),
-                        'list' => self::calculateListDuration($block),
-                        'quote' => self::calculateTextDuration($block->text()->value()) + 2,
-                        'line' => 1,
-                        default => 5
-                    };
-                    $details[] = "{$type}: {$duration}s";
-                }
-            }
-        }
-
-        return implode(' + ', $details);
-    }
-
-    /**
-     * Calculate duration for text content
-     *
-     * @param string $text Text content (may contain HTML)
-     * @return int Duration in seconds
+     * Reading time of a text (may contain HTML), at least the minimum
      */
     private static function calculateTextDuration(string $text): int
     {
-        // Strip HTML tags and count characters
-        $cleanText = strip_tags($text);
-        $charCount = mb_strlen($cleanText);
+        $charCount = mb_strlen(strip_tags($text));
 
-        // Calculate reading time
-        $duration = (int) ceil($charCount / self::CHARS_PER_SECOND);
-
-        return max(self::MIN_DURATION, $duration);
-    }
-
-    /**
-     * Calculate duration for image blocks
-     *
-     * @param \Kirby\Cms\Block $block
-     * @return int Duration in seconds
-     */
-    private static function calculateImageBlockDuration($block): int
-    {
-        $baseDuration = self::BASE_DURATION_IMAGE;
-
-        // Add time for caption if present
-        $caption = $block->caption()->value();
-        if (!empty($caption)) {
-            $baseDuration += self::calculateTextDuration($caption);
-        }
-
-        // Add time for alt text if present (fallback)
-        $alt = $block->alt()->value();
-        if (empty($caption) && !empty($alt)) {
-            $baseDuration += self::calculateTextDuration($alt);
-        }
-
-        return min($baseDuration, 60); // Cap image duration at 60s
-    }
-
-    /**
-     * Calculate duration for list blocks
-     *
-     * @param \Kirby\Cms\Block $block
-     * @return int Duration in seconds
-     */
-    private static function calculateListDuration($block): int
-    {
-        $text = $block->text()->value();
-        $items = explode("\n", strip_tags($text));
-        $itemCount = count(array_filter($items)); // Filter empty lines
-
-        // Base duration + per-item duration
-        return 3 + ($itemCount * 2); // 3s base + 2s per item
+        return max(self::MIN_DURATION, (int) ceil($charCount / self::CHARS_PER_SECOND));
     }
 
     /**
@@ -220,6 +132,17 @@ class DurationCalculator
      */
     private static function calculateTemplateDuration($slide): int
     {
+        if ($slide->template_preset()->value() === 'list') {
+            return self::calculateListTemplateDuration($slide);
+        }
+
+        if ($slide->template_preset()->value() === 'image') {
+            // a picture plus an optional caption
+            $caption = trim((string) $slide->template_title()->value());
+
+            return self::BASE_DURATION_IMAGE + ($caption === '' ? 0 : self::calculateTextDuration($caption));
+        }
+
         $textParts = [
             $slide->template_title()->value(),
             $slide->template_subtitle()->value(),
@@ -239,11 +162,39 @@ class DurationCalculator
     }
 
     /**
+     * List template: heading, then every card gets its reading time (at
+     * least 4 s); the cards are revealed one after another.
+     */
+    private static function calculateListTemplateDuration($slide): int
+    {
+        $head = implode(' ', array_filter([
+            $slide->template_label()->value(),
+            $slide->template_title()->value(),
+            $slide->template_message()->value(),
+            $slide->template_footer()->value(),
+        ]));
+        $duration = (int) ceil(mb_strlen(strip_tags($head)) / self::CHARS_PER_SECOND) + 2;
+
+        foreach (AccessController::templateItems($slide) as $item) {
+            $chars = mb_strlen($item['meta'] . ' ' . $item['title'] . ' ' . $item['text']);
+            $duration += max(4, (int) ceil($chars / self::CHARS_PER_SECOND) + 1);
+        }
+
+        return max(10, $duration);
+    }
+
+    /**
      * Get calculation details for template slides
      */
     private static function getTemplateCalculationDetails($slide): string
     {
         $duration = self::calculateTemplateDuration($slide);
+
+        if ($slide->template_preset()->value() === 'list') {
+            $count = count(AccessController::templateItems($slide));
+
+            return "Liste mit {$count} Karten: {$duration} seconds";
+        }
 
         return "Template fields: {$duration} seconds";
     }
