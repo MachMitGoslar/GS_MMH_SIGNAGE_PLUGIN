@@ -1782,6 +1782,30 @@ class AccessController
     }
 
     /**
+     * Cards of the "list" template (at most 6, empty rows skipped).
+     *
+     * @return array<int, array{title:string, text:string, meta:string}>
+     */
+    public static function templateItems($slide): array
+    {
+        $items = [];
+
+        foreach ($slide->template_items()->toStructure() as $item) {
+            $title = trim((string) $item->title()->value());
+            $text = trim((string) $item->text()->value());
+            $meta = trim((string) $item->meta()->value());
+
+            if ($title === '' && $text === '') {
+                continue;
+            }
+
+            $items[] = ['title' => $title, 'text' => $text, 'meta' => $meta];
+        }
+
+        return array_slice($items, 0, 6);
+    }
+
+    /**
      * Extract template slide data
      */
     private static function getTemplateData($slide): array
@@ -1802,6 +1826,7 @@ class AccessController
             'time' => $slide->template_time()->value(),
             'end_time' => $slide->template_end_time()->value(),
             'location' => $slide->template_location()->value(),
+            'items' => self::templateItems($slide),
             'image' => $image ? [
                 'url' => $image->url(),
                 'alt' => $image->alt()->value() ?: $slide->template_title()->value(),

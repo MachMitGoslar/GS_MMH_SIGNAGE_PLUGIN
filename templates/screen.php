@@ -617,6 +617,37 @@ if ($isPreview) {
                     `;
                 }
 
+                if (preset === 'list') {
+                    const items = Array.isArray(template?.items) ? template.items : [];
+                    const cards = items.map((item, index) => {
+                        const cardMeta = this.escapeHtml(item?.meta || '');
+                        const cardTitle = this.escapeHtml(item?.title || '');
+                        const cardText = this.escapeHtml(item?.text || '');
+
+                        return `
+                            <li class="template-slide__card" style="--card-index: ${index}">
+                                ${cardMeta ? `<p class="template-slide__card-meta">${cardMeta}</p>` : ''}
+                                ${cardTitle ? `<h2 class="template-slide__card-title">${cardTitle}</h2>` : ''}
+                                ${cardText ? `<p class="template-slide__card-text">${cardText}</p>` : ''}
+                            </li>
+                        `;
+                    }).join('');
+
+                    return `
+                        <article class="template-slide template-slide--list template-slide--${theme}">
+                            <div class="template-slide__list">
+                                <header class="template-slide__list-head">
+                                    ${label ? `<p class="template-slide__label">${label}</p>` : ''}
+                                    ${title ? `<h1 class="template-slide__title">${title}</h1>` : ''}
+                                    ${message ? `<p class="template-slide__message">${message}</p>` : ''}
+                                </header>
+                                ${cards ? `<ol class="template-slide__cards" data-count="${items.length}">${cards}</ol>` : ''}
+                                ${footer ? `<p class="template-slide__footer">${footer}</p>` : ''}
+                            </div>
+                        </article>
+                    `;
+                }
+
                 if (preset === 'compact_info') {
                     return `
                         <article class="template-slide template-slide--compact_info template-slide--${theme}">
@@ -1482,6 +1513,37 @@ if ($isPreview) {
                 }, configuredDuration);
             },
 
+            /**
+             * List template: the cards appear one after another within the
+             * first ~60 % of the slide and then stay, so the last card is
+             * readable as long as the others were.
+             */
+            revealListCards(cards, configuredDuration) {
+                const fadeMs = 700;
+                const leadMs = 900;
+                const revealWindow = Math.max(configuredDuration * 0.6 - leadMs, 0);
+                const stepMs = cards.length > 1
+                    ? Math.min(Math.max(revealWindow / (cards.length - 1), 400), 4000)
+                    : 0;
+
+                const animations = Array.from(cards).map((card, index) => card.animate(
+                    [
+                        { opacity: 0, transform: 'translateY(1.6rem)' },
+                        { opacity: 1, transform: 'translateY(0)' },
+                    ],
+                    {
+                        duration: fadeMs,
+                        delay: leadMs + index * stepMs,
+                        easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)',
+                        fill: 'both',
+                    }
+                ));
+
+                return {
+                    cancel: () => animations.forEach((animation) => animation.cancel()),
+                };
+            },
+
             startSlideAnimation(slideEl, configuredDuration) {
                 if (this.state.activeAnimation) {
                     this.state.activeAnimation.cancel();
@@ -1490,6 +1552,12 @@ if ($isPreview) {
 
                 if (slideEl.treeData) {
                     this.state.activeAnimation = this.startChristmasTree(slideEl, configuredDuration);
+                    return configuredDuration;
+                }
+
+                const listCards = slideEl.querySelectorAll('.template-slide__card');
+                if (listCards.length) {
+                    this.state.activeAnimation = this.revealListCards(listCards, configuredDuration);
                     return configuredDuration;
                 }
 

@@ -254,6 +254,10 @@ class DurationCalculator
      */
     private static function calculateTemplateDuration($slide): int
     {
+        if ($slide->template_preset()->value() === 'list') {
+            return self::calculateListTemplateDuration($slide);
+        }
+
         $textParts = [
             $slide->template_title()->value(),
             $slide->template_subtitle()->value(),
@@ -273,11 +277,39 @@ class DurationCalculator
     }
 
     /**
+     * List template: heading, then every card gets its reading time (at
+     * least 4 s); the cards are revealed one after another.
+     */
+    private static function calculateListTemplateDuration($slide): int
+    {
+        $head = implode(' ', array_filter([
+            $slide->template_label()->value(),
+            $slide->template_title()->value(),
+            $slide->template_message()->value(),
+            $slide->template_footer()->value(),
+        ]));
+        $duration = (int) ceil(mb_strlen(strip_tags($head)) / self::CHARS_PER_SECOND) + 2;
+
+        foreach (AccessController::templateItems($slide) as $item) {
+            $chars = mb_strlen($item['meta'] . ' ' . $item['title'] . ' ' . $item['text']);
+            $duration += max(4, (int) ceil($chars / self::CHARS_PER_SECOND) + 1);
+        }
+
+        return max(10, $duration);
+    }
+
+    /**
      * Get calculation details for template slides
      */
     private static function getTemplateCalculationDetails($slide): string
     {
         $duration = self::calculateTemplateDuration($slide);
+
+        if ($slide->template_preset()->value() === 'list') {
+            $count = count(AccessController::templateItems($slide));
+
+            return "Liste mit {$count} Karten: {$duration} seconds";
+        }
 
         return "Template fields: {$duration} seconds";
     }
