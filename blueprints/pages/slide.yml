@@ -113,6 +113,7 @@ tabs:
                   event_focus: Veranstaltung
                   announcement: Ankündigung / Botschaft
                   compact_info: Kompakte Info / Hinweis
+                  list: Liste (Karten nacheinander)
                 default: event_focus
                 required: true
                 width: 1/2
@@ -191,7 +192,7 @@ tabs:
                 type: text
                 width: 1/2
                 placeholder: z.B. Hinweis, Neu im Haus, Heute
-                help: Für die Templates „Ankündigung“ und „Kompakte Info“.
+                help: Für die Templates „Ankündigung“, „Kompakte Info“ und „Liste“.
 
               template_message:
                 label: Haupttext
@@ -200,7 +201,7 @@ tabs:
                 maxlength: 260
                 width: 1/2
                 placeholder: Kurze Nachricht oder Beschreibung
-                help: Für die Templates „Ankündigung“ und „Kompakte Info“.
+                help: Für „Ankündigung“ und „Kompakte Info“; bei „Liste“ ein optionaler Einleitungssatz.
 
               template_highlight:
                 label: Hervorhebung
@@ -215,7 +216,41 @@ tabs:
                 type: text
                 width: 1/2
                 placeholder: z.B. Mehr Infos am Empfang
-                help: Für die Templates „Ankündigung“ und „Kompakte Info“.
+                help: Für die Templates „Ankündigung“, „Kompakte Info“ und „Liste“.
+
+              template_items:
+                label: Karten
+                type: structure
+                min: 1
+                max: 6
+                help: Die Karten werden nacheinander eingeblendet und bleiben dann stehen. Höchstens 6.
+                columns:
+                  meta:
+                    width: 1/4
+                    mobile: true
+                  title:
+                    width: 3/4
+                    mobile: true
+                fields:
+                  meta:
+                    label: Oben (Zeit, Ort, Kategorie)
+                    type: text
+                    maxlength: 40
+                    placeholder: z.B. Do, 18 Uhr
+                    width: 1/2
+                  title:
+                    label: Titel
+                    type: text
+                    required: true
+                    maxlength: 60
+                    width: 1/2
+                  text:
+                    label: Text
+                    type: textarea
+                    buttons: false
+                    maxlength: 160
+                when:
+                  template_preset: list
 
               template_image:
                 extends: fields/mediathek-image

@@ -267,9 +267,56 @@ body[data-orientation='vertical']
   margin-left: 0;
 }
 
+/* Portrait: the card uses the full width; long German words get
+   hyphenated instead of running out of the card. */
+body[data-orientation='vertical'] .template-slide--announcement,
+body[data-orientation='vertical'] .template-slide--compact_info,
+body[data-orientation='vertical'] .template-slide--list {
+  padding: clamp(3rem, 6vh, 6rem) clamp(2.4rem, 6vw, 4.5rem)
+    clamp(3rem, 6vh, 6rem) clamp(4.4rem, 9vw, 6.5rem);
+}
+
 body[data-orientation='vertical'] .template-slide__announcement,
-body[data-orientation='vertical'] .template-slide__compact {
-  width: min(100%, 38rem);
+body[data-orientation='vertical'] .template-slide__compact,
+body[data-orientation='vertical'] .template-slide__list {
+  width: 100%;
+}
+
+body[data-orientation='vertical'] .template-slide__announcement,
+body[data-orientation='vertical'] .template-slide__list-head {
+  padding-right: clamp(1.4rem, 3vw, 2.4rem);
+  background: var(--template-panel);
+}
+
+body[data-orientation='vertical'] .template-slide--announcement .template-slide__title,
+body[data-orientation='vertical'] .template-slide--list .template-slide__title {
+  max-width: 100%;
+  font-size: clamp(3rem, 8.4vw, 6.4rem);
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+body[data-orientation='vertical'] .template-slide--announcement .template-slide__message,
+body[data-orientation='vertical'] .template-slide--list .template-slide__message {
+  max-width: 100%;
+  font-size: clamp(1.6rem, 4vw, 2.5rem);
+}
+
+body[data-orientation='vertical'] .template-slide__cards,
+body[data-orientation='vertical'] .template-slide__cards[data-count] {
+  grid-template-columns: 1fr;
+}
+
+body[data-orientation='vertical'] .template-slide__card-title {
+  font-size: clamp(1.9rem, 4.6vw, 3rem);
+}
+
+body[data-orientation='vertical'] .template-slide__card-meta {
+  font-size: clamp(1rem, 2.2vw, 1.4rem);
+}
+
+body[data-orientation='vertical'] .template-slide__card-text {
+  font-size: clamp(1.3rem, 3vw, 2rem);
 }
 
 body[data-orientation='vertical'] .template-slide__compact {
@@ -740,6 +787,116 @@ body[data-orientation='vertical'] .template-slide__compact {
 
 .template-slide--announcement .template-slide__footer {
   margin-top: clamp(0.3rem, 1vh, 0.9rem);
+}
+
+/* List template: heading like the announcement, cards appear one after
+   another (animation in the player: revealListCards). */
+.template-slide--list {
+  width: 100%;
+  min-height: 100%;
+  padding: clamp(3.5rem, 6vh, 6rem) clamp(5rem, 7.2vw, 8.5rem);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  place-items: center start;
+  text-align: left;
+}
+
+.template-slide--list::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: clamp(1.2rem, 1.7vw, 2rem);
+  width: clamp(1rem, 1.8vw, 2rem);
+  background: var(--template-accent);
+}
+
+.template-slide__list {
+  display: grid;
+  gap: clamp(1.4rem, 3vh, 2.6rem);
+  width: min(84vw, 1500px);
+}
+
+.template-slide__list-head {
+  display: grid;
+  gap: clamp(0.8rem, 1.6vh, 1.4rem);
+  padding: clamp(1rem, 1.8vw, 1.8rem) 0 clamp(1rem, 1.8vw, 1.8rem)
+    clamp(1.2rem, 2vw, 2rem);
+  background: linear-gradient(to right, var(--template-panel), transparent 78%);
+  border-left: clamp(0.24rem, 0.34vw, 0.42rem) solid var(--template-accent);
+}
+
+.template-slide--list .template-slide__title {
+  max-width: 16em;
+  font-size: clamp(3.4rem, 5vw, 6rem);
+  line-height: 0.98;
+}
+
+.template-slide--list .template-slide__message {
+  max-width: 34em;
+  font-size: clamp(1.4rem, 1.9vw, 2.1rem);
+  font-weight: 650;
+  line-height: 1.16;
+}
+
+.template-slide__cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(0.8rem, 1.6vh, 1.3rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.template-slide__cards[data-count='4'],
+.template-slide__cards[data-count='5'],
+.template-slide__cards[data-count='6'] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.template-slide__card {
+  display: grid;
+  align-content: start;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: clamp(1rem, 1.6vw, 1.6rem) clamp(1.2rem, 2vw, 2rem);
+  color: var(--template-text);
+  background: var(--template-panel);
+  border-left: clamp(0.24rem, 0.34vw, 0.42rem) solid var(--template-accent);
+  border-radius: 0 0.38rem 0.38rem 0;
+  box-shadow: 0 14px 36px rgb(0 0 0 / 10%);
+}
+
+.template-slide__card-meta {
+  margin: 0;
+  color: var(--template-muted);
+  font-size: clamp(0.9rem, 1.1vw, 1.2rem);
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.template-slide__card-title {
+  margin: 0;
+  font-size: clamp(1.7rem, 2.4vw, 2.7rem);
+  font-weight: 900;
+  line-height: 1.02;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.template-slide__card-text {
+  margin: 0;
+  color: var(--template-muted);
+  font-size: clamp(1.15rem, 1.5vw, 1.65rem);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.template-slide--list .template-slide__footer {
+  margin: 0;
 }
 
 /* Access Pending Screen */
