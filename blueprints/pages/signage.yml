@@ -64,7 +64,7 @@ tabs:
             template: slide
             create: slide
             status: all
-            info: "{{ page.slide_type.or('blocks') }} — {{ page.calculatedDuration }} Sek."
+            info: "{{ page.optionLabel('slide_type') }} — {{ page.calculatedDuration }} Sek."
             empty: Noch keine Folien vorhanden
             help: Folien werden einmal angelegt und können in beliebig vielen Kanälen verwendet werden
 

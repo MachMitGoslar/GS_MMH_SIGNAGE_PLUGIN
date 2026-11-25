@@ -29,68 +29,14 @@ tabs:
                 label: Folientyp
                 type: select
                 options:
-                  blocks: Inhaltsblöcke
                   template: Template-Folie
                   canva: Canva-Design
                   video: Vollbild-Video
                   calendar: Kalender / Termine
                   christmas_tree: Weihnachtsbaum (Grüße)
-                default: blocks
+                default: template
                 required: true
                 help: Wählen Sie den Inhaltstyp für diese Folie
-
-          blocks_content:
-            type: fields
-            fields:
-              content_layout:
-                label: Inhalts-Layout
-                type: layout
-                layouts:
-                  - "1/1"
-                  - "1/2, 1/2"
-                  - "1/3, 1/3, 1/3"
-                  - "1/4, 1/4, 1/4, 1/4"
-                  - "2/3, 1/3"
-                  - "1/3, 2/3"
-                  - "1/4, 1/2, 1/4"
-                  - "1/4, 3/4"
-                  - "3/4, 1/4"
-                fieldsets:
-                  signage-text: true
-                  # Kirbys Bild-Block, Bild aus der Mediathek (Feld aus mmh-site)
-                  image:
-                    extends: blocks/image
-                    fields:
-                      image:
-                        extends: fields/mediathek-image
-                        label: Bild
-                  list: true
-                  quote: true
-                  line: true
-                settings:
-                  fields:
-                    vertical_align:
-                      label: Vertikale Ausrichtung
-                      type: select
-                      options:
-                        start: Oben
-                        center: Mitte
-                        end: Unten
-                      default: center
-                      width: 1/2
-                    padding:
-                      label: Abstand
-                      type: select
-                      options:
-                        none: Kein
-                        small: Klein
-                        medium: Mittel
-                        large: Groß
-                      default: medium
-                      width: 1/2
-                help: Gestalten Sie Ihren Folieninhalt mit einem flexiblen Spaltenlayout
-            when:
-              slide_type: blocks
 
           template_canva_content:
             type: fields
@@ -114,6 +60,7 @@ tabs:
                   announcement: Ankündigung / Botschaft
                   compact_info: Kompakte Info / Hinweis
                   list: Liste (Karten nacheinander)
+                  image: Bild (Hintergrund, optional Bildunterschrift)
                 default: event_focus
                 required: true
                 width: 1/2
@@ -131,7 +78,7 @@ tabs:
               template_title:
                 label: Titel
                 type: text
-                required: true
+                help: Beim Template „Bild“ optional – erscheint dann als Bildunterschrift.
                 placeholder: z.B. Kleidertauschbörse
                 when:
                   slide_type: template

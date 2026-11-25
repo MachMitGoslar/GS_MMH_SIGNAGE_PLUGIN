@@ -1,7 +1,8 @@
 <?php
 
 /**
- * Migration "Hintergrund & Lesbarkeit" (unified slide look).
+ * Migration of signage slides: unified look ("Hintergrund & Lesbarkeit")
+ * and block slides → template "Bild".
  *
  *   php scripts/migrate-look.php <content-dir> [--apply] [--report=file.md]
  *

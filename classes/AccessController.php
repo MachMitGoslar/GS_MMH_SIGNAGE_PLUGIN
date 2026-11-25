@@ -1472,11 +1472,6 @@ class AccessController
 
         // Add type-specific data
         switch ($slideType) {
-            case 'blocks':
-                $baseData['layout'] = self::getLayoutData($slide);
-
-                break;
-
             case 'template':
                 $baseData['template'] = self::getTemplateData($slide);
 
@@ -1673,79 +1668,6 @@ class AccessController
         }
 
         return sha1(implode('|', $parts));
-    }
-
-    /**
-     * Extract layout data (layout field with columns and blocks)
-     */
-    private static function getLayoutData($slide): array
-    {
-        $layout = $slide->content_layout()->toLayouts();
-        $layoutData = [];
-
-        foreach ($layout as $layoutRow) {
-            $rowData = [
-                'columns' => [],
-                'settings' => [
-                    'vertical_align' => $layoutRow->attrs()->vertical_align ?? 'center',
-                    'padding' => $layoutRow->attrs()->padding ?? 'medium',
-                ],
-            ];
-
-            foreach ($layoutRow->columns() as $column) {
-                $columnData = [
-                    'width' => $column->width(),
-                    'blocks' => [],
-                ];
-
-                foreach ($column->blocks() as $block) {
-                    $blockData = [
-                        'type' => $block->type(),
-                        'id' => $block->id(),
-                    ];
-
-                    switch ($block->type()) {
-                        case 'signage-text':
-                            $blockData['text'] = $block->text()->toWriterHTML();
-
-                            break;
-
-                        case 'image':
-                            $image = $block->image()->toFile();
-                            if ($image) {
-                                $blockData['src'] = $image->url();
-                                $blockData['alt'] = $block->alt()->value() ?: $image->alt()->value();
-                                $blockData['caption'] = $block->caption()->value();
-                            }
-
-                            break;
-
-                        case 'list':
-                            $blockData['text'] = $block->text()->kirbytext();
-
-                            break;
-
-                        case 'quote':
-                            $blockData['text'] = $block->text()->kirbytext();
-                            $blockData['citation'] = $block->citation()->value();
-
-                            break;
-
-                        case 'line':
-                            // Line separator - no additional data needed
-                            break;
-                    }
-
-                    $columnData['blocks'][] = $blockData;
-                }
-
-                $rowData['columns'][] = $columnData;
-            }
-
-            $layoutData[] = $rowData;
-        }
-
-        return $layoutData;
     }
 
     /**

@@ -11,6 +11,10 @@
  *
  * Removed fields: Overlay-enabled, Bg-position, Template-image,
  * Template-focus, Template-theme.
+ *
+ * Content blocks are gone as a slide type: every block slide was a picture
+ * slide, it becomes the template "Bild" (the picture stays the background,
+ * the first text becomes the caption, Content-layout is removed).
  */
 class LookMigration
 {
@@ -66,10 +70,73 @@ class LookMigration
     public static function planSlide(array $fields): array
     {
         $c = self::normalize($fields);
+        $blocks = self::planBlocks($c);
+
         if (SlideLook::isMigrated($c)) {
+            return ['changes' => self::onlyDifferent($c, $blocks['changes']), 'notes' => $blocks['notes']];
+        }
+
+        $look = self::planLook($c);
+
+        return [
+            'changes' => self::onlyDifferent($c, $blocks['changes'] + $look['changes']),
+            'notes' => array_merge($blocks['notes'], $look['notes']),
+        ];
+    }
+
+    /**
+     * Block slide → template "Bild".
+     *
+     * @param array<string, string> $c normalized content
+     * @return array{changes: array<string, string|null>, notes: string[]}
+     */
+    private static function planBlocks(array $c): array
+    {
+        if (trim($c['slide_type'] ?? '') !== 'blocks') {
             return ['changes' => [], 'notes' => []];
         }
 
+        $texts = [];
+        $dropped = [];
+        $layout = json_decode((string) ($c['content_layout'] ?? '[]'), true);
+
+        foreach (is_array($layout) ? $layout : [] as $row) {
+            foreach ($row['columns'] ?? [] as $column) {
+                foreach ($column['blocks'] ?? [] as $block) {
+                    $text = trim(html_entity_decode(strip_tags((string) ($block['content']['text'] ?? '')), ENT_QUOTES | ENT_HTML5));
+                    if (in_array($block['type'] ?? '', ['signage-text', 'text', 'heading'], true) && $text !== '' && $texts === []) {
+                        $texts[] = $text;
+                    } else {
+                        $dropped[] = $block['type'] ?? '?';
+                    }
+                }
+            }
+        }
+
+        $caption = $texts[0] ?? '';
+        $changes = [
+            'slide_type' => 'template',
+            'template_preset' => 'image',
+            'content_layout' => null,
+        ];
+        if (trim($c['template_title'] ?? '') === '') {
+            $changes['template_title'] = $caption;
+        }
+
+        $notes = ['Inhaltsblöcke → Template „Bild“' . ($caption !== '' ? ', Bildunterschrift „' . $caption . '“' : '')];
+        if ($dropped !== []) {
+            $notes[] = '⚠ Nicht übernommen: ' . implode(', ', $dropped) . ' (Bild bleibt der Hintergrund)';
+        }
+
+        return ['changes' => $changes, 'notes' => $notes];
+    }
+
+    /**
+     * @param array<string, string> $c normalized content
+     * @return array{changes: array<string, string|null>, notes: string[]}
+     */
+    private static function planLook(array $c): array
+    {
         $changes = [];
         $notes = [];
         $type = trim($c['slide_type'] ?? '');
@@ -115,7 +182,7 @@ class LookMigration
             }
         }
 
-        return ['changes' => self::onlyDifferent($c, $changes), 'notes' => $notes];
+        return ['changes' => $changes, 'notes' => $notes];
     }
 
     /**
@@ -154,7 +221,7 @@ class LookMigration
      */
     public static function report(array $plan, string $contentRoot): string
     {
-        $lines = ['# Migration Hintergrund & Lesbarkeit', '', count($plan) . ' Dateien', ''];
+        $lines = ['# Migration Folien: Hintergrund & Lesbarkeit, Inhaltsblöcke', '', count($plan) . ' Dateien', ''];
 
         foreach ($plan as $file => $entry) {
             $lines[] = '## ' . ltrim(substr($file, strlen(rtrim($contentRoot, '/'))), '/');

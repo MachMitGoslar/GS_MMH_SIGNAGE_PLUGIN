@@ -178,7 +178,7 @@ columns:
                 query: site.find('signage/slides').childrenAndDrafts
                 image:
                   icon: image
-                info: "{{ page.slide_type.or('blocks') }} — automatisch {{ page.calculatedDuration }} Sek. — {{ page.statusLabel }}"
+                info: "{{ page.optionLabel('slide_type') }} — automatisch {{ page.calculatedDuration }} Sek. — {{ page.statusLabel }}"
                 width: 3/4
               duration:
                 label: Anzeigedauer

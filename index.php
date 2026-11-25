@@ -88,7 +88,6 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
         'pages/slides' => __DIR__ . '/blueprints/pages/slides.yml',
         'pages/slide' => __DIR__ . '/blueprints/pages/slide.yml',
         'pages/signage-greeting' => __DIR__ . '/blueprints/pages/signage-greeting.yml',
-        'blocks/signage-text' => __DIR__ . '/blueprints/blocks/signage-text.yml',
     ],
 
     /**
@@ -97,13 +96,6 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
     'templates' => [
         'screen' => __DIR__ . '/templates/screen.php',
         'signage-onboarding' => __DIR__ . '/templates/onboarding.php',
-    ],
-
-    /**
-     * Snippets
-     */
-    'snippets' => [
-        'blocks/signage-text' => __DIR__ . '/snippets/blocks/signage-text.php',
     ],
 
     /**
@@ -626,10 +618,8 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
             'signage.slide.tab.background' => 'Background',
             'signage.slide.tab.preview' => 'Preview',
             'signage.slide.field.slide_type' => 'Slide Type',
-            'signage.slide.field.slide_type.blocks' => 'Content Blocks',
             'signage.slide.field.slide_type.video' => 'Full-Screen Video',
             'signage.slide.field.slide_type.calendar' => 'Calendar / Events',
-            'signage.slide.field.content_layout' => 'Content Layout',
             'signage.slide.field.transition' => 'Transition Effect',
             'signage.slide.field.transition.fade' => 'Fade',
             'signage.slide.field.transition.slide' => 'Slide',
@@ -659,8 +649,6 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
             'signage.slide.field.calendar_range.month' => 'This Month',
             'signage.slide.field.calendar_max_events' => 'Max Events',
 
-            // Blocks
-            'signage.block.signage-text' => 'Signage Text',
         ],
 
         'de' => [
@@ -709,10 +697,8 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
             'signage.slide.tab.background' => 'Hintergrund',
             'signage.slide.tab.preview' => 'Vorschau',
             'signage.slide.field.slide_type' => 'Folientyp',
-            'signage.slide.field.slide_type.blocks' => 'Inhaltsblöcke',
             'signage.slide.field.slide_type.video' => 'Vollbild-Video',
             'signage.slide.field.slide_type.calendar' => 'Kalender / Termine',
-            'signage.slide.field.content_layout' => 'Inhalts-Layout',
             'signage.slide.field.transition' => 'Übergangseffekt',
             'signage.slide.field.transition.fade' => 'Überblenden',
             'signage.slide.field.transition.slide' => 'Schieben',
@@ -743,7 +729,6 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
             'signage.slide.field.calendar_max_events' => 'Max. Termine',
 
             // Blöcke
-            'signage.block.signage-text' => 'Signage-Text',
         ],
     ],
 ]);

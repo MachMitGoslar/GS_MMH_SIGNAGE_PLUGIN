@@ -456,8 +456,6 @@ if ($isPreview) {
              */
             renderSlideContent(slide) {
               switch (slide.type) {
-                case 'blocks':
-                  return this.renderLayoutSlide(slide.layout);
                 case 'template':
                   return this.renderTemplateSlide(slide.template, slide.scheme);
                 case 'video':
@@ -471,37 +469,6 @@ if ($isPreview) {
                 default:
                   return '<p>Unknown slide type</p>';
               }
-            },
-
-            /**
-             * Render layout-based slide (with rows and columns)
-             */
-            renderLayoutSlide(layout) {
-                if (!layout || layout.length === 0) {
-                    return '<p>No content</p>';
-                }
-
-                return layout.map(row => {
-                    const verticalAlign = row.settings?.vertical_align || 'center';
-                    const padding = row.settings?.padding || 'medium';
-                    
-                    const columnsHtml = row.columns.map(column => {
-                        const blocksHtml = column.blocks.map(block => this.renderBlock(block)).join('');
-                        return `
-                            <div class="layout-column" data-width="${column.width}">
-                                ${blocksHtml}
-                            </div>
-                        `;
-                    }).join('');
-
-                    return `
-                        <div class="layout-row" 
-                             data-vertical-align="${verticalAlign}" 
-                             data-padding="${padding}">
-                            ${columnsHtml}
-                        </div>
-                    `;
-                }).join('');
             },
 
             /**
@@ -522,6 +489,15 @@ if ($isPreview) {
                 const timeLabel = this.formatTemplateTimeRange(template?.time || '', template?.end_time || '');
                 const location = this.escapeHtml(template?.location || '');
                 const recurrence = this.escapeHtml(template?.recurrence || '');
+
+                // "Bild": the picture is the slide background, at most a caption
+                if (preset === 'image') {
+                    return title ? `
+                        <article class="template-slide template-slide--image template-slide--${theme}">
+                            <p class="template-slide__caption">${title}</p>
+                        </article>
+                    ` : '';
+                }
 
                 // "Veranstaltung" is also the layout for unknown/empty presets
                 if (!['announcement', 'compact_info', 'list'].includes(preset)) {
@@ -621,16 +597,6 @@ if ($isPreview) {
                         </article>
                     `;
                 }
-            },
-
-            getBlockText(block) {
-                if (!block || block.text == null) {
-                    return '';
-                }
-
-                return typeof block.text === 'string'
-                    ? block.text
-                    : (block.text.value || '');
             },
 
             escapeHtml(value) {
@@ -751,41 +717,6 @@ if ($isPreview) {
                 return event.end_time ? `${event.time} - ${event.end_time}` : event.time;
             },
 
-            /**
-             * Render individual block
-             */
-            renderBlock(block) {
-                switch (block.type) {
-                    case 'signage-text':
-                        return `<div class="text-block">${this.getBlockText(block)}</div>`;
-                    
-                    case 'image':
-                        if (!block.src) return '';
-                        return `
-                            <figure class="image-block">
-                                <img src="${block.src}" alt="${block.alt || ''}">
-                                ${block.caption ? `<figcaption>${block.caption}</figcaption>` : ''}
-                            </figure>
-                        `;
-                    
-                    case 'list':
-                        return `<div class="list-block">${this.getBlockText(block)}</div>`;
-                    
-                    case 'quote':
-                        return `
-                            <blockquote class="quote-block">
-                                ${this.getBlockText(block)}
-                                ${block.citation ? `<cite>${block.citation}</cite>` : ''}
-                            </blockquote>
-                        `;
-                    
-                    case 'line':
-                        return '<hr class="line-block">';
-                    
-                    default:
-                        return '';
-                }
-            },
             /**
              * Christmas tree slide: approved greetings hang as baubles.
              * Hang points are in SVG viewBox coordinates (0 0 600 800); each round

@@ -46,6 +46,38 @@ class LookMigrationTest extends TestCase
         $this->assertStringContainsString('Prüfen', implode(' ', $plan['notes']));
     }
 
+    public function testBlockSlideBecomesImageTemplate(): void
+    {
+        $layout = json_encode([[
+            'attrs' => ['vertical_align' => 'center'],
+            'columns' => [['width' => '1/1', 'blocks' => [
+                ['type' => 'signage-text', 'content' => ['text' => '<p>Willkommen im MachMit!Haus</p>']],
+                ['type' => 'quote', 'content' => ['text' => 'Zitat']],
+            ]]],
+        ]]);
+
+        $plan = LookMigration::planSlide([
+            'Slide-type' => 'blocks', 'Content-layout' => $layout, 'Bg-type' => 'image', 'Bg-image' => '- file://a',
+            'Bg-size' => 'contain', 'Overlay-enabled' => 'true', 'Overlay-color' => '#ffffff', 'Overlay-opacity' => '25',
+        ]);
+
+        $this->assertSame('template', $plan['changes']['slide_type']);
+        $this->assertSame('image', $plan['changes']['template_preset']);
+        $this->assertSame('Willkommen im MachMit!Haus', $plan['changes']['template_title']);
+        $this->assertNull($plan['changes']['content_layout']);
+        // the look is taken from the block slide: white overlay = light scheme
+        $this->assertSame('light', $plan['changes']['color_scheme']);
+        $this->assertStringContainsString('quote', implode(' ', $plan['notes']));
+    }
+
+    public function testBlockSlideIsConvertedEvenAfterTheLookMigration(): void
+    {
+        $plan = LookMigration::planSlide(['Slide-type' => 'blocks', 'Overlay-preset' => 'soft', 'Content-layout' => '[]']);
+
+        $this->assertSame('image', $plan['changes']['template_preset']);
+        $this->assertArrayNotHasKey('color_scheme', $plan['changes']);
+    }
+
     public function testMigratedSlidesAreLeftAlone(): void
     {
         $this->assertSame([], LookMigration::planSlide(['Overlay-preset' => 'soft'])['changes']);

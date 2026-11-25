@@ -43,6 +43,17 @@ class ListTemplateTest extends TestCase
         $this->assertStringContainsString('Liste mit 4 Karten', DurationCalculator::getCalculationDetails($four));
     }
 
+    public function testImageTemplateIsAPictureWithOptionalCaption(): void
+    {
+        $plain = new Page(['slug' => 'bild', 'template' => 'slide', 'content' => ['slide_type' => 'template', 'template_preset' => 'image']]);
+        $caption = new Page(['slug' => 'bild', 'template' => 'slide', 'content' => [
+            'slide_type' => 'template', 'template_preset' => 'image', 'template_title' => 'Willkommen im MachMit!Haus',
+        ]]);
+
+        $this->assertSame(8, DurationCalculator::calculate($plain));
+        $this->assertSame(13, DurationCalculator::calculate($caption));
+    }
+
     public function testEveryCardGetsAtLeastFourSeconds(): void
     {
         $six = $this->slide(array_fill(0, 6, ['title' => 'A', 'text' => '', 'meta' => '']));
