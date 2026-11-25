@@ -418,26 +418,7 @@ tabs:
                 type: info
                 label: Timing & Übergänge
                 theme: info
-                text: Steuern Sie, wie lange diese Folie angezeigt wird und wie sie übergeht
-
-              duration_mode:
-                label: Anzeigedauer
-                type: select
-                options:
-                  auto: Automatisch berechnen
-                  manual: Manuell festlegen
-                default: auto
-                width: 1/2
-
-              duration_override:
-                label: Dauer (Sekunden)
-                type: number
-                default: 15
-                min: 3
-                max: 300
-                width: 1/2
-                when:
-                  duration_mode: manual
+                text: Wie lange die Folie läuft, legt der Kanal fest (Kanal → Inhaltsfolien → Anzeigedauer). Hier nur der Übergang.
 
               transition:
                 label: Übergangseffekt
@@ -465,9 +446,9 @@ tabs:
             fields:
               info_calculated:
                 type: info
-                label: Berechnete Dauer
+                label: Automatisch berechnete Dauer
                 theme: notice
-                text: "{{ page.durationCalculationDetails }}"
+                text: "{{ page.calculatedDuration }} Sekunden ({{ page.durationCalculationDetails }}) – gilt, solange der Kanal keine eigene Dauer setzt. {{ page.legacyDurationInfo }}"
 
   background:
     label: Hintergrund
@@ -644,7 +625,7 @@ tabs:
                 theme: notice
                 text: |
                   **Folientyp:** {{ page.slide_type.or('blocks') }}
-                  **Dauer:** {{ page.calculatedDuration }} Sekunden
+                  **Dauer (automatisch):** {{ page.calculatedDuration }} Sekunden
                   **Übergang:** {{ page.transition.or('fade') }}
 
               slide_preview:

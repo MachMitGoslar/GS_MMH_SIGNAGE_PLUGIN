@@ -1400,7 +1400,7 @@ class AccessController
         $slidesData = [];
 
         if ($previewSlide) {
-            $slidesData[] = self::getSlideData($previewSlide);
+            $slidesData[] = self::getSlideData($previewSlide, null, $channels[0] ?? null);
         } else {
             $seen = [];
             foreach ($channels as $index => $slideChannel) {
@@ -1412,7 +1412,7 @@ class AccessController
 
                     // Slides from combined channels keep their own channel's
                     // default background.
-                    $slidesData[] = self::getSlideData($slide, $index > 0 ? $slideChannel : null);
+                    $slidesData[] = self::getSlideData($slide, $index > 0 ? $slideChannel : null, $slideChannel);
                 }
             }
         }
@@ -1446,16 +1446,19 @@ class AccessController
      * Extract slide data for frontend
      *
      * @param \Kirby\Cms\Page $slide
+     * @param \Kirby\Cms\Page|null $channel channel whose background applies (combined channels)
+     * @param \Kirby\Cms\Page|null $durationChannel channel whose duration applies
      * @return array Slide data
      */
-    private static function getSlideData($slide, $channel = null): array
+    private static function getSlideData($slide, $channel = null, $durationChannel = null): array
     {
         $slideType = $slide->slide_type()->value();
 
         $baseData = [
             'id' => $slide->id(),
             'type' => $slideType,
-            'duration' => $slide->calculatedDuration(),
+            // the channel decides how long a slide runs
+            'duration' => DurationCalculator::forChannel($slide, $durationChannel),
             'transition' => $slide->transition()->value() ?? 'fade',
             'transition_duration' => (float) ($slide->transition_duration()->value() ?? 1),
             'background' => self::getBackgroundData($slide),
