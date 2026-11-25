@@ -257,7 +257,7 @@ if ($isPreview) {
 
                     // Apply background
                     this.applyBackground(slideEl, effectiveBackground);
-                    this.applyTextTheme(slideEl, effectiveBackground);
+                    this.applyTextTheme(slideEl, slide.scheme || effectiveBackground?.scheme || 'dark');
 
                     // Render content
                     const contentWrapper = document.createElement('div');
@@ -293,29 +293,6 @@ if ($isPreview) {
                     return { type: 'color', color: '#0b1430', overlay: { enabled: false } };
                 }
 
-                if (slide?.type === 'template' && slide.template?.image?.url) {
-                    const themeOverlays = {
-                        light: { color: '#f4dfbd', opacity: 66 },
-                        dark: { color: '#10100f', opacity: 58 },
-                    };
-                    const overlay = themeOverlays[slide.template.theme] || themeOverlays.light;
-
-                    return {
-                        type: 'image',
-                        image: {
-                            url: slide.template.image.url,
-                            position: slide.template.image.position || 'center',
-                            size: 'cover',
-                        },
-                        overlay: {
-                            enabled: true,
-                            color: overlay.color,
-                            opacity: overlay.opacity,
-                            gradient: 'none',
-                        },
-                    };
-                }
-
                 // Slides from a combined ("add") channel bring that channel's
                 // default background along.
                 return slide?.channel_background
@@ -323,8 +300,15 @@ if ($isPreview) {
                     || slideBackground;
             },
 
-            applyTextTheme(slideEl, background) {
-                const theme = this.getTextTheme(background);
+            /**
+             * Text colours for blocks, calendar etc. The colour scheme comes
+             * from the slide (or its channel): "light" = dark text on a light
+             * look, "dark" = light text. Templates use the same scheme as
+             * their CSS modifier (template-slide--light/--dark).
+             */
+            applyTextTheme(slideEl, scheme) {
+                const theme = this.getTextTheme(scheme);
+                slideEl.dataset.scheme = scheme === 'light' ? 'light' : 'dark';
                 slideEl.style.setProperty('--signage-text-color', theme.text);
                 slideEl.style.setProperty('--signage-muted-color', theme.muted);
                 slideEl.style.setProperty('--signage-surface-color', theme.surface);
@@ -334,18 +318,20 @@ if ($isPreview) {
                 slideEl.style.setProperty('--signage-accent-surface-color', theme.accentSurface);
             },
 
-            getTextTheme(background) {
-                const lightTheme = {
-                    text: '#000000',
-                    muted: '#4e4e4d',
-                    surface: '#ffffff',
-                    surfaceStrong: '#ffffff',
-                    border: 'rgb(0 0 0 / 10%)',
-                    shadow: 'rgb(0 0 0 / 10%)',
-                    accentSurface: 'rgba(252, 206, 76, 0.18)',
-                };
+            getTextTheme(scheme) {
+                if (scheme === 'light') {
+                    return {
+                        text: '#000000',
+                        muted: '#4e4e4d',
+                        surface: '#ffffff',
+                        surfaceStrong: '#ffffff',
+                        border: 'rgb(0 0 0 / 10%)',
+                        shadow: 'rgb(0 0 0 / 10%)',
+                        accentSurface: 'rgba(252, 206, 76, 0.18)',
+                    };
+                }
 
-                const darkTheme = {
+                return {
                     text: '#ffffff',
                     muted: '#d9d9d9',
                     surface: 'rgba(255, 255, 255, 0.08)',
@@ -354,23 +340,6 @@ if ($isPreview) {
                     shadow: 'rgba(0, 0, 0, 0.18)',
                     accentSurface: 'rgba(252, 206, 76, 0.12)',
                 };
-
-                if (!background) {
-                    return lightTheme;
-                }
-
-                const color = background.color || background.background_color || background.overlay?.color || null;
-                if (!color) {
-                    return lightTheme;
-                }
-
-                const normalized = this.normalizeHexColor(color);
-                if (!normalized) {
-                    return lightTheme;
-                }
-
-                const brightness = this.getColorBrightness(normalized);
-                return brightness >= 155 ? lightTheme : darkTheme;
             },
 
             normalizeHexColor(color) {
@@ -386,13 +355,6 @@ if ($isPreview) {
                 }
 
                 return /^[0-9a-fA-F]{6}$/.test(hex) ? `#${hex}` : null;
-            },
-
-            getColorBrightness(color) {
-                const r = parseInt(color.slice(1, 3), 16);
-                const g = parseInt(color.slice(3, 5), 16);
-                const b = parseInt(color.slice(5, 7), 16);
-                return (r * 299 + g * 587 + b * 114) / 1000;
             },
 
             /**
@@ -497,7 +459,7 @@ if ($isPreview) {
                 case 'blocks':
                   return this.renderLayoutSlide(slide.layout);
                 case 'template':
-                  return this.renderTemplateSlide(slide.template);
+                  return this.renderTemplateSlide(slide.template, slide.scheme);
                 case 'video':
                   return this.renderVideoSlide(slide.video);
                 case 'calendar':
@@ -545,9 +507,9 @@ if ($isPreview) {
             /**
              * Render predefined template slide
              */
-            renderTemplateSlide(template) {
+            renderTemplateSlide(template, scheme) {
                 const preset = template?.preset || 'event_focus';
-                const theme = template?.theme || 'light';
+                const theme = scheme === 'light' ? 'light' : 'dark';
                 const title = this.escapeHtml(template?.title || '');
                 const subtitle = this.escapeHtml(template?.subtitle || '');
                 const label = this.escapeHtml(template?.label || '');

@@ -18,6 +18,7 @@ use Kirby\Toolkit\Tpl;
 require_once __DIR__ . '/classes/DurationCalculator.php';
 require_once __DIR__ . '/classes/ICalParser.php';
 require_once __DIR__ . '/classes/SlideLibrary.php';
+require_once __DIR__ . '/classes/SlideLook.php';
 require_once __DIR__ . '/classes/AccessController.php';
 require_once __DIR__ . '/classes/ChristmasTree.php';
 require_once __DIR__ . '/classes/ChannelSchedule.php';

@@ -1461,8 +1461,13 @@ class AccessController
             'duration' => DurationCalculator::forChannel($slide, $durationChannel),
             'transition' => $slide->transition()->value() ?? 'fade',
             'transition_duration' => (float) ($slide->transition_duration()->value() ?? 1),
-            'background' => self::getBackgroundData($slide),
+            'background' => self::getBackgroundData($slide, $durationChannel),
             'channel_background' => $channel ? self::getChannelBackgroundData($channel) : null,
+            // light = dark text on a light look, dark = light text
+            'scheme' => SlideLook::scheme(
+                $slide->content()->toArray(),
+                $durationChannel ? SlideLook::channelScheme($durationChannel->content()->toArray()) : 'dark',
+            ),
         ];
 
         // Add type-specific data
@@ -1502,56 +1507,49 @@ class AccessController
     }
 
     /**
-     * Extract background data
+     * Background of a slide for the player (rules in SlideLook).
+     *
+     * @param \Kirby\Cms\Page $slide
+     * @param \Kirby\Cms\Page|null $channel the slide's channel (colour scheme default)
      */
-    private static function getBackgroundData($slide): array
+    private static function getBackgroundData($slide, $channel = null): array
     {
-        $bgType = $slide->bg_type()->value() ?? 'none';
+        $content = $slide->content()->toArray();
+        $look = SlideLook::background($content);
+        $scheme = SlideLook::scheme(
+            $content,
+            $channel ? SlideLook::channelScheme($channel->content()->toArray()) : 'dark',
+        );
 
-        $backgroundData = [
-            'type' => $bgType,
-        ];
+        $background = ['type' => $look['type']];
 
-        if ($bgType === 'image') {
-            $bgImage = $slide->bg_image()->toFile();
-            if ($bgImage) {
-                $backgroundData['image'] = [
-                    'url' => $bgImage->url(),
-                    'position' => self::backgroundPosition($bgImage, $slide->bg_position()->value(), $slide->bg_focus()->value()),
-                    'size' => $slide->bg_size()->value() ?? 'cover',
+        if ($look['type'] === 'image') {
+            $image = kirby()->file($look['image']) ?? $slide->file($look['image']);
+            if ($image) {
+                $background['image'] = [
+                    'url' => $image->url(),
+                    'position' => self::backgroundPosition($image, null, $look['focus'] ?? null),
+                    'size' => $look['fit'] ?? 'cover',
                 ];
+            } else {
+                $background['type'] = 'none';
             }
-        } elseif ($bgType === 'video') {
-            $bgVideo = $slide->bg_video()->toFile();
-            if ($bgVideo) {
-                $backgroundData['video'] = [
-                    'url' => $bgVideo->url(),
-                    'type' => $bgVideo->mime(),
-                ];
+        } elseif ($look['type'] === 'video') {
+            $video = kirby()->file($look['video']) ?? $slide->file($look['video']);
+            if ($video) {
+                $background['video'] = ['url' => $video->url(), 'type' => $video->mime()];
+            } else {
+                $background['type'] = 'none';
             }
-        } elseif ($bgType === 'color') {
-            // Own field since the overlay split; older slides stored the solid
-            // color in overlay_color.
-            $backgroundData['color'] = $slide->bg_color()->value()
-                ?: ($slide->overlay_color()->value() ?: '#000000');
+        } elseif ($look['type'] === 'color') {
+            $background['color'] = $look['color'];
         }
 
-        // Overlay settings only apply to media backgrounds. A solid color should
-        // remain the exact selected color, and channel-default slides use the
-        // channel background settings instead.
-        if (in_array($bgType, ['image', 'video'], true) && $slide->overlay_enabled()->toBool()) {
-            $backgroundData['overlay'] = [
-                'enabled' => true,
-                'color' => $slide->overlay_color()->value() ?? '#000000',
-                'opacity' => self::overlayOpacity($slide->overlay_opacity()->value(), 40),
-                'gradient' => $slide->overlay_gradient()->value() ?: 'none',
-                'strength' => self::overlayStrength($slide->overlay_strength()->value()),
-            ];
-        } else {
-            $backgroundData['overlay'] = ['enabled' => false];
-        }
+        $background['overlay'] = $background['type'] === 'none'
+            ? ['enabled' => false]
+            : SlideLook::overlay($content, $scheme);
 
-        return $backgroundData;
+        return $background;
     }
 
     /**
@@ -1563,30 +1561,27 @@ class AccessController
         return [
             'type' => 'color',
             'background_color' => '#000000',
+            'scheme' => 'dark',
             'overlay' => ['enabled' => false],
         ];
     }
 
     private static function getChannelBackgroundData($channel): array
     {
-        $overlayOpacity = self::overlayOpacity($channel->default_overlay_opacity()->value(), 40);
+        $content = $channel->content()->toArray();
+        $overlay = SlideLook::channelOverlay($content);
 
         $background = [
             'type' => 'color',
-            'background_color' => $channel->background_color()->value() ?: '#000000',
-            'overlay' => [
-                'enabled' => false,
-                'color' => $channel->default_overlay_color()->value() ?: '#000000',
-                'opacity' => $overlayOpacity,
-                'gradient' => $channel->default_overlay_gradient()->value() ?: 'none',
-                'strength' => self::overlayStrength($channel->default_overlay_strength()->value()),
-            ],
+            'background_color' => $channel->default_bg_color()->value() ?: '#000000',
+            'scheme' => SlideLook::channelScheme($content),
+            'overlay' => ['enabled' => false],
         ];
 
         $bgImage = $channel->default_bg_image()->toFile();
         if ($bgImage) {
             $background['type'] = 'image';
-            $background['overlay']['enabled'] = $overlayOpacity > 0;
+            $background['overlay'] = $overlay;
             $background['image'] = [
                 'url' => $bgImage->url(),
                 'position' => self::backgroundPosition($bgImage, null, $channel->default_bg_focus()->value()),
@@ -1597,7 +1592,7 @@ class AccessController
         $bgVideo = $channel->default_bg_video()->toFile();
         if ($bgVideo) {
             $background['type'] = 'video';
-            $background['overlay']['enabled'] = $overlayOpacity > 0;
+            $background['overlay'] = $overlay;
             $background['video'] = [
                 'url' => $bgVideo->url(),
                 'type' => $bgVideo->mime(),
@@ -1631,27 +1626,6 @@ class AccessController
         }
 
         return '50% 50%';
-    }
-
-    /**
-     * How far a gradient overlay reaches into the image (10–100 %).
-     */
-    private static function overlayStrength($value, int $fallback = 60): int
-    {
-        if ($value === null || $value === '') {
-            return $fallback;
-        }
-
-        return max(10, min(100, (int) $value));
-    }
-
-    private static function overlayOpacity($value, int $fallback): int
-    {
-        if ($value === null || $value === '') {
-            return $fallback;
-        }
-
-        return max(0, min(100, (int) $value));
     }
 
     private static function getContentRevision($screen, array $preview = []): string
@@ -1803,11 +1777,9 @@ class AccessController
      */
     private static function getTemplateData($slide): array
     {
-        $image = $slide->template_image()->toFile();
 
         return [
             'preset' => $slide->template_preset()->value() ?: 'event_focus',
-            'theme' => $slide->template_theme()->value() ?: 'light',
             'title' => $slide->template_title()->value(),
             'subtitle' => $slide->template_subtitle()->value(),
             'label' => $slide->template_label()->value(),
@@ -1820,11 +1792,6 @@ class AccessController
             'end_time' => $slide->template_end_time()->value(),
             'location' => $slide->template_location()->value(),
             'items' => self::templateItems($slide),
-            'image' => $image ? [
-                'url' => $image->url(),
-                'alt' => $image->alt()->value() ?: $slide->template_title()->value(),
-                'position' => self::backgroundPosition($image, null, $slide->template_focus()->value()),
-            ] : null,
         ];
     }
 
