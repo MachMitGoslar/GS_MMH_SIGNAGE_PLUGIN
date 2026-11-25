@@ -22,7 +22,6 @@ class DurationCalculator
      * Base durations for different content types (seconds)
      */
     private const BASE_DURATION_IMAGE = 8;
-    private const BASE_DURATION_HEADING = 3;
     private const BASE_DURATION_CALENDAR = 30;
 
     /**
@@ -85,7 +84,6 @@ class DurationCalculator
         $slideType = $slide->slide_type()->value();
 
         $duration = match ($slideType) {
-            'blocks' => self::calculateBlocksDuration($slide),
             'template' => self::calculateTemplateDuration($slide),
             'video' => self::calculateVideoDuration($slide),
             'calendar' => self::calculateCalendarDuration($slide),
@@ -108,7 +106,6 @@ class DurationCalculator
         $slideType = $slide->slide_type()->value();
 
         return match ($slideType) {
-            'blocks' => self::getBlocksCalculationDetails($slide),
             'template' => self::getTemplateCalculationDetails($slide),
             'video' => self::getVideoCalculationDetails($slide),
             'calendar' => self::getCalendarCalculationDetails($slide),
@@ -118,132 +115,13 @@ class DurationCalculator
     }
 
     /**
-     * Calculate duration for block-based slides
-     *
-     * @param \Kirby\Cms\Page $slide
-     * @return int Duration in seconds
-     */
-    public static function calculateBlocksDuration($slide): int
-    {
-        $layout = $slide->content_layout()->toLayouts();
-        $totalDuration = 0;
-
-        if ($layout->count() === 0) {
-            return self::MIN_DURATION;
-        }
-
-        // Iterate through layout rows and columns
-        foreach ($layout as $layoutRow) {
-            foreach ($layoutRow->columns() as $column) {
-                foreach ($column->blocks() as $block) {
-                    $blockDuration = match ($block->type()) {
-                        'heading' => self::BASE_DURATION_HEADING,
-                        'text' => self::calculateTextDuration($block->text()->value()),
-                        'image' => self::calculateImageBlockDuration($block),
-                        'list' => self::calculateListDuration($block),
-                        'quote' => self::calculateTextDuration($block->text()->value()) + 2,
-                        'line' => 1, // Line separator - minimal duration
-                        default => 5
-                    };
-
-                    $totalDuration += $blockDuration;
-                }
-            }
-        }
-
-        return $totalDuration > 0 ? $totalDuration : self::MIN_DURATION;
-    }
-
-    /**
-     * Get calculation details for block slides
-     */
-    private static function getBlocksCalculationDetails($slide): string
-    {
-        $layout = $slide->content_layout()->toLayouts();
-
-        if ($layout->count() === 0) {
-            return 'No content: minimum ' . self::MIN_DURATION . ' seconds';
-        }
-
-        $details = [];
-        foreach ($layout as $layoutRow) {
-            foreach ($layoutRow->columns() as $column) {
-                foreach ($column->blocks() as $block) {
-                    $type = ucfirst($block->type());
-                    $duration = match ($block->type()) {
-                        'heading' => self::BASE_DURATION_HEADING,
-                        'text' => self::calculateTextDuration($block->text()->value()),
-                        'image' => self::calculateImageBlockDuration($block),
-                        'list' => self::calculateListDuration($block),
-                        'quote' => self::calculateTextDuration($block->text()->value()) + 2,
-                        'line' => 1,
-                        default => 5
-                    };
-                    $details[] = "{$type}: {$duration}s";
-                }
-            }
-        }
-
-        return implode(' + ', $details);
-    }
-
-    /**
-     * Calculate duration for text content
-     *
-     * @param string $text Text content (may contain HTML)
-     * @return int Duration in seconds
+     * Reading time of a text (may contain HTML), at least the minimum
      */
     private static function calculateTextDuration(string $text): int
     {
-        // Strip HTML tags and count characters
-        $cleanText = strip_tags($text);
-        $charCount = mb_strlen($cleanText);
+        $charCount = mb_strlen(strip_tags($text));
 
-        // Calculate reading time
-        $duration = (int) ceil($charCount / self::CHARS_PER_SECOND);
-
-        return max(self::MIN_DURATION, $duration);
-    }
-
-    /**
-     * Calculate duration for image blocks
-     *
-     * @param \Kirby\Cms\Block $block
-     * @return int Duration in seconds
-     */
-    private static function calculateImageBlockDuration($block): int
-    {
-        $baseDuration = self::BASE_DURATION_IMAGE;
-
-        // Add time for caption if present
-        $caption = $block->caption()->value();
-        if (!empty($caption)) {
-            $baseDuration += self::calculateTextDuration($caption);
-        }
-
-        // Add time for alt text if present (fallback)
-        $alt = $block->alt()->value();
-        if (empty($caption) && !empty($alt)) {
-            $baseDuration += self::calculateTextDuration($alt);
-        }
-
-        return min($baseDuration, 60); // Cap image duration at 60s
-    }
-
-    /**
-     * Calculate duration for list blocks
-     *
-     * @param \Kirby\Cms\Block $block
-     * @return int Duration in seconds
-     */
-    private static function calculateListDuration($block): int
-    {
-        $text = $block->text()->value();
-        $items = explode("\n", strip_tags($text));
-        $itemCount = count(array_filter($items)); // Filter empty lines
-
-        // Base duration + per-item duration
-        return 3 + ($itemCount * 2); // 3s base + 2s per item
+        return max(self::MIN_DURATION, (int) ceil($charCount / self::CHARS_PER_SECOND));
     }
 
     /**
@@ -256,6 +134,13 @@ class DurationCalculator
     {
         if ($slide->template_preset()->value() === 'list') {
             return self::calculateListTemplateDuration($slide);
+        }
+
+        if ($slide->template_preset()->value() === 'image') {
+            // a picture plus an optional caption
+            $caption = trim((string) $slide->template_title()->value());
+
+            return self::BASE_DURATION_IMAGE + ($caption === '' ? 0 : self::calculateTextDuration($caption));
         }
 
         $textParts = [

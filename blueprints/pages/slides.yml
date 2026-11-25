@@ -22,7 +22,7 @@ columns:
         template: slide
         create: slide
         status: all
-        info: "{{ page.slide_type.or('blocks') }} — {{ page.calculatedDuration }} Sek."
+        info: "{{ page.optionLabel('slide_type') }} — {{ page.calculatedDuration }} Sek."
         text: "{{ page.title }}"
         help: |
           Folien werden hier einmal angelegt und können in beliebig vielen Kanälen verwendet werden.
