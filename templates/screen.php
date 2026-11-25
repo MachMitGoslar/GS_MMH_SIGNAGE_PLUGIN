@@ -466,6 +466,10 @@ if ($isPreview) {
                   return this.renderCanvaSlide(slide.canva);
                 case 'christmas_tree':
                   return this.renderChristmasTreeSlide(slide.christmas_tree);
+                case 'blocks':
+                  // removed slide type: until the content migration has made
+                  // it a "Bild" template only its background is shown
+                  return '';
                 default:
                   return '<p>Unknown slide type</p>';
               }
