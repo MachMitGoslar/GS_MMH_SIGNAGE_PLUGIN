@@ -47,12 +47,31 @@ class DurationCalculator
     public static function forChannel($slide, $channel = null): int
     {
         $set = $channel ? SlideLibrary::durationIn($channel, $slide) : null;
+        $set ??= self::legacyDuration($slide);
 
         if ($set === null) {
             return self::calculate($slide);
         }
 
         return max(self::MIN_CHANNEL_DURATION, min($set, self::MAX_CHANNEL_DURATION));
+    }
+
+    /**
+     * Duration set by hand on the slide itself (before channels decided).
+     * Still honoured while a channel sets none, so existing slides keep
+     * their timing; the slide panel no longer offers the field.
+     *
+     * @param \Kirby\Cms\Page $slide
+     */
+    public static function legacyDuration($slide): ?int
+    {
+        if ($slide->duration_mode()->value() !== 'manual') {
+            return null;
+        }
+
+        $seconds = (int) $slide->duration_override()->value();
+
+        return $seconds > 0 ? $seconds : null;
     }
 
     /**

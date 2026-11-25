@@ -448,7 +448,7 @@ tabs:
                 type: info
                 label: Automatisch berechnete Dauer
                 theme: notice
-                text: "{{ page.calculatedDuration }} Sekunden ({{ page.durationCalculationDetails }}) – gilt, solange der Kanal keine eigene Dauer setzt."
+                text: "{{ page.calculatedDuration }} Sekunden ({{ page.durationCalculationDetails }}) – gilt, solange der Kanal keine eigene Dauer setzt. {{ page.legacyDurationInfo }}"
 
   background:
     label: Hintergrund

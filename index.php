@@ -402,13 +402,25 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
             $lines = [];
             foreach ($this->channelSlides() as $slide) {
                 $set = SlideLibrary::durationIn($this, $slide);
+                $legacy = DurationCalculator::legacyDuration($slide);
                 $duration = DurationCalculator::forChannel($slide, $this);
-                $lines[] = '- ' . $slide->title()->value() . ': '
-                    . ($set === null ? 'automatisch ' . $duration . ' Sek.' : $duration . ' Sek.')
+                $source = match (true) {
+                    $set !== null => '',
+                    $legacy !== null => ' (alte Folien-Einstellung)',
+                    default => ' (automatisch)',
+                };
+                $lines[] = '- ' . $slide->title()->value() . ': ' . $duration . ' Sek.' . $source
                     . ' · ' . $slide->statusLabel();
             }
 
             return $lines === [] ? '' : implode("\n", $lines);
+        },
+        'legacyDurationInfo' => function () {
+            $legacy = DurationCalculator::legacyDuration($this);
+
+            return $legacy === null
+                ? ''
+                : 'Früher an der Folie festgelegt: ' . $legacy . ' Sek. – gilt weiter, bis der Kanal eine eigene Dauer setzt.';
         },
         'statusLabel' => function () {
             // the label from the blueprint ("Aktiv"), not the raw status ("unlisted")
@@ -434,9 +446,9 @@ Kirby::plugin('gs-mmh/gs-mmh-signage-plugin', [
 
             $slide = $this;
             $titles = implode(', ', array_map(function ($c) use ($slide) {
-                $set = SlideLibrary::durationIn($c, $slide);
+                $seconds = DurationCalculator::forChannel($slide, $c);
 
-                return $c->title()->value() . ' (' . ($set === null ? 'automatisch' : $set . ' Sek.') . ')';
+                return $c->title()->value() . ' (' . $seconds . ' Sek.)';
             }, $channels->values()));
 
             return $channels->count() === 1

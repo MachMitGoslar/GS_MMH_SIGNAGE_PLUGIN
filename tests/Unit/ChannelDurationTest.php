@@ -88,6 +88,37 @@ class ChannelDurationTest extends TestCase
         $this->assertSame(45, DurationCalculator::forChannel($this->slide('a'), $long));
     }
 
+    public function testOldSlideDurationAppliesUntilTheChannelSetsOne(): void
+    {
+        $this->app = $this->app->clone([
+            'site' => [
+                'children' => [
+                    [
+                        'slug' => 'signage',
+                        'children' => [
+                            [
+                                'slug' => 'slides',
+                                'children' => [
+                                    ['slug' => 'a', 'template' => 'slide', 'content' => [
+                                        'slide_type' => 'other', 'uuid' => 'slide-a',
+                                        'duration_mode' => 'manual', 'duration_override' => '300',
+                                    ]],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $unset = $this->channel("- page://slide-a\n");
+        $set = $this->channel("-\n  slide:\n    - page://slide-a\n  duration: 25\n");
+
+        $this->assertSame(300, DurationCalculator::forChannel($this->slide('a'), $unset));
+        $this->assertSame(25, DurationCalculator::forChannel($this->slide('a'), $set));
+        $this->assertSame(300, DurationCalculator::forChannel($this->slide('a')));
+    }
+
     public function testChannelDurationIsClamped(): void
     {
         $channel = $this->channel("-\n  slide:\n    - page://slide-a\n  duration: 1\n-\n  slide:\n    - page://slide-b\n  duration: 9999\n");
